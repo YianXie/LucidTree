@@ -193,7 +193,6 @@ def mcts(root_board: Board, root_player: Player) -> Move | None:
                 node.move_from_parent.get_position(),  # type: ignore
                 player.get_color(),
             )
-            # print(f"Selected move: {node.move_from_parent}")
             player = player.opponent
             moves_made += 1
 
@@ -265,22 +264,22 @@ def mcts(root_board: Board, root_player: Player) -> Move | None:
     return best.move_from_parent
 
 
-black_player, white_player = Player("Black Player", -1), Player("White Player", 1)
-black_player.opponent, white_player.opponent = white_player, black_player
-board = Board(9, black_player, white_player)
-color = -1
+if __name__ == "__main__":
+    black_player, white_player = Player("Black Player", -1), Player("White Player", 1)
+    black_player.opponent, white_player.opponent = white_player, black_player
+    board = Board(9, black_player, white_player)
+    color = -1
 
-
-while not board.is_terminate():
-    row, col = map(int, input("Enter row and col to play: ").split())
-    board.place_move((row, col), color)
-    color *= -1
-    board.print_ascii_board()
-
-    move = mcts(board, white_player)
-    if move is not None:
-        board.place_move(move.get_position(), white_player.get_color())
+    while not board.is_terminate():
+        row, col = map(int, input("Enter row and col to play: ").split())
+        board.place_move((row, col), color)
         color *= -1
         board.print_ascii_board()
-    else:
-        print("No move found")
+
+        move = mcts(board, white_player)
+        if move is not None:
+            board.place_move(move.get_position(), white_player.get_color())
+            color *= -1
+            board.print_ascii_board()
+        else:
+            print("No move found")
