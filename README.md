@@ -1,6 +1,6 @@
 # Mini-KataGo
 
-My own implementation of Go AI, similar to [KataGo](https://github.com/lightvector/KataGo).
+A basic implementation of Go AI, similar to [KataGo](https://github.com/lightvector/KataGo).
 
 ## Timeline
 
