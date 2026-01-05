@@ -1,3 +1,6 @@
+from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+
+
 class Rules:
     """
     A class containing rules for a Go game
@@ -38,7 +41,7 @@ class Rules:
         """
         if not isinstance(color, int):
             return False
-        return color in [-1, 0, 1]
+        return color in [BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR]
 
     @staticmethod
     def player_name_is_valid(name: str) -> bool:

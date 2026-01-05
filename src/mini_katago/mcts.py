@@ -8,9 +8,10 @@ from typing import Self
 
 # fmt: off
 from mini_katago.board import Board, Move
-from mini_katago.constants import (ADJ_BOOST, CAPTURE_BOOST,
+from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
                                    EXPLORATION_CONSTANT, INFINITY,
-                                   MAX_GAME_DEPTH, NUM_SIMULATIONS)
+                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
+                                   WHITE_COLOR)
 from mini_katago.player import Player
 
 # fmt: on
@@ -49,7 +50,7 @@ class Node:
 
     def uct_score(self, parent_visits: int, C: float = EXPLORATION_CONSTANT) -> float:
         """
-        Calculate the UCT (Upper Confidence Bounds applied to tree) score
+        Calculate the UCT (Upper Confidence Bound applied to Trees) score
 
         Args:
             parent_visits (int): the node's parent's visits
@@ -154,13 +155,16 @@ def semi_random_move(board: Board, legal_moves: list[Move]) -> Move:
     return weighted_choice(legal_moves, weights)
 
 
-def mcts(root_board: Board, root_player: Player) -> Move | None:
+def mcts(
+    root_board: Board, root_player: Player, num_simulations: int = NUM_SIMULATIONS
+) -> Move | None:
     """
     A Monte Carlo Tree Search algorithm to find the best move for the root player
 
     Args:
         root_board (Board): the board to start the search from
         root_player (Player): the player to start the search from
+        num_simulations (int, optional): the number of simulations to run. Defaults to 1000.
 
     Returns:
         Move | None: the best move for the root player
@@ -174,7 +178,7 @@ def mcts(root_board: Board, root_player: Player) -> Move | None:
     )
     root.untried_moves = root_board.get_legal_moves(root_player.get_color())
 
-    for _ in range(NUM_SIMULATIONS):
+    for _ in range(num_simulations):
         moves_made = 0
         node = root
         player = root_player
@@ -245,7 +249,7 @@ def mcts(root_board: Board, root_player: Player) -> Move | None:
             # From the root player's perspective
             root_won = (
                 (black_score > white_score)
-                if root_player.get_color() == -1
+                if root_player.get_color() == BLACK_COLOR
                 else (white_score > black_score)
             )
             node.total_wins += int(root_won)
@@ -265,10 +269,13 @@ def mcts(root_board: Board, root_player: Player) -> Move | None:
 
 
 if __name__ == "__main__":
-    black_player, white_player = Player("Black Player", -1), Player("White Player", 1)
+    black_player, white_player = (
+        Player("Black Player", BLACK_COLOR),
+        Player("White Player", WHITE_COLOR),
+    )
     black_player.opponent, white_player.opponent = white_player, black_player
     board = Board(9, black_player, white_player)
-    color = -1
+    color = BLACK_COLOR
 
     while not board.is_terminate():
         row, col = map(int, input("Enter row and col to play: ").split())

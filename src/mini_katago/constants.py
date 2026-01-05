@@ -1,5 +1,25 @@
 import math
 
+EMPTY_COLOR = 0
+"""
+The color of the empty space
+"""
+
+BLACK_COLOR = -1
+"""
+The color of the black player
+"""
+
+WHITE_COLOR = 1
+"""
+The color of the white player
+"""
+
+KOMI = 7.5
+"""
+The Komi value for the game
+"""
+
 INFINITY = math.inf
 """
 Represents a very large value

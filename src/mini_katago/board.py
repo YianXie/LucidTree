@@ -5,6 +5,7 @@ from typing import Any
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
+from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
 from mini_katago.player import Player
 from mini_katago.rules import Rules
 
@@ -15,7 +16,12 @@ class Move:
     """
 
     def __init__(
-        self, row: int = -1, col: int = -1, color: int = 0, *, passed: bool = False
+        self,
+        row: int = -1,
+        col: int = -1,
+        color: int = EMPTY_COLOR,
+        *,
+        passed: bool = False,
     ) -> None:
         """
         Initialize the move
@@ -301,7 +307,7 @@ class Board:
             int: the amount of liberties of that position, -1 if move is empty
         """
         color = move.get_color()
-        if color == 0:
+        if color == EMPTY_COLOR:
             return -1
 
         liberties = 0
@@ -314,7 +320,7 @@ class Board:
                 neighborColor = neighbor.get_color()
                 if neighborColor == color and neighbor not in visited:
                     queue.append(neighbor)
-                elif neighborColor == 0 and neighbor not in visited:
+                elif neighborColor == EMPTY_COLOR and neighbor not in visited:
                     liberties += 1
                 visited.add(neighbor)
 
@@ -350,7 +356,7 @@ class Board:
         if move_type == "place":
             # Remove the stone from the board
             row, col = position
-            self.state[row][col].set_color(0)
+            self.state[row][col].set_color(EMPTY_COLOR)
 
             # Restore captured stones
             for captured_move in captures:
@@ -360,7 +366,7 @@ class Board:
                 )
 
             # Restore the capture count of the player who made the move
-            if color == -1:  # Black player made the move
+            if color == BLACK_COLOR:  # Black player made the move
                 self.black_player.set_capture_count(previous_capture_count)
             else:  # White player made the move
                 self.white_player.set_capture_count(previous_capture_count)
@@ -446,7 +452,7 @@ class Board:
         captures_copy: list[Move] = copy.deepcopy(captures)
         for capture in captures:
             row, col = capture.get_position()
-            self.state[row][col].set_color(0)
+            self.state[row][col].set_color(EMPTY_COLOR)
 
         self._move_history.append(
             {
@@ -550,21 +556,25 @@ class Board:
                                 queue.append(neighbor)
                             queue_visited.add(neighbor)
                     if (
-                        -1 in queued_neighbor_border_colors
-                        and 1 not in queued_neighbor_border_colors
+                        BLACK_COLOR in queued_neighbor_border_colors
+                        and WHITE_COLOR not in queued_neighbor_border_colors
                     ):
                         black_territories += empty_moves
                     elif (
-                        -1 not in queued_neighbor_border_colors
-                        and 1 in queued_neighbor_border_colors
+                        BLACK_COLOR not in queued_neighbor_border_colors
+                        and WHITE_COLOR in queued_neighbor_border_colors
                     ):
                         white_territories += empty_moves
                     visited.update(queue_visited)
                 visited.add(move)
 
-        # Add captured stone count
-        black_territories += self.black_player.get_capture_count() * 2
-        white_territories += self.white_player.get_capture_count() * 2
+        # Alternative solution to count the territories
+        for row in self.state:
+            for move in row:
+                if move.get_color() == BLACK_COLOR:
+                    black_territories += 1
+                elif move.get_color() == WHITE_COLOR:
+                    white_territories += 1
 
         return (black_territories, white_territories)
 
@@ -573,7 +583,14 @@ class Board:
         for row in self.state:
             for move in row:
                 color = move.get_color()
-                print("B" if color == -1 else "W" if color == 1 else ".", end=" ")
+                print(
+                    "B"
+                    if color == BLACK_COLOR
+                    else "W"
+                    if color == WHITE_COLOR
+                    else ".",
+                    end=" ",
+                )
             print()
         print()
 
@@ -597,7 +614,13 @@ class Board:
                 if move.is_empty():
                     continue
                 moveRow, moveCol = move.get_position()
-                color = "black" if move.get_color() == -1 else "white"
+                color = (
+                    "black"
+                    if move.get_color() == BLACK_COLOR
+                    else "white"
+                    if move.get_color() == WHITE_COLOR
+                    else "empty"
+                )
 
                 circle = patches.Circle(
                     (moveCol, self.size - moveRow - 1),

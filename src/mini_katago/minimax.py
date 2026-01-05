@@ -5,12 +5,16 @@ A simple MiniMax algorithm for Go
 import math
 
 from mini_katago.board import Board, Move
+from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.player import Player
 
 INFINITY = math.inf
 
 # Here, the min player is black, and the max player is white (MiniMax)
-min_player, max_player = Player("Black Player", -1), Player("White Player", 1)
+min_player, max_player = (
+    Player("Black Player", BLACK_COLOR),
+    Player("White Player", WHITE_COLOR),
+)
 board = Board(9, min_player, max_player)
 
 
