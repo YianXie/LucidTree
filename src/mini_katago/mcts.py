@@ -130,16 +130,19 @@ def move_weight(
         float: the weight of the move
     """
     weight = 1.0
+    prev_color = move.get_color()
+    move.set_color(color)
     captures = board.check_captures(move)
     if captures:
         weight *= len(captures) ** capture_boost
 
     neighbors = board.get_neighbors(move)
     for neighbor in neighbors:
-        if neighbor.get_color() == color:
+        if neighbor.get_color() == move.color:
             weight *= adj_boost
             break
 
+    move.set_color(prev_color)
     return weight
 
 
