@@ -27,14 +27,13 @@ New features include:
 -   Auto game-over when there are 2 consecutive passes
 -   Undo feature for game board
 
-### Week 3 (WIP)
+### Week 3 + 4
 
-Implemented a basic pure Monte Carlo Go Simulation and Tree Search. It works by randomly choose legal position to play and calculate the win rate.
+Implemented a basic Monte Carlo Tree Search for Go, as well as a Node class. The algorithm works by randomly choose legal position to play and calculate the UCT (Upper Confidence Bound applied to Trees). At the end, it picks the node with the most visits to ensure stability.
 
 New features include:
 
--   A basic pure Monte Carlo Go Simulation
--   A basic Monte Carlo Tree Search
+-   A basic Monte Carlo Tree Search for Go
 -   A new Node class data structure
 
 ## File structure
