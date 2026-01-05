@@ -111,6 +111,8 @@ def weighted_choice(moves: list[Move], weights: list[float]) -> Move:
 def move_weight(
     board: Board,
     move: Move,
+    color: int,
+    *,
     capture_boost: float = CAPTURE_BOOST,
     adj_boost: float = ADJ_BOOST,
 ) -> float:
@@ -120,6 +122,7 @@ def move_weight(
     Args:
         board (Board): the board to check the move on
         move (Move): the move to check the weight of
+        color (int): the color of the player to check the move for
         capture_boost (float, optional): the boost for captures. Defaults to 6.0.
         adj_boost (float, optional): the boost for adjacent stones. Defaults to 1.8.
 
@@ -133,25 +136,26 @@ def move_weight(
 
     neighbors = board.get_neighbors(move)
     for neighbor in neighbors:
-        if neighbor.get_color() == move.get_color():
+        if neighbor.get_color() == color:
             weight *= adj_boost
             break
 
     return weight
 
 
-def semi_random_move(board: Board, legal_moves: list[Move]) -> Move:
+def semi_random_move(board: Board, legal_moves: list[Move], color: int) -> Move:
     """
     Select a move semi-randomly based on the weights of the moves
 
     Args:
         board (Board): the board to check the move on
         legal_moves (list[Move]): the legal moves to select from
+        color (int): the color of the player to select the move for
 
     Returns:
         Move: the semi-randomly selected move
     """
-    weights = [move_weight(board, move) for move in legal_moves]
+    weights = [move_weight(board, move, color) for move in legal_moves]
     return weighted_choice(legal_moves, weights)
 
 
@@ -235,7 +239,7 @@ def mcts(
                 moves_made += 1
                 continue
 
-            move = semi_random_move(root_board, moves)
+            move = semi_random_move(root_board, moves, rollout_player.get_color())
             root_board.place_move(move.get_position(), rollout_player.get_color())
 
             rollout_player = rollout_player.opponent
@@ -283,7 +287,7 @@ if __name__ == "__main__":
         color *= -1
         board.print_ascii_board()
 
-        move = mcts(board, white_player)
+        move = mcts(board, white_player, 100)
         if move is not None:
             board.place_move(move.get_position(), white_player.get_color())
             color *= -1
