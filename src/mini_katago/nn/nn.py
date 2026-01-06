@@ -7,7 +7,8 @@ import math
 from typing import Self
 
 # fmt: off
-from mini_katago.go.board import Board, Move
+from mini_katago.go.board import Board
+from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.misc.constants import (BLACK_COLOR, EXPLORATION_CONSTANT,
                                         INFINITY, NUM_SIMULATIONS, WHITE_COLOR)
