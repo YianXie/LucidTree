@@ -104,7 +104,7 @@ class Board:
         Returns:
             Move: the move at the given position
         """
-        if not Rules.position_is_valid(position):
+        if not Rules.position_is_valid(position, self.size):
             raise ValueError(f"Invalid position: {position}")
         return self.state[position[0]][position[1]]
 
@@ -318,7 +318,7 @@ class Board:
             ValueError: if the color is invalid
             ValueError: if the position is already occupied
         """
-        if not Rules.position_is_valid(position):
+        if not Rules.position_is_valid(position, self.size):
             raise ValueError(f"Invalid position: {position}")
         if not Rules.color_is_valid(color):
             raise ValueError(f"Invalid color: {color}")
