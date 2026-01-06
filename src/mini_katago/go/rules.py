@@ -1,4 +1,4 @@
-from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+from mini_katago.misc.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
 
 
 class Rules:

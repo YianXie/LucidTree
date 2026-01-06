@@ -7,12 +7,12 @@ import random
 from typing import Self
 
 # fmt: off
-from mini_katago.board import Board, Move
-from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
-                                   EXPLORATION_CONSTANT, INFINITY,
-                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
-                                   WHITE_COLOR)
-from mini_katago.player import Player
+from mini_katago.go.board import Board, Move
+from mini_katago.go.player import Player
+from mini_katago.misc.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
+                                        EXPLORATION_CONSTANT, INFINITY,
+                                        MAX_GAME_DEPTH, NUM_SIMULATIONS,
+                                        WHITE_COLOR)
 
 # fmt: on
 

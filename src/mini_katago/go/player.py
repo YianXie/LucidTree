@@ -1,6 +1,6 @@
 from typing import Self
 
-from mini_katago.rules import Rules
+from .rules import Rules
 
 
 class Player:

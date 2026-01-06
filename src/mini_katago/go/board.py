@@ -5,9 +5,10 @@ from typing import Any
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
-from mini_katago.player import Player
-from mini_katago.rules import Rules
+from mini_katago.misc.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+
+from .player import Player
+from .rules import Rules
 
 
 class Move:
