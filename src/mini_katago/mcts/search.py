@@ -10,7 +10,7 @@ from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
-from mini_katago.misc.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
+from mini_katago.misc.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST, MAX_GAME_DEPTH,
                                         NUM_SIMULATIONS, WHITE_COLOR)
 
 # fmt: on
@@ -131,8 +131,20 @@ class MCTS:
             if not board.is_terminate():
                 node.expand(board)
 
-            # 3) Back-propagate
-            # TODO: replace with CNN value network
+            # 3) Rollout (temporary)
+            depth = 0
+            rollout_player = player
+            while not board.is_terminate() and depth < MAX_GAME_DEPTH:
+                legal_moves = board.get_legal_moves(rollout_player.get_color())
+                depth += 1
+                if not legal_moves:
+                    board.pass_move()
+                    continue
+                move = semi_random_move(board, legal_moves, rollout_player.get_color())
+                board.place_move(move.get_position(), rollout_player.get_color())
+
+            # 4) Back-propagate
+            # TODO: replace with CNN value network later
             black_score, white_score = board.calculate_score()
             value = (
                 1
@@ -167,6 +179,6 @@ if __name__ == "__main__":
         board.place_move((row, col), BLACK_COLOR)
         board.print_ascii_board()
 
-        result = mcts.run(board, white_player)
+        result = mcts.run(board, white_player, 100)
         print(result.visits)
         board.print_ascii_board()
