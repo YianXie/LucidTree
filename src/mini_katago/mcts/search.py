@@ -4,12 +4,12 @@ A combination of Monte Carlo Tree Search and Neural Network
 
 import copy
 import random
-from .node import Node
 
 # fmt: off
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
+from mini_katago.mcts.node import Node
 from mini_katago.misc.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
                                         NUM_SIMULATIONS, WHITE_COLOR)
 
@@ -86,12 +86,14 @@ def semi_random_move(board: Board, legal_moves: list[Move], color: int) -> Move:
 
 class MCTS:
     """
-    MCTS-related functions
+    Monte Carlo Tree Search
     """
 
-    @staticmethod
     def run(
-        root_board: Board, root_player: Player, num_simulations: int = NUM_SIMULATIONS
+        self,
+        root_board: Board,
+        root_player: Player,
+        num_simulations: int = NUM_SIMULATIONS,
     ) -> Node:
         """
         A Monte Carlo Tree Search algorithm to find the best move for the root player
@@ -130,17 +132,41 @@ class MCTS:
                 node.expand(board)
 
             # 3) Back-propagate
+            # TODO: replace with CNN value network
             black_score, white_score = board.calculate_score()
-            while node is not None:
+            value = (
+                1
                 if (
-                    node.player_to_play.get_color() * -1 == BLACK_COLOR
-                    and black_score > white_score
-                ) or (
-                    node.player_to_play.get_color() * -1 == WHITE_COLOR
-                    and white_score > black_score
-                ):
-                    node.total_wins += 1
-                node.visits += 1
-                node = node.parent  # type: ignore
+                    (player.get_color() == BLACK_COLOR and black_score > white_score)
+                    or (player.get_color() == WHITE_COLOR and white_score > black_score)
+                )
+                else -1
+            )
+            self._backup(search_path, value)
 
         return root
+
+    def _backup(self, search_path: list[Node], value: float) -> None:
+        for node in reversed(search_path):
+            node.visits += 1
+            node.total_value += value
+            value = -value
+
+
+# Demo
+if __name__ == "__main__":
+    mcts = MCTS()
+    black_player, white_player = (
+        Player("Black Player", BLACK_COLOR),
+        Player("White Player", WHITE_COLOR),
+    )
+    black_player.opponent, white_player.opponent = white_player, black_player
+    board = Board(9, black_player, white_player)
+    while not board.is_terminate():
+        row, col = map(int, input("Enter a position to play: ").split())
+        board.place_move((row, col), BLACK_COLOR)
+        board.print_ascii_board()
+
+        result = mcts.run(board, white_player)
+        print(result.visits)
+        board.print_ascii_board()

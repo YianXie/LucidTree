@@ -36,7 +36,7 @@ class Node:
 
         self.is_expanded = False
         self.visits = 0
-        self.total_wins = 0
+        self.total_value = 0.0
         self.untried_moves: list[Move] | None = None
         self.children: dict[Move, Node] = {}
 
@@ -48,7 +48,7 @@ class Node:
         Returns:
             float: the value of the node
         """
-        return self.total_wins / max(1, self.visits)  # prevent zero-division error
+        return self.total_value / max(1, self.visits)  # prevent zero-division error
 
     def expand(self, board: Board) -> None:
         """
@@ -60,10 +60,13 @@ class Node:
         legal_moves = board.get_legal_moves(self.player_to_play.get_color())
         for move in legal_moves:
             self.children[move] = Node(
-                prior=1 / len(legal_moves),
+                prior=1
+                / len(
+                    legal_moves
+                ),  # TODO: removed the temporary uniform prior probability
                 player_to_play=self.player_to_play.opponent,
                 parent=self,
-                move_from_parent=board.get_nth_move(-1),
+                move_from_parent=move,
             )
         self.is_expanded = True
 
@@ -77,11 +80,10 @@ class Node:
         Returns:
             float: the PUCT score
         """
-        potential_actions_visits = 0
-        for child in self.parent.children.values():  # type: ignore
-            potential_actions_visits += child.visits
+        assert self.parent is not None
+        parent_visits = max(1, self.parent.visits)
         return self.value + C * self.prior * (
-            math.sqrt(potential_actions_visits) / (self.visits + 1)
+            math.sqrt(parent_visits) / (self.visits + 1)
         )
 
     def select_child(self) -> tuple[Move, Self] | None:
@@ -91,12 +93,16 @@ class Node:
         Returns:
             tuple[Move, Self] | None: the child with the highest PUCT score, or None if node has no children
         """
+        if not self.children:
+            raise RuntimeError("No children to select from")
+
         best_score = -INFINITY
-        best_node: Self | None = None
-        if self.children:
-            for node in self.children.values():
-                score = node.puct_score(node.parent.visits)  # type: ignore
-                if score > best_score:
-                    best_score = score
-                    best_node = node  # type: ignore
+        best_node: Node | None = None
+        for node in self.children.values():
+            score = node.puct_score()
+            if score > best_score:
+                best_score = score
+                best_node = node
+
+        assert best_node is not None
         return best_node.move_from_parent, best_node  # type: ignore
