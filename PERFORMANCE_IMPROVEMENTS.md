@@ -199,6 +199,16 @@ return color in _VALID_COLORS
 
 ## Trade-offs and Considerations
 
+### Thread Safety
+**Important Note:** The optimizations that temporarily modify Move objects (in `get_legal_moves`, `game_is_over`) assume single-threaded execution. This is currently safe as the codebase does not use multi-threading or multiprocessing. 
+
+**If multi-threading is added in the future**, these methods would need to be updated to either:
+1. Use thread-local storage for temporary modifications
+2. Revert to creating temporary Move objects
+3. Implement proper locking mechanisms
+
+The original approach of creating temporary Move objects was thread-safe but less efficient. The current optimization prioritizes performance in the existing single-threaded context.
+
 ### Deep Copy in MCTS
 The `copy.deepcopy(root_board)` in the MCTS simulation loop (line 120 of search.py) is a known performance bottleneck. However, this is a fundamental design requirement for MCTS to explore different game paths without affecting the actual board state. 
 
