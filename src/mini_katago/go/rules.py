@@ -1,5 +1,8 @@
 from mini_katago.misc.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
 
+# Pre-compute valid colors set for faster lookup
+_VALID_COLORS = frozenset([BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR])
+
 
 class Rules:
     """
@@ -41,7 +44,7 @@ class Rules:
         """
         if not isinstance(color, int):
             return False
-        return color in [BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR]
+        return color in _VALID_COLORS
 
     @staticmethod
     def player_name_is_valid(name: str) -> bool:
