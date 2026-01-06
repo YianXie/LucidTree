@@ -1,6 +1,7 @@
 import math
 from typing import Self
 
+from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.misc.constants import EXPLORATION_CONSTANT, INFINITY
@@ -13,8 +14,8 @@ class Node:
 
     def __init__(
         self,
-        visits: int,
-        total_wins: int,
+        *,
+        prior: float,
         player_to_play: Player,
         parent: Self | None,
         move_from_parent: Move | None,
@@ -23,61 +24,79 @@ class Node:
         Initialize a node object
 
         Args:
-            visits (int): the amount of visits that the node has
-            total_wins (int): the accumulated wins of this node
+            prior (float): the probability of choosing this node from its parent
             player_to_play (Player): the player that is about to play next
             parent (Self | None): pointer to the previous node, root has None
             move_from_parent (Move | None): the parent move that leads to this node, root has None
         """
-        self.visits = visits
-        self.total_wins = total_wins
+        self.prior = prior
         self.player_to_play = player_to_play
         self.parent = parent
         self.move_from_parent = move_from_parent
-        self.untried_moves: list[Move] | None = None
-        self.children: dict[Move, Self] = {}
 
-    def uct_score(self, parent_visits: int, C: float = EXPLORATION_CONSTANT) -> float:
+        self.is_expanded = False
+        self.visits = 0
+        self.total_wins = 0
+        self.untried_moves: list[Move] | None = None
+        self.children: dict[Move, Node] = {}
+
+    @property
+    def value(self) -> float:
         """
-        Calculate the UCT (Upper Confidence Bound applied to Trees) score
+        The value of the node (win rate)
+
+        Returns:
+            float: the value of the node
+        """
+        return self.total_wins / max(1, self.visits)  # prevent zero-division error
+
+    def expand(self, board: Board) -> None:
+        """
+        Expand the node's children to all legal moves available
 
         Args:
-            parent_visits (int): the node's parent's visits
+            board (Board): the game board
+        """
+        legal_moves = board.get_legal_moves(self.player_to_play.get_color())
+        for move in legal_moves:
+            self.children[move] = Node(
+                prior=1 / len(legal_moves),
+                player_to_play=self.player_to_play.opponent,
+                parent=self,
+                move_from_parent=board.get_nth_move(-1),
+            )
+        self.is_expanded = True
+
+    def puct_score(self, C: float = EXPLORATION_CONSTANT) -> float:
+        """
+        Calculate the PUCT score
+
+        Args:
             C (float, optional): the exploration constant, normally between 1.2-2. Defaults to 1.5.
 
         Returns:
-            float: the UCT score
+            float: the PUCT score
         """
-        if self.visits == 0:
-            return INFINITY
-        return self.total_wins / self.visits + C * math.sqrt(
-            math.log(max(1, parent_visits))  # uses max(1, parent_visits) as a safeguard
-            / self.visits
+        potential_actions_visits = 0
+        for child in self.parent.children.values():  # type: ignore
+            potential_actions_visits += child.visits
+        return self.value + C * self.prior * (
+            math.sqrt(potential_actions_visits) / (self.visits + 1)
         )
 
-    def select_child(self) -> Self | None:
+    def select_child(self) -> tuple[Move, Self] | None:
         """
-        Return the child with the highest UCT score
+        Return the child with the highest PUCT score
 
         Returns:
-            Self | None: the child with the highest UCT score, or None if node has no children
+            tuple[Move, Self] | None: the child with the highest PUCT score, or None if node has no children
         """
         best_score = -INFINITY
         best_node: Self | None = None
         if self.children:
             for node in self.children.values():
-                score = node.uct_score(node.parent.visits)  # type: ignore
+                score = node.puct_score(node.parent.visits)  # type: ignore
                 if score > best_score:
                     best_score = score
-                    best_node = node
-            return best_node
-        return None
-
-    def __repr__(self) -> str:
-        """
-        Return a developer-friendly message for debugging
-
-        Returns:
-            str: a developer friendly message
-        """
-        return f"visits: {self.visits}, total_wins: {self.total_wins}, player_to_player: {self.player_to_play}, parent: {self.parent}, move_from_parent: {self.move_from_parent}"
+                    best_node = node  # type: ignore
+        return best_node.move_from_parent, best_node  # type: ignore
