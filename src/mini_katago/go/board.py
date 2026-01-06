@@ -88,7 +88,7 @@ class Board:
         Returns:
             Move: the nth move
         """
-        if index >= len(self._move_history):
+        if index < -len(self._move_history) or index >= len(self._move_history):
             raise IndexError(
                 f"Index out of range. Expecting an index between 0 and {len(self._move_history) - 1}"
             )
