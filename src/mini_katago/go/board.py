@@ -169,9 +169,12 @@ class Board:
             for move in row:
                 if not move.is_empty():
                     continue
-                test_move = Move(move.row, move.col, color)  # create a temporary move
-                if self.move_is_valid(test_move):
+                # Temporarily set color to test validity
+                prev_color = move.get_color()
+                move.set_color(color)
+                if self.move_is_valid(move):
                     moves.append(move)
+                move.set_color(prev_color)
         return moves
 
     def is_terminate(self) -> bool:
@@ -200,16 +203,18 @@ class Board:
         liberties = 0
         queue = deque[Move]([move])
         visited = set[Move]([move])
-        while len(queue) > 0:
+        while queue:
             queuedMove = queue.popleft()
             neighbors = self.get_neighbors(queuedMove)
             for neighbor in neighbors:
-                neighborColor = neighbor.get_color()
-                if neighborColor == color and neighbor not in visited:
-                    queue.append(neighbor)
-                elif neighborColor == EMPTY_COLOR and neighbor not in visited:
-                    liberties += 1
+                if neighbor in visited:
+                    continue
                 visited.add(neighbor)
+                neighborColor = neighbor.get_color()
+                if neighborColor == color:
+                    queue.append(neighbor)
+                elif neighborColor == EMPTY_COLOR:
+                    liberties += 1
 
         return liberties
 
@@ -296,14 +301,15 @@ class Board:
 
     def check_captures(self, move: Move) -> list[Move]:
         captures = []
+        seen = set[Move]()
         for neighbor in self.get_neighbors(move):
-            if neighbor.get_color() == move.get_color() * -1:
+            if neighbor.get_color() == move.get_color() * -1 and neighbor not in seen:
                 if self.count_liberties(neighbor) == 0:
                     group = self.get_connected(neighbor)
                     captures.extend(group)
+                    seen.update(group)
 
-        # Ensure uniqueness
-        return list[Move](set[Move](captures))
+        return captures
 
     def place_move(self, position: tuple[int, int], color: int) -> None:
         """
@@ -430,18 +436,18 @@ class Board:
                     queue_visited = set[Move]([move])
                     queued_neighbor_border_colors = set[int]()
                     empty_moves = 1  # include the move itself
-                    while len(queue) > 0:
+                    while queue:
                         queuedMove = queue.popleft()
                         neighbors = self.get_neighbors(queuedMove)
                         for neighbor in neighbors:
                             if neighbor in queue_visited:
                                 continue
+                            queue_visited.add(neighbor)
                             if not neighbor.is_empty():
                                 queued_neighbor_border_colors.add(neighbor.get_color())
                             else:
                                 empty_moves += 1
                                 queue.append(neighbor)
-                            queue_visited.add(neighbor)
                     if (
                         BLACK_COLOR in queued_neighbor_border_colors
                         and WHITE_COLOR not in queued_neighbor_border_colors

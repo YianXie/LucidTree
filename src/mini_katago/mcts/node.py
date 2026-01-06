@@ -4,7 +4,7 @@ from typing import Self
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
-from mini_katago.misc.constants import EXPLORATION_CONSTANT, INFINITY
+from mini_katago.misc.constants import EXPLORATION_CONSTANT
 
 
 class Node:
@@ -96,13 +96,5 @@ class Node:
         if not self.children:
             raise RuntimeError("No children to select from")
 
-        best_score = -INFINITY
-        best_node: Node | None = None
-        for node in self.children.values():
-            score = node.puct_score()
-            if score > best_score:
-                best_score = score
-                best_node = node
-
-        assert best_node is not None
+        best_node = max(self.children.values(), key=lambda node: node.puct_score())
         return best_node.move_from_parent, best_node  # type: ignore
