@@ -1,4 +1,4 @@
-from mini_katago.misc.constants import EMPTY_COLOR
+from mini_katago.constants import EMPTY_COLOR
 
 from .rules import Rules
 

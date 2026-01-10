@@ -4,10 +4,10 @@ A simple MiniMax algorithm for Go
 
 import math
 
+from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
-from mini_katago.misc.constants import BLACK_COLOR, WHITE_COLOR
 
 INFINITY = math.inf
 

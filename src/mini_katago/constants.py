@@ -5,12 +5,12 @@ EMPTY_COLOR = 0
 The color of the empty space
 """
 
-BLACK_COLOR = -1
+BLACK_COLOR = 1
 """
 The color of the black player
 """
 
-WHITE_COLOR = 1
+WHITE_COLOR = -1
 """
 The color of the white player
 """

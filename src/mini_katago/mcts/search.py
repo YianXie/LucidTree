@@ -5,14 +5,14 @@ A combination of Monte Carlo Tree Search and Neural Network
 import copy
 import random
 
+from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
+                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
+                                   WHITE_COLOR)
 # fmt: off
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
-from mini_katago.misc.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
-                                        MAX_GAME_DEPTH, NUM_SIMULATIONS,
-                                        WHITE_COLOR)
 
 # fmt: on
 

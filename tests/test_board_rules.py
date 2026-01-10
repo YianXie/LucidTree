@@ -1,8 +1,8 @@
 import pytest
 
+from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
-from mini_katago.misc.constants import BLACK_COLOR, WHITE_COLOR
 
 test_black_player = Player("Black Tester", BLACK_COLOR)
 test_white_player = Player("White Tester", WHITE_COLOR)
