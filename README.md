@@ -38,7 +38,7 @@ New features include:
 
 ## File structure
 
-```
+```text
 mini-katago/
 ├── .github/
 │   ├── workflows
@@ -46,17 +46,28 @@ mini-katago/
 │       ├── tests.yml
 ├── src/                        # All Python files
 │   ├── mini_katago/            # Go related files
-│   │   │── __init__.py
-│   │   │── board.py            # A file that represents the Go game board
+│   │   │── data                # All .sgf game data files
+│   │   │   ├── 0001.sgf
+│   │   │   ├── 0002.sgf
+│   │   │   ├── ...
+│   │   │── go                  # All Python files related to Go, such as board.py and rules.py
+│   │   │   ├── board.py        # Python class that represents a Go game board
+│   │   │   ├── move.py         # Python class that represents a move in a game of Go
+│   │   │   ├── player.py       # Python class that represents a player in a game of Go
+│   │   │   ├── rules.py        # Python class that contains various rules for Go
+│   │   │── mcts                # All Python files related to Monte Carlo Tree Search, such as search.py
+│   │   │   ├── node.py         # A custom Node data structure class used for Monte Carlo Tree Search
+│   │   │   ├── search.py       # A python program that searches for the most optimum move given the board and player
+│   │   │── misc                # All Python files that are not absolutely essential to this project
+│   │   │   ├── minimax.py      # A depth-limited MiniMax algorithm for Go with alpha-beta pruning
+│   │   │── nn                  # All neural network related files
+│   │   │   ├── model.py        # The CNN model
 │   │   │── constants.py        # A file containing all the essential constants used in the project
 │   │   │── main.py             # A file for testing
-│   │   │── mcts.py             # A Monte Carlo Go Simulation file (also refer to as Monte Carlo Tree Search)
-│   │   │── minimax.py          # A simple depth-limited minimax algorithm for Go
-│   │   │── player.py           # A file representing the player
-│   │   │── rules.py            # A file that contains some basic rules for Go
 ├── tests/                      # All unit-tests
 │   ├── test_board_rules.py     # Test if board rules works correctly
 ├── .gitignore
+├── .python-version
 ├── LICENSE
 ├── Makefile
 ├── pyproject.toml
