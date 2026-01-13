@@ -130,6 +130,15 @@ class Board:
             neighbors.append(self.get_move((position[0], position[1] + 1)))
         return neighbors
 
+    def get_ko_point(self) -> tuple[int, int] | None:
+        """
+        Get the current ko position (if any)
+
+        Returns:
+            tuple[int, int] | None: the current tuple position, None if does not exist
+        """
+        return self._ko_positions
+
     def get_connected(self, move: Move) -> list[Move]:
         """
         Count how many moves are connected to the given move (including the given move)

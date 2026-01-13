@@ -49,3 +49,8 @@ ADJ_BOOST = 1.8
 """
 The boost for adjacent stones
 """
+
+CHANNEL_SIZE = 6
+"""
+The channel size for the encoded board in encode_position
+"""
