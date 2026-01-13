@@ -38,7 +38,7 @@ New features include:
 
 ## File structure
 
-```text
+```yaml
 mini-katago/
 ├── .github/
 │   ├── workflows
@@ -64,6 +64,7 @@ mini-katago/
 │   │   │   ├── model.py        # The CNN model
 │   │   │── constants.py        # A file containing all the essential constants used in the project
 │   │   │── main.py             # A file for testing
+│   │   │── utils.py            # Some utility functions
 ├── tests/                      # All unit-tests
 │   ├── test_board_rules.py     # Test if board rules works correctly
 ├── .gitignore
