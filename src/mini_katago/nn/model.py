@@ -13,17 +13,25 @@ class SmallPVNet(nn.Module):
 
         hidden = 64
         self.trunk = nn.Sequential(
-            nn.Conv2d(in_channels, hidden, 3, padding=1),
+            nn.Conv2d(
+                in_channels=in_channels, out_channels=hidden, kernel_size=3, padding=1
+            ),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.Conv2d(
+                in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
+            ),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.Conv2d(
+                in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
+            ),
             nn.ReLU(inplace=True),
         )
 
         # Policy head
-        self.policy_conv = nn.Conv2d(hidden, 2, 1)  # reduce channels
-        self.policy_fc = nn.Linear(2 * board_size * board_size, self.action_size)
+        self.policy_conv = nn.Conv2d(in_channels=hidden, out_channels=2, kernel_size=1)
+        self.policy_fc = nn.Linear(
+            in_features=2 * board_size * board_size, out_features=self.action_size
+        )
 
         # Value head
         self.value_conv = nn.Conv2d(hidden, 1, 1)

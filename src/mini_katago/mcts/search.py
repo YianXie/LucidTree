@@ -3,7 +3,6 @@ A combination of Monte Carlo Tree Search and Neural Network
 """
 
 import copy
-import random
 
 # fmt: off
 from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
@@ -13,22 +12,9 @@ from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
+from mini_katago.utils import weighted_choice
 
 # fmt: on
-
-
-def weighted_choice(moves: list[Move], weights: list[float]) -> Move:
-    """
-    Select a biased-random move based on the given weights and moves
-
-    Args:
-        moves (list[Move]): a list of legal moves
-        weights (list[float]): a list of weights corresponding to the list of moves
-
-    Returns:
-        Move: the selected move
-    """
-    return random.choices(moves, weights=weights, k=1)[0]
 
 
 def move_weight(
@@ -82,7 +68,10 @@ def semi_random_move(board: Board, legal_moves: list[Move], color: int) -> Move:
         Move: the semi-randomly selected move
     """
     weights = [move_weight(board, move, color) for move in legal_moves]
-    return weighted_choice(legal_moves, weights)
+    choice = weighted_choice(legal_moves, weights)
+
+    assert isinstance(choice, Move)
+    return choice
 
 
 class MCTS:
