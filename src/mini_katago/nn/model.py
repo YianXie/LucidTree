@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class SmallPVNet(nn.Module):
-    def __init__(self, in_channels: int = 6, board_size: int = 9):
+    def __init__(self, in_channels: int = 6, board_size: int = 9) -> None:
         super().__init__()
         self.board_size = board_size
         self.action_size = board_size * board_size + 1  # + pass

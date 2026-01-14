@@ -75,24 +75,36 @@ class Board:
         """
         return self.white_player
 
-    def get_nth_move(self, index: int) -> Move:
+    def get_nth_move(self, index: int) -> Move | None:
         """
         Get the nth move since game started. Negative index are also supported.
 
         Args:
             index (int): the index of the move
 
-        Raises:
-            IndexError: if the index is out of range
+        Returns:
+            Move | None: the nth move, or None if the index is invalid
+        """
+        if not self._move_history:
+            return None
+
+        if index < -len(self._move_history) or index >= len(self._move_history):
+            return None
+
+        # Check if the move is a pass
+        if self._move_history[index]["type"] != "pass":
+            return self.get_move(self._move_history[index]["position"])
+
+        return Move(passed=True)
+
+    def get_last_move(self) -> Move | None:
+        """
+        Get the last move in the current game
 
         Returns:
-            Move: the nth move
+            Move | None: the last move, or None if the board is empty
         """
-        if index < -len(self._move_history) or index >= len(self._move_history):
-            raise IndexError(
-                f"Index out of range. Expecting an index between 0 and {len(self._move_history) - 1}"
-            )
-        return self.get_move(self._move_history[index]["position"])
+        return self.get_nth_move(-1)
 
     def get_move(self, position: tuple[int, int]) -> Move:
         """
