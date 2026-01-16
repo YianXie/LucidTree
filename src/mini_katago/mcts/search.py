@@ -1,20 +1,35 @@
+# mini_katago/mcts/search.py
+
 """
-A combination of Monte Carlo Tree Search and Neural Network
+A combination of Monte Carlo Tree Search and Neural Network (rollout is still heuristic).
+
+Key changes vs your current file:
+- Remove deepcopy per simulation (use board.place_move + board.undo along the simulation path)
+- Always include PASS as legal move
+- Fix value perspective: value is ALWAYS from root_player perspective
+- Expand one move per visit (incremental expansion), not full expansion
+- Return a concrete best move from root (by visits)
 """
 
-import copy
+from __future__ import annotations
+
+from typing import Optional, Tuple
 
 # fmt: off
-from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
-                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
-                                   WHITE_COLOR)
+from mini_katago.constants import (
+    ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
+    MAX_GAME_DEPTH, NUM_SIMULATIONS,
+    WHITE_COLOR
+)
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
 from mini_katago.utils import weighted_choice
-
 # fmt: on
+
+
+PASS_POS: Tuple[int, int] = Node.PASS_POS
 
 
 def move_weight(
@@ -26,21 +41,15 @@ def move_weight(
     adj_boost: float = ADJ_BOOST,
 ) -> float:
     """
-    Weight a move based on its capture count and whether it is connected to own stones
+    Weight a move based on its capture count and whether it is connected to own stones.
 
-    Args:
-        board (Board): the board to check the move on
-        move (Move): the move to check the weight of
-        color (int): the color of the player to check the move for
-        capture_boost (float, optional): the boost for captures. Defaults to 6.0.
-        adj_boost (float, optional): the boost for adjacent stones. Defaults to 1.8.
-
-    Returns:
-        float: the weight of the move
+    NOTE: Your original capture_boost exponent is very aggressive; leaving it as-is
+    to preserve your idea, but it's usually too spiky for rollouts.
     """
     weight = 1.0
     prev_color = move.get_color()
     move.set_color(color)
+
     captures = board.check_captures(move)
     if captures:
         weight *= len(captures) ** capture_boost
@@ -56,22 +65,29 @@ def move_weight(
 
 
 def semi_random_move(board: Board, legal_moves: list[Move], color: int) -> Move:
-    """
-    Select a move semi-randomly based on the weights of the moves
-
-    Args:
-        board (Board): the board to check the move on
-        legal_moves (list[Move]): the legal moves to select from
-        color (int): the color of the player to select the move for
-
-    Returns:
-        Move: the semi-randomly selected move
-    """
     weights = [move_weight(board, move, color) for move in legal_moves]
     choice = weighted_choice(legal_moves, weights)
-
     assert isinstance(choice, Move)
     return choice
+
+
+def _apply_pos(board: Board, pos: Tuple[int, int], color: int) -> None:
+    if pos == PASS_POS:
+        board.pass_move()
+    else:
+        board.place_move(pos, color)
+
+
+def _winner_value_from_root(board: Board, root_color: int) -> float:
+    """
+    +1 if root_color wins, 0 draw, -1 loss.
+    """
+    black_score, white_score = board.calculate_score()
+    if black_score == white_score:
+        return 0.0
+
+    winner_color = BLACK_COLOR if black_score > white_score else WHITE_COLOR
+    return 1.0 if winner_color == root_color else -1.0
 
 
 class MCTS:
@@ -86,73 +102,114 @@ class MCTS:
         num_simulations: int = NUM_SIMULATIONS,
     ) -> Node:
         """
-        A Monte Carlo Tree Search algorithm to find the best move for the root player
-
-        Args:
-            root_board (Board): the board to start the search from
-            root_player (Player): the player to start the search from
-            num_simulations (int, optional): the number of simulations to run. Defaults to 1000.
-
-        Returns:
-            Move | None: the best move for the root player
+        Returns the root Node; use best_move_from_root() to get an actual move.
         """
         root = Node(
-            prior=0,
+            prior=1.0,
             player_to_play=root_player,
             parent=None,
             move_from_parent=None,
         )
         root.expand(root_board)
 
+        root_color = root_player.get_color()
+
         for _ in range(num_simulations):
             node = root
             player = root_player
-            board = copy.deepcopy(root_board)
 
-            # 1) Selection
-            search_path = [node]
-            while node.is_expanded:
-                move, node = node.select_child()  # type: ignore
-                board.place_move(move.get_position(), player.get_color())
+            # We will apply moves directly to root_board and then undo them.
+            moves_applied = 0
+            search_path: list[Node] = [node]
+
+            # 1) Selection: walk down while fully expanded and has children
+            while node.is_expanded and node.fully_expanded and node.children:
+                pos, node = node.select_child()
+                _apply_pos(root_board, pos, player.get_color())
+                moves_applied += 1
                 search_path.append(node)
                 player = player.opponent
 
-            # 2) Expansion
-            if not board.is_terminate():
-                node.expand(board)
+            # 2) Expansion: expand ONE child (if possible)
+            if not root_board.is_terminate():
+                child = node.expand_one(root_board)
+                if child is not None:
+                    # apply the expanded move (derive position from the parent's children mapping)
+                    # find which pos maps to this child
+                    expanded_pos: Optional[Tuple[int, int]] = None
+                    for pos, (_, ch) in node.children.items():
+                        if ch is child:
+                            expanded_pos = pos
+                            break
 
-            # 3) Rollout (temporary)
+                    if expanded_pos is not None:
+                        _apply_pos(root_board, expanded_pos, player.get_color())
+                        moves_applied += 1
+                        node = child
+                        search_path.append(node)
+                        player = player.opponent
+
+            # 3) Rollout (temporary heuristic policy)
             depth = 0
             rollout_player = player
-            while not board.is_terminate() and depth < MAX_GAME_DEPTH:
-                legal_moves = board.get_legal_moves(rollout_player.get_color())
+            while not root_board.is_terminate() and depth < MAX_GAME_DEPTH:
                 depth += 1
-                if not legal_moves:
-                    board.pass_move()
-                    continue
-                move = semi_random_move(board, legal_moves, rollout_player.get_color())
-                board.place_move(move.get_position(), rollout_player.get_color())
+                legal_moves = root_board.get_legal_moves(rollout_player.get_color()) or []
 
-            # 4) Back-propagate
-            # TODO: replace with CNN value network later
-            black_score, white_score = board.calculate_score()
-            value = (
-                1
-                if (
-                    (player.get_color() == BLACK_COLOR and black_score > white_score)
-                    or (player.get_color() == WHITE_COLOR and white_score > black_score)
-                )
-                else -1
-            )
+                if not legal_moves:
+                    # still allow pass
+                    root_board.pass_move()
+                    moves_applied += 1
+                    rollout_player = rollout_player.opponent
+                    continue
+
+                mv = semi_random_move(root_board, legal_moves, rollout_player.get_color())
+                root_board.place_move(mv.get_position(), rollout_player.get_color())
+                moves_applied += 1
+                rollout_player = rollout_player.opponent
+
+            # 4) Back-propagate value (root perspective, then flip each level)
+            value = _winner_value_from_root(root_board, root_color)
             self._backup(search_path, value)
+
+            # 5) Undo all moves from this simulation
+            for _ in range(moves_applied):
+                root_board.undo()
 
         return root
 
     def _backup(self, search_path: list[Node], value: float) -> None:
+        """
+        value is from ROOT player's perspective.
+        Flip sign as we go up because players alternate.
+        """
+        v = value
         for node in reversed(search_path):
             node.visits += 1
-            node.total_value += value
-            value = -value
+            node.total_value += v
+            v = -v
+
+    def best_move_from_root(self, root: Node) -> Tuple[int, int]:
+        """
+        Choose the best move at the root by max child visits.
+        Returns (row,col) or PASS_POS.
+        """
+        if not root.children:
+            return PASS_POS
+        best_pos, (_, best_child) = max(root.children.items(), key=lambda kv: kv[1][1].visits)
+        return best_pos
+
+    def best_move(
+        self,
+        board: Board,
+        player: Player,
+        num_simulations: int = NUM_SIMULATIONS,
+    ) -> Tuple[int, int]:
+        """
+        Convenience: run MCTS and return best move position.
+        """
+        root = self.run(board, player, num_simulations=num_simulations)
+        return self.best_move_from_root(root)
 
 
 # Demo
@@ -164,11 +221,25 @@ if __name__ == "__main__":
     )
     black_player.opponent, white_player.opponent = white_player, black_player
     board = Board(9, black_player, white_player)
+
     while not board.is_terminate():
-        row, col = map(int, input("Enter a position to play: ").split())
-        board.place_move((row, col), BLACK_COLOR)
+        row, col = map(int, input("Enter a position to play (row col), or -1 -1 to pass: ").split())
+
+        # Human (black)
+        if (row, col) == PASS_POS:
+            board.pass_move()
+        else:
+            board.place_move((row, col), BLACK_COLOR)
+
         board.print_ascii_board()
 
-        result = mcts.run(board, white_player, 100)
-        print(result.visits)
+        # AI (white)
+        best = mcts.best_move(board, white_player, num_simulations=200)
+        if best == PASS_POS:
+            board.pass_move()
+            print("AI plays: PASS")
+        else:
+            board.place_move(best, WHITE_COLOR)
+            print(f"AI plays: {best}")
+
         board.print_ascii_board()
