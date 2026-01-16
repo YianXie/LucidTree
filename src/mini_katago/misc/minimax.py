@@ -63,7 +63,7 @@ def evaluate(board: Board) -> float:
         black_score, white_score = board.calculate_score()
         score_term = white_score - black_score
     except Exception:
-        score_term = 0.0
+        score_term = 0
 
     black_captures = board.get_black_player().capture_count
     white_captures = board.get_white_player().capture_count
@@ -144,7 +144,9 @@ def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Optional[Move]:
         _apply_move(board, mv, color)
         consecutive_passes = 1 if mv is None else 0
 
-        score = minimax(board, depth - 1, not isMax, -INFINITY, INFINITY, consecutive_passes)
+        score = minimax(
+            board, depth - 1, not isMax, -INFINITY, INFINITY, consecutive_passes
+        )
 
         board.undo()
 
@@ -159,7 +161,9 @@ if __name__ == "__main__":
     DEPTH = 2  # raise to 3 only if it remains fast enough
 
     while True:
-        row, col = map(int, input("Enter a position (row col), or -1 -1 to pass/quit: ").split())
+        row, col = map(
+            int, input("Enter a position (row col), or -1 -1 to pass/quit: ").split()
+        )
         if row == -1 and col == -1:
             break
 

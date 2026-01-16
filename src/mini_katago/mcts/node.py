@@ -1,7 +1,7 @@
 # mini_katago/mcts/node.py
 
 import math
-from typing import Self, Optional
+from typing import Optional, Self
 
 from mini_katago.constants import EXPLORATION_CONSTANT
 from mini_katago.go.board import Board
@@ -33,7 +33,9 @@ class Node:
         self.prior = prior
         self.player_to_play = player_to_play
         self.parent = parent
-        self.move_from_parent = move_from_parent  # the Move that led here (may be None at root)
+        self.move_from_parent = (
+            move_from_parent  # the Move that led here (may be None at root)
+        )
 
         self.is_expanded = False
         self.visits = 0
@@ -51,7 +53,11 @@ class Node:
 
     @property
     def fully_expanded(self) -> bool:
-        return self.is_expanded and self.untried_moves is not None and len(self.untried_moves) == 0
+        return (
+            self.is_expanded
+            and self.untried_moves is not None
+            and len(self.untried_moves) == 0
+        )
 
     def _init_untried(self, board: Board) -> None:
         if self.untried_moves is not None:
@@ -112,7 +118,9 @@ class Node:
     def puct_score(self, C: float = EXPLORATION_CONSTANT) -> float:
         assert self.parent is not None
         parent_visits = max(1, self.parent.visits)
-        return self.value + C * self.prior * (math.sqrt(parent_visits) / (self.visits + 1))
+        return self.value + C * self.prior * (
+            math.sqrt(parent_visits) / (self.visits + 1)
+        )
 
     def select_child(self) -> tuple[tuple[int, int], Self]:
         """
@@ -125,5 +133,7 @@ class Node:
         if not self.children:
             raise RuntimeError("No children to select from")
 
-        best_pos, (_, best_node) = max(self.children.items(), key=lambda kv: kv[1][1].puct_score())
+        best_pos, (_, best_node) = max(
+            self.children.items(), key=lambda kv: kv[1][1].puct_score()
+        )
         return best_pos, best_node

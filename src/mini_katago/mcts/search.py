@@ -16,16 +16,15 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 # fmt: off
-from mini_katago.constants import (
-    ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
-    MAX_GAME_DEPTH, NUM_SIMULATIONS,
-    WHITE_COLOR
-)
+from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
+                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
+                                   WHITE_COLOR)
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
 from mini_katago.utils import weighted_choice
+
 # fmt: on
 
 
@@ -154,7 +153,9 @@ class MCTS:
             rollout_player = player
             while not root_board.is_terminate() and depth < MAX_GAME_DEPTH:
                 depth += 1
-                legal_moves = root_board.get_legal_moves(rollout_player.get_color()) or []
+                legal_moves = (
+                    root_board.get_legal_moves(rollout_player.get_color()) or []
+                )
 
                 if not legal_moves:
                     # still allow pass
@@ -163,7 +164,9 @@ class MCTS:
                     rollout_player = rollout_player.opponent
                     continue
 
-                mv = semi_random_move(root_board, legal_moves, rollout_player.get_color())
+                mv = semi_random_move(
+                    root_board, legal_moves, rollout_player.get_color()
+                )
                 root_board.place_move(mv.get_position(), rollout_player.get_color())
                 moves_applied += 1
                 rollout_player = rollout_player.opponent
@@ -196,7 +199,9 @@ class MCTS:
         """
         if not root.children:
             return PASS_POS
-        best_pos, (_, best_child) = max(root.children.items(), key=lambda kv: kv[1][1].visits)
+        best_pos, (_, best_child) = max(
+            root.children.items(), key=lambda kv: kv[1][1].visits
+        )
         return best_pos
 
     def best_move(
@@ -223,7 +228,9 @@ if __name__ == "__main__":
     board = Board(9, black_player, white_player)
 
     while not board.is_terminate():
-        row, col = map(int, input("Enter a position to play (row col), or -1 -1 to pass: ").split())
+        row, col = map(
+            int, input("Enter a position to play (row col), or -1 -1 to pass: ").split()
+        )
 
         # Human (black)
         if (row, col) == PASS_POS:
