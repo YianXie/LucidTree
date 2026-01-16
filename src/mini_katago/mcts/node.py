@@ -122,7 +122,7 @@ class Node:
             math.sqrt(parent_visits) / (self.visits + 1)
         )
 
-    def select_child(self) -> tuple[tuple[int, int], Self]:
+    def select_child(self) -> tuple[tuple[int, int], Node]:
         """
         Return the child with the highest PUCT score.
 
