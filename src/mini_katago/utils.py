@@ -5,7 +5,6 @@ import torch
 
 from mini_katago.constants import BLACK_COLOR, CHANNEL_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
-from mini_katago.go.player import Player
 
 
 def weighted_choice(moves: list[Any], weights: list[float]) -> Any:
@@ -49,7 +48,3 @@ def encode_position(board: Board) -> torch.Tensor:
         x[5, ko_position] = 1
 
     return x
-
-
-board = Board(9, Player("Black", BLACK_COLOR), Player("White", WHITE_COLOR))
-print(encode_position(board).shape)
