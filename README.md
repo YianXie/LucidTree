@@ -36,6 +36,10 @@ New features include:
 -   A basic Monte Carlo Tree Search for Go
 -   A new Node class data structure
 
+### Week 5 + 6 + 7
+
+Implemented a Convolution Neural Network (CNN) for Go with PyTorch. It works along with a policy network and a value network that allows the MCTS to perform better searching. Also refactored file structure so it's more sorted.
+
 ## File structure
 
 ```yaml
