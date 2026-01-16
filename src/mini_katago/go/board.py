@@ -515,6 +515,9 @@ class Board:
         return (black_territories, white_territories)
 
     def print_ascii_board(self) -> None:
+        """
+        Print the ascii board in the terminal
+        """
         print()
         for row in self.state:
             for move in row:
@@ -570,9 +573,24 @@ class Board:
         plt.show()
 
     def __eq__(self, other: object, /) -> bool:
+        """
+        Method to compare two Board object
+
+        Args:
+            other (object): another Board object
+
+        Returns:
+            bool: true if two board objet are equal, false otherwise
+        """
         if not isinstance(other, Board):
             return NotImplemented
         return self.__dict__ == other.__dict__
 
     def __repr__(self) -> str:
+        """
+        Return a developer-friendly message for debugging
+
+        Returns:
+            str: the message
+        """
         return f"===Board Information===\nBoard size: {self.size}\nBlack player: {self.black_player!r}\nWhite player: {self.white_player!r}"
