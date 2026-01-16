@@ -1,6 +1,7 @@
 # type: ignore
 import torch
 import torch.nn.functional as F
+
 # from torch.utils.data import DataLoader
 
 default_device = "cuda" if torch.cuda.is_available() else "cpu"
