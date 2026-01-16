@@ -1,8 +1,15 @@
 """
-A simple MiniMax algorithm for Go
+A simple MiniMax algorithm for Go (fixed for pass + terminal conditions)
+
+Fixes:
+- Go ends by TWO consecutive passes (not "no legal moves")
+- PASS is always legal and is searched like any other move
+- Pass moves are undoable in the tree (assumes board.pass_move() is undoable via board.undo())
+- Evaluation uses board.calculate_score() if available + captures (still simple)
 """
 
 import math
+from typing import Optional, Tuple
 
 from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.go.board import Board
@@ -10,6 +17,7 @@ from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 
 INFINITY = math.inf
+PASS_POS: Tuple[int, int] = (-1, -1)
 
 # Here, the min player is black, and the max player is white (MiniMax)
 min_player, max_player = (
@@ -19,149 +27,155 @@ min_player, max_player = (
 board = Board(9, min_player, max_player)
 
 
-def game_is_over(board: Board, player: Player) -> bool:
+def _legal_moves_including_pass(board: Board, color: int) -> list[Optional[Move]]:
     """
-    Check if the game is over by checking if the player has any valid move remaining
-
-    Args:
-        player (Player): the player to check
-
-    Returns:
-        bool: True if the game is over, False otherwise
+    Returns list of legal Move plus a PASS sentinel (None).
+    Treats None or [] from get_legal_moves as no placements available.
     """
-    color = player.get_color()
-    for row in board.state:
-        for move in row:
-            if not move.is_empty():
-                continue
-            # Temporarily set color to test validity without creating new object
-            prev_color = move.get_color()
-            move.set_color(color)
-            is_valid = board.move_is_valid(move)
-            move.set_color(prev_color)
-            if is_valid:
-                return False
-    return True
+    legal = board.get_legal_moves(color) or []
+    moves: list[Optional[Move]] = list(legal)
+    moves.append(None)  # PASS is always legal
+    return moves
 
 
-def evaluate(board: Board) -> int:
+def _apply_move(board: Board, mv: Optional[Move], color: int) -> None:
+    """Apply a move; None means PASS."""
+    if mv is None:
+        board.pass_move()
+    else:
+        board.place_move(mv.get_position(), color)
+
+
+def game_is_over_by_passes(consecutive_passes: int) -> bool:
+    """Go ends when both players pass consecutively."""
+    return consecutive_passes >= 2
+
+
+def evaluate(board: Board) -> float:
     """
-    Evaluate the current game board by comparing the two players' capture count
-
-    Args:
-        board (Board): the game board
-
-    Returns:
-        int: the score based on the evaluation (positive favors white, negative favors black)
+    Simple eval:
+    - uses board.calculate_score() if present (territory-ish)
+    - plus small capture bonus
+    positive favors white, negative favors black
     """
-    black_captures, white_captures = (
-        board.get_black_player().capture_count,
-        board.get_white_player().capture_count,
-    )
+    # territory/score estimate
+    try:
+        black_score, white_score = board.calculate_score()
+        score_term = white_score - black_score
+    except Exception:
+        score_term = 0.0
 
-    # Return the difference: positive means white is ahead, negative means black is ahead
-    return white_captures - black_captures
+    black_captures = board.get_black_player().capture_count
+    white_captures = board.get_white_player().capture_count
+    capture_term = (white_captures - black_captures) * 0.5  # keep it small
+
+    return float(score_term) + float(capture_term)
 
 
-def minimax(board: Board, depth: int, isMax: bool, alpha: float, beta: float) -> float:
+def minimax(
+    board: Board,
+    depth: int,
+    isMax: bool,
+    alpha: float,
+    beta: float,
+    consecutive_passes: int,
+) -> float:
     """
-    A depth-limited minimax function the value of a given player
-
-    Args:
-        board (Board): the board to check
-        depth (int): the depth of the minimax
-        isMax (bool): if it is the max player's turn
-        alpha (int): the best value guaranteed for the max player
-        beta (int): the best value guaranteed for the min player
-
-    Returns:
-        int: the score of the given player
+    Depth-limited minimax with alpha-beta pruning.
+    isMax=True => white to play (maximize)
+    isMax=False => black to play (minimize)
     """
-    if depth <= 0 or game_is_over(board, max_player if isMax else min_player):
+    if depth <= 0 or game_is_over_by_passes(consecutive_passes) or board.is_terminate():
         return evaluate(board)
+
+    player = max_player if isMax else min_player
+    color = player.get_color()
+
+    moves = _legal_moves_including_pass(board, color)
 
     if isMax:
         best = -INFINITY
-        legal_moves = board.get_legal_moves(max_player.get_color())
-        if legal_moves is not None:
-            for move in legal_moves:
-                board.place_move(move.get_position(), max_player.get_color())
-                score = minimax(board, depth - 1, False, alpha, beta)
-                board.undo()
-                best = max(best, score)
-                alpha = max(alpha, best)
+        for mv in moves:
+            # apply
+            _apply_move(board, mv, color)
+            new_passes = consecutive_passes + 1 if mv is None else 0
 
-                # alpha-beta pruning
-                if beta <= alpha:
-                    break
-        else:
-            board.pass_move()
+            score = minimax(board, depth - 1, False, alpha, beta, new_passes)
 
+            # undo
+            board.undo()
+
+            best = max(best, score)
+            alpha = max(alpha, best)
+            if beta <= alpha:
+                break
         return best
 
     else:
         best = INFINITY
-        legal_moves = board.get_legal_moves(min_player.get_color())
-        if legal_moves is not None:
-            for move in legal_moves:
-                board.place_move(move.get_position(), min_player.get_color())
-                score = minimax(board, depth - 1, True, alpha, beta)
-                board.undo()
-                best = min(best, score)
-                beta = min(beta, best)
+        for mv in moves:
+            _apply_move(board, mv, color)
+            new_passes = consecutive_passes + 1 if mv is None else 0
 
-                # alpha-beta pruning
-                if beta <= alpha:
-                    break
-        else:
-            board.pass_move()
+            score = minimax(board, depth - 1, True, alpha, beta, new_passes)
 
+            board.undo()
+
+            best = min(best, score)
+            beta = min(beta, best)
+            if beta <= alpha:
+                break
         return best
 
 
-def next_best_move(board: Board, isMax: bool) -> Move | None:
+def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Optional[Move]:
     """
-    Find the next best move for the given player
-
-    Args:
-        board (Board): the board to check
-        isMax (bool): if it is the max player's turn
-
-    Returns:
-        Move: the next best move for the given player
+    Returns the best placement Move, or None to indicate PASS.
     """
     best_score = -INFINITY if isMax else INFINITY
-    best_move = None
+    best_move: Optional[Move] = None  # None means PASS
 
-    legal_moves = board.get_legal_moves(
-        max_player.get_color() if isMax else min_player.get_color()
-    )
-    if legal_moves is not None:
-        for move in legal_moves:
-            board.place_move(
-                move.get_position(),
-                max_player.get_color() if isMax else min_player.get_color(),
-            )
-            score = minimax(board, 2, not isMax, -INFINITY, INFINITY)
-            board.undo()
-            if (isMax and score > best_score) or (not isMax and score < best_score):
-                best_score = score
-                best_move = move
+    player = max_player if isMax else min_player
+    color = player.get_color()
+
+    moves = _legal_moves_including_pass(board, color)
+
+    for mv in moves:
+        _apply_move(board, mv, color)
+        consecutive_passes = 1 if mv is None else 0
+
+        score = minimax(board, depth - 1, not isMax, -INFINITY, INFINITY, consecutive_passes)
+
+        board.undo()
+
+        if (isMax and score > best_score) or (not isMax and score < best_score):
+            best_score = score
+            best_move = mv
 
     return best_move
 
 
 if __name__ == "__main__":
+    DEPTH = 2  # raise to 3 only if it remains fast enough
+
     while True:
-        row, col = map(int, input("Enter a position to place your move: ").split())
-        if row == -1 or col == -1:
+        row, col = map(int, input("Enter a position (row col), or -1 -1 to pass/quit: ").split())
+        if row == -1 and col == -1:
             break
+
+        # Human is black
         board.place_move((row, col), min_player.get_color())
         board.print_ascii_board()
 
-        move = next_best_move(board, isMax=True)
-        if move is not None:
-            board.place_move(move.get_position(), max_player.get_color())
-            board.print_ascii_board()
+        # AI is white
+        mv = next_best_move(board, isMax=True, depth=DEPTH)
+        if mv is None:
+            board.pass_move()
+            print("AI plays: PASS")
+        else:
+            board.place_move(mv.get_position(), max_player.get_color())
+            print(f"AI plays: {mv.get_position()}")
+
+        board.print_ascii_board()
 
     board.show_board()
