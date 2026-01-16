@@ -27,6 +27,8 @@ class Board:
         size: int,
         black_player: Player,
         white_player: Player,
+        *,
+        winner: Player | None = None,
     ) -> None:
         """
         Initialize the board
@@ -35,10 +37,12 @@ class Board:
             size (int): the size of the board
             black_player (Player): the black player
             white_player (Player): the white player
+            winner (Player): the winner of the game
         """
         self.size: int = size
         self.black_player: Player = black_player
         self.white_player: Player = white_player
+        self.winner = winner
         self.current_player: Player = black_player
         self.state: list[list[Move]] = [
             [Move(row, col) for col in range(size)] for row in range(size)
@@ -197,6 +201,24 @@ class Board:
                     moves.append(move)
                 move.set_color(prev_color)
         return moves
+
+    def get_winner(self) -> Player | None:
+        """
+        Get the winner of the current game, or None if no winner
+
+        Returns:
+            Player | None: the winner player, None if no winner
+        """
+        return self.winner
+
+    def set_winner(self, winner: Player | None) -> None:
+        """
+        Set the winner of the game
+
+        Args:
+            winner (Player | None): the winner player
+        """
+        self.winner = winner
 
     def is_terminate(self) -> bool:
         """
@@ -551,3 +573,6 @@ class Board:
         if not isinstance(other, Board):
             return NotImplemented
         return self.__dict__ == other.__dict__
+
+    def __repr__(self) -> str:
+        return f"===Board Information===\nBoard size: {self.size}\nBlack player: {self.black_player!r}\nWhite player: {self.white_player!r}"
