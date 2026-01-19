@@ -1,6 +1,6 @@
 import pytest
 
-from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
+from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 
@@ -9,7 +9,7 @@ test_white_player = Player("White Tester", WHITE_COLOR)
 
 
 def test_single_stone_capture() -> None:
-    board = Board(9, test_black_player, test_white_player)
+    board = Board(BOARD_SIZE, test_black_player, test_white_player)
 
     # Place 3 black pieces
     board.place_move((1, 1), BLACK_COLOR)
@@ -18,16 +18,16 @@ def test_single_stone_capture() -> None:
 
     # Place 1 white piece at (2, 1) so it has only 1 liberty
     board.place_move((2, 1), WHITE_COLOR)
-    assert board.get_move((2, 1)).get_color() == WHITE_COLOR
+    assert board.get_move_at_position((2, 1)).get_color() == WHITE_COLOR
 
     # Place 1 black piece to capture the white piece
     board.place_move((2, 3), BLACK_COLOR)
 
-    assert board.get_move((2, 2)).is_empty(), "White should be captured"
+    assert board.get_move_at_position((2, 2)).is_empty(), "White should be captured"
 
 
 def test_group_capture() -> None:
-    board = Board(9, test_black_player, test_white_player)
+    board = Board(BOARD_SIZE, test_black_player, test_white_player)
 
     # White group: two stones connected horizontally
     board.place_move((2, 2), WHITE_COLOR)
@@ -45,12 +45,12 @@ def test_group_capture() -> None:
     for black_move in black_moves:
         board.place_move(black_move, BLACK_COLOR)
 
-    assert board.get_move((2, 2)).is_empty()
-    assert board.get_move((2, 3)).is_empty()
+    assert board.get_move_at_position((2, 2)).is_empty()
+    assert board.get_move_at_position((2, 3)).is_empty()
 
 
 def test_self_suicide_is_illegal() -> None:
-    board = Board(9, test_black_player, test_white_player)
+    board = Board(BOARD_SIZE, test_black_player, test_white_player)
 
     # Black stones create an "eye" that white can't place
     board.place_move((1, 1), BLACK_COLOR)
@@ -72,7 +72,7 @@ def test_self_suicide_is_illegal() -> None:
 
 
 def test_self_suicide_is_legal_if_capture() -> None:
-    board = Board(9, test_black_player, test_white_player)
+    board = Board(BOARD_SIZE, test_black_player, test_white_player)
 
     white_moves = [
         (1, 1),
@@ -96,11 +96,11 @@ def test_self_suicide_is_legal_if_capture() -> None:
 
     board.place_move((2, 1), BLACK_COLOR)
 
-    assert board.get_move((2, 1)).get_color() == BLACK_COLOR
+    assert board.get_move_at_position((2, 1)).get_color() == BLACK_COLOR
 
 
 def test_simple_ko_prevents_immediate_recap() -> None:
-    board = Board(9, test_black_player, test_white_player)
+    board = Board(BOARD_SIZE, test_black_player, test_white_player)
 
     # White at (1,1)
     board.place_move((1, 1), WHITE_COLOR)
@@ -117,7 +117,7 @@ def test_simple_ko_prevents_immediate_recap() -> None:
 
     # Black plays at (1,2) capturing white (1,1) -> ko created
     board.place_move((1, 2), BLACK_COLOR)
-    assert board.get_move((1, 1)).is_empty()
+    assert board.get_move_at_position((1, 1)).is_empty()
 
     # White attempts immediate recapture at (1,1) (should be illegal by simple ko)
     with pytest.raises(ValueError) as excinfo:
@@ -127,4 +127,4 @@ def test_simple_ko_prevents_immediate_recap() -> None:
     assert excinfo.type is ValueError
 
     # Confirm the board is unchanged
-    assert board.get_move((1, 1)).is_empty()
+    assert board.get_move_at_position((1, 1)).is_empty()

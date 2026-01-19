@@ -94,13 +94,9 @@ class Node:
 
         # Find representative Move object (optional) for compatibility.
         rep_move: Optional[Move] = None
-        if pos != self.PASS_POS:
+        if pos is not None:
             # try to find matching Move from legal moves (safe: doesn't rely on Move hashing)
-            legal_moves = board.get_legal_moves(self.player_to_play.get_color()) or []
-            for mv in legal_moves:
-                if mv.get_position() == pos:
-                    rep_move = mv
-                    break
+            rep_move = board.get_move_at_position(pos)
 
         # Uniform prior for now (replace later with policy net)
         denom = max(1, (len(self.children) + len(self.untried_moves) + 1))

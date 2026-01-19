@@ -16,9 +16,9 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 # fmt: off
-from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, CAPTURE_BOOST,
-                                   MAX_GAME_DEPTH, NUM_SIMULATIONS,
-                                   WHITE_COLOR)
+from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, BOARD_SIZE,
+                                   CAPTURE_BOOST, MAX_GAME_DEPTH,
+                                   NUM_SIMULATIONS, WHITE_COLOR)
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
@@ -45,6 +45,9 @@ def move_weight(
     NOTE: Your original capture_boost exponent is very aggressive; leaving it as-is
     to preserve your idea, but it's usually too spiky for rollouts.
     """
+    if move.is_passed():
+        return 1.0
+
     weight = 1.0
     prev_color = move.get_color()
     move.set_color(color)
@@ -54,7 +57,7 @@ def move_weight(
         weight *= len(captures) ** capture_boost
 
     neighbors = board.get_neighbors(move)
-    for neighbor in neighbors:
+    for neighbor in neighbors:  # type: ignore
         if neighbor.get_color() == move.color:
             weight *= adj_boost
             break
@@ -225,7 +228,7 @@ if __name__ == "__main__":
         Player("White Player", WHITE_COLOR),
     )
     black_player.opponent, white_player.opponent = white_player, black_player
-    board = Board(9, black_player, white_player)
+    board = Board(BOARD_SIZE, black_player, white_player)
 
     while not board.is_terminate():
         row, col = map(

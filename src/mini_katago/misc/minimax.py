@@ -11,7 +11,7 @@ Fixes:
 import math
 from typing import Optional, Tuple
 
-from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
+from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
@@ -24,7 +24,7 @@ min_player, max_player = (
     Player("Black Player", BLACK_COLOR),
     Player("White Player", WHITE_COLOR),
 )
-board = Board(9, min_player, max_player)
+board = Board(BOARD_SIZE, min_player, max_player)
 
 
 def _legal_moves_including_pass(board: Board, color: int) -> list[Optional[Move]]:
@@ -34,12 +34,14 @@ def _legal_moves_including_pass(board: Board, color: int) -> list[Optional[Move]
     """
     legal = board.get_legal_moves(color) or []
     moves: list[Optional[Move]] = list(legal)
-    moves.append(None)  # PASS is always legal
-    return moves
+
+    return moves + [None]
 
 
 def _apply_move(board: Board, mv: Optional[Move], color: int) -> None:
-    """Apply a move; None means PASS."""
+    """
+    Apply a move; None means PASS.
+    """
     if mv is None:
         board.pass_move()
     else:
