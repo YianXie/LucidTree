@@ -9,7 +9,6 @@ Fixes:
 """
 
 import math
-from typing import Optional, Tuple
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
@@ -17,7 +16,7 @@ from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 
 INFINITY = math.inf
-PASS_POS: Tuple[int, int] = (-1, -1)
+PASS_POS: tuple[int, int] = (-1, -1)
 
 # Here, the min player is black, and the max player is white (MiniMax)
 min_player, max_player = (
@@ -27,25 +26,27 @@ min_player, max_player = (
 board = Board(BOARD_SIZE, min_player, max_player)
 
 
-def _legal_moves_including_pass(board: Board, color: int) -> list[Optional[Move]]:
+def _legal_moves_including_pass(board: Board, color: int) -> list[Move | None]:
     """
     Returns list of legal Move plus a PASS sentinel (None).
     Treats None or [] from get_legal_moves as no placements available.
     """
     legal = board.get_legal_moves(color) or []
-    moves: list[Optional[Move]] = list(legal)
+    # Filter out pass moves since we'll add None separately
+    placement_moves = [move for move in legal if not move.is_passed()]
+    moves: list[Move | None] = list(placement_moves)
 
     return moves + [None]
 
 
-def _apply_move(board: Board, mv: Optional[Move], color: int) -> None:
+def _apply_move(board: Board, move: Move | None, color: int) -> None:
     """
     Apply a move; None means PASS.
     """
-    if mv is None:
+    if move is None or (isinstance(move, Move) and move.is_passed()):
         board.pass_move()
     else:
-        board.place_move(mv.get_position(), color)
+        board.place_move(move.get_position(), color)
 
 
 def game_is_over_by_passes(consecutive_passes: int) -> bool:
@@ -97,10 +98,10 @@ def minimax(
 
     if isMax:
         best = -INFINITY
-        for mv in moves:
+        for move in moves:
             # apply
-            _apply_move(board, mv, color)
-            new_passes = consecutive_passes + 1 if mv is None else 0
+            _apply_move(board, move, color)
+            new_passes = consecutive_passes + 1 if move is None else 0
 
             score = minimax(board, depth - 1, False, alpha, beta, new_passes)
 
@@ -115,9 +116,9 @@ def minimax(
 
     else:
         best = INFINITY
-        for mv in moves:
-            _apply_move(board, mv, color)
-            new_passes = consecutive_passes + 1 if mv is None else 0
+        for move in moves:
+            _apply_move(board, move, color)
+            new_passes = consecutive_passes + 1 if move is None else 0
 
             score = minimax(board, depth - 1, True, alpha, beta, new_passes)
 
@@ -130,21 +131,21 @@ def minimax(
         return best
 
 
-def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Optional[Move]:
+def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Move | None:
     """
     Returns the best placement Move, or None to indicate PASS.
     """
     best_score = -INFINITY if isMax else INFINITY
-    best_move: Optional[Move] = None  # None means PASS
+    best_move: Move | None = None  # None means PASS
 
     player = max_player if isMax else min_player
     color = player.get_color()
 
     moves = _legal_moves_including_pass(board, color)
 
-    for mv in moves:
-        _apply_move(board, mv, color)
-        consecutive_passes = 1 if mv is None else 0
+    for move in moves:
+        _apply_move(board, move, color)
+        consecutive_passes = 1 if move is None else 0
 
         score = minimax(
             board, depth - 1, not isMax, -INFINITY, INFINITY, consecutive_passes
@@ -154,7 +155,7 @@ def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Optional[Move]:
 
         if (isMax and score > best_score) or (not isMax and score < best_score):
             best_score = score
-            best_move = mv
+            best_move = move
 
     return best_move
 
@@ -174,13 +175,13 @@ if __name__ == "__main__":
         board.print_ascii_board()
 
         # AI is white
-        mv = next_best_move(board, isMax=True, depth=DEPTH)
-        if mv is None:
+        move = next_best_move(board, isMax=True, depth=DEPTH)
+        if move is None or (isinstance(move, Move) and move.is_passed()):
             board.pass_move()
             print("AI plays: PASS")
         else:
-            board.place_move(mv.get_position(), max_player.get_color())
-            print(f"AI plays: {mv.get_position()}")
+            board.place_move(move.get_position(), max_player.get_color())
+            print(f"AI plays: {move.get_position()}")
 
         board.print_ascii_board()
 

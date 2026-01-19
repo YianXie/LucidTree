@@ -25,6 +25,11 @@ KOMI = 7.5
 The Komi value for the game
 """
 
+PASS_MOVE_POSITION = (-1, -1)
+"""
+The position for a pass
+"""
+
 INFINITY = math.inf
 """
 Represents a very large value

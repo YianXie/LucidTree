@@ -11,24 +11,21 @@ Key changes vs your current file:
 - Return a concrete best move from root (by visits)
 """
 
-from __future__ import annotations
+# fmt: off
 
 from typing import Optional, Tuple
 
-# fmt: off
+from mini_katago import utils
 from mini_katago.constants import (ADJ_BOOST, BLACK_COLOR, BOARD_SIZE,
                                    CAPTURE_BOOST, MAX_GAME_DEPTH,
-                                   NUM_SIMULATIONS, WHITE_COLOR)
+                                   NUM_SIMULATIONS, PASS_MOVE_POSITION,
+                                   WHITE_COLOR)
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
-from mini_katago.utils import weighted_choice
 
 # fmt: on
-
-
-PASS_POS: Tuple[int, int] = Node.PASS_POS
 
 
 def move_weight(
@@ -68,13 +65,13 @@ def move_weight(
 
 def semi_random_move(board: Board, legal_moves: list[Move], color: int) -> Move:
     weights = [move_weight(board, move, color) for move in legal_moves]
-    choice = weighted_choice(legal_moves, weights)
+    choice = utils.weighted_choice(legal_moves, weights)
     assert isinstance(choice, Move)
     return choice
 
 
 def _apply_pos(board: Board, pos: Tuple[int, int], color: int) -> None:
-    if pos == PASS_POS:
+    if pos == PASS_MOVE_POSITION:
         board.pass_move()
     else:
         board.place_move(pos, color)
@@ -160,17 +157,24 @@ class MCTS:
                     root_board.get_legal_moves(rollout_player.get_color()) or []
                 )
 
-                if not legal_moves:
-                    # still allow pass
+                # Filter out pass moves to check if there are any placement moves
+                placement_moves = [move for move in legal_moves if not move.is_passed()]
+                if not placement_moves:
+                    # No placement moves available, must pass
                     root_board.pass_move()
                     moves_applied += 1
                     rollout_player = rollout_player.opponent
                     continue
 
-                mv = semi_random_move(
+                move = semi_random_move(
                     root_board, legal_moves, rollout_player.get_color()
                 )
-                root_board.place_move(mv.get_position(), rollout_player.get_color())
+                if move.is_passed():
+                    root_board.pass_move()
+                else:
+                    root_board.place_move(
+                        move.get_position(), rollout_player.get_color()
+                    )
                 moves_applied += 1
                 rollout_player = rollout_player.opponent
 
@@ -201,7 +205,7 @@ class MCTS:
         Returns (row,col) or PASS_POS.
         """
         if not root.children:
-            return PASS_POS
+            return PASS_MOVE_POSITION
         best_pos, (_, best_child) = max(
             root.children.items(), key=lambda kv: kv[1][1].visits
         )
@@ -236,7 +240,7 @@ if __name__ == "__main__":
         )
 
         # Human (black)
-        if (row, col) == PASS_POS:
+        if (row, col) == PASS_MOVE_POSITION:
             board.pass_move()
         else:
             board.place_move((row, col), BLACK_COLOR)
@@ -245,7 +249,7 @@ if __name__ == "__main__":
 
         # AI (white)
         best = mcts.best_move(board, white_player, num_simulations=200)
-        if best == PASS_POS:
+        if best == PASS_MOVE_POSITION:
             board.pass_move()
             print("AI plays: PASS")
         else:

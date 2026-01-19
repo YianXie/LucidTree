@@ -1,11 +1,12 @@
+# fmt: off
+
 import random
 from typing import Any
 
 import torch
 
-# fmt: off
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
-                                   PASS_INDEX, WHITE_COLOR)
+                                   PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR)
 from mini_katago.go.board import Board
 
 # fmt: on
@@ -52,7 +53,7 @@ def encode_board(board: Board) -> torch.Tensor:
 
     # Last move
     last_move = board.get_last_move()
-    if last_move is not None:
+    if last_move is not None and not last_move.is_passed():
         x[4, last_move.get_position()] = 1
 
     # Ko point
@@ -63,17 +64,17 @@ def encode_board(board: Board) -> torch.Tensor:
     return x
 
 
-def move_to_index(move_position: tuple[int, int] | None) -> int:
+def move_to_index(move_position: tuple[int, int]) -> int:
     """
     Calculate the index of a move within the encoded tensor
 
     Args:
-        move_position (tuple[int, int] | None): the move's position, or None if it's a pass
+        move_position (tuple[int, int]): the move's position
 
     Returns:
         int: the index within the tensor
     """
-    if move_position is None:
+    if move_position == PASS_MOVE_POSITION:
         return PASS_INDEX
 
     row, col = move_position

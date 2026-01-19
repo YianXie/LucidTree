@@ -1,3 +1,4 @@
+# fmt: off
 import copy
 from collections import deque
 from typing import Any
@@ -5,10 +6,13 @@ from typing import Any
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+from mini_katago.constants import (BLACK_COLOR, EMPTY_COLOR,
+                                   PASS_MOVE_POSITION, WHITE_COLOR)
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.go.rules import Rules
+
+# fmt: on
 
 
 class Board:
@@ -150,7 +154,7 @@ class Board:
             list: a list of the neighbors of the given position
         """
         position = move.get_position()
-        if position is None:
+        if position == PASS_MOVE_POSITION:
             return None
 
         neighbors = []
