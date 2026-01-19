@@ -1,4 +1,8 @@
-from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+# fmt: off
+from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, EMPTY_COLOR,
+                                   WHITE_COLOR)
+
+# fmt: on
 
 # Pre-compute valid colors set for faster lookup
 _VALID_COLORS = frozenset([BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR])
@@ -10,7 +14,7 @@ class Rules:
     """
 
     @staticmethod
-    def position_is_valid(position: tuple[int, int], size: int = 9) -> bool:
+    def position_is_valid(position: tuple[int, int], size: int = BOARD_SIZE) -> bool:
         """
         Check if the given position is valid
 

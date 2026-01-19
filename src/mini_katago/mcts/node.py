@@ -3,7 +3,7 @@
 import math
 from typing import Optional, Self
 
-from mini_katago.constants import EXPLORATION_CONSTANT
+from mini_katago.constants import EXPLORATION_CONSTANT, PASS_MOVE_POSITION
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
@@ -19,8 +19,6 @@ class Node:
     - Incremental expansion: expand ONE move per visit instead of expanding all at once.
     - Keep API similar to your existing code.
     """
-
-    PASS_POS = (-1, -1)
 
     def __init__(
         self,
@@ -64,10 +62,12 @@ class Node:
             return
 
         legal_moves = board.get_legal_moves(self.player_to_play.get_color()) or []
-        positions = [mv.get_position() for mv in legal_moves]
+        # Filter out pass moves since we'll add PASS_POS separately
+        placement_moves = [move for move in legal_moves if not move.is_passed()]
+        positions = [move.get_position() for move in placement_moves]
 
         # In Go, PASS is always legal.
-        positions.append(self.PASS_POS)
+        positions.append(PASS_MOVE_POSITION)
 
         self.untried_moves = positions
         self.is_expanded = True
@@ -94,13 +94,9 @@ class Node:
 
         # Find representative Move object (optional) for compatibility.
         rep_move: Optional[Move] = None
-        if pos != self.PASS_POS:
+        if pos is not None and pos != PASS_MOVE_POSITION:
             # try to find matching Move from legal moves (safe: doesn't rely on Move hashing)
-            legal_moves = board.get_legal_moves(self.player_to_play.get_color()) or []
-            for mv in legal_moves:
-                if mv.get_position() == pos:
-                    rep_move = mv
-                    break
+            rep_move = board.get_move_at_position(pos)
 
         # Uniform prior for now (replace later with policy net)
         denom = max(1, (len(self.children) + len(self.untried_moves) + 1))

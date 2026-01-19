@@ -4,9 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from mini_katago.constants import BOARD_SIZE
+
 
 class SmallPVNet(nn.Module):
-    def __init__(self, in_channels: int = 6, board_size: int = 9) -> None:
+    def __init__(self, in_channels: int = 6, board_size: int = BOARD_SIZE) -> None:
         super().__init__()
         self.board_size = board_size
         self.action_size = board_size * board_size + 1  # + pass

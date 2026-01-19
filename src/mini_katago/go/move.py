@@ -23,12 +23,12 @@ class Move:
             row (int, optional): the row of the move. Defaults to -1.
             col (int, optional): the column of the move. Defaults to -1.
             color (int, optional): the color of the move. Defaults to 0.
-            pass_move (bool, optional): whether the move is passed. Defaults to False.
+            passed (bool, optional): whether the move is passed. Defaults to False.
         """
-        self.passed = passed
         self.row = row
         self.col = col
         self.color = color
+        self.passed = passed
 
     def set_color(self, color: int) -> None:
         """
@@ -118,13 +118,16 @@ class Move:
         """
         if not isinstance(other, Move):
             return NotImplemented
+
         # Compare by row first, then col, then color, then passed
-        if self.row != other.row:
-            return self.row < other.row
-        if self.col != other.col:
-            return self.col < other.col
-        if self.color != other.color:
-            return self.color < other.color
+        if (isinstance(self.row, int) and isinstance(self.col, int)) and (
+            isinstance(other.row, int) and isinstance(other.col, int)
+        ):
+            if self.row != other.row:
+                return self.row < other.row
+            if self.col != other.col:
+                return self.col < other.col
+
         return self.passed < other.passed
 
     def __repr__(self) -> str:

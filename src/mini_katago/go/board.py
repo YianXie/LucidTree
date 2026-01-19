@@ -1,3 +1,4 @@
+# fmt: off
 import copy
 from collections import deque
 from typing import Any
@@ -5,11 +6,13 @@ from typing import Any
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-from mini_katago.constants import BLACK_COLOR, EMPTY_COLOR, WHITE_COLOR
+from mini_katago.constants import (BLACK_COLOR, EMPTY_COLOR,
+                                   PASS_MOVE_POSITION, WHITE_COLOR)
+from mini_katago.go.move import Move
+from mini_katago.go.player import Player
+from mini_katago.go.rules import Rules
 
-from .move import Move
-from .player import Player
-from .rules import Rules
+# fmt: on
 
 
 class Board:
@@ -27,8 +30,6 @@ class Board:
         size: int,
         black_player: Player,
         white_player: Player,
-        *,
-        winner: Player | None = None,
     ) -> None:
         """
         Initialize the board
@@ -42,7 +43,6 @@ class Board:
         self.size: int = size
         self.black_player: Player = black_player
         self.white_player: Player = white_player
-        self.winner = winner
         self.current_player: Player = black_player
         self.state: list[list[Move]] = [
             [Move(row, col) for col in range(size)] for row in range(size)
@@ -79,6 +79,15 @@ class Board:
         """
         return self.white_player
 
+    def get_size(self) -> int:
+        """
+        Get the board size
+
+        Returns:
+            int: the board size
+        """
+        return self.size
+
     def get_nth_move(self, index: int) -> Move | None:
         """
         Get the nth move since game started. Negative index are also supported.
@@ -97,7 +106,7 @@ class Board:
 
         # Check if the move is a pass
         if self._move_history[index]["type"] != "pass":
-            return self.get_move(self._move_history[index]["position"])
+            return self.get_move_at_position(self._move_history[index]["position"])
 
         return Move(passed=True)
 
@@ -110,7 +119,17 @@ class Board:
         """
         return self.get_nth_move(-1)
 
-    def get_move(self, position: tuple[int, int]) -> Move:
+    def get_all_moves(self) -> list[Move]:
+        if not self._move_history:
+            return []
+
+        moves: list[Move] = []
+        for i in range(len(self._move_history)):
+            moves.append(self.get_nth_move(i))  # type: ignore
+
+        return moves
+
+    def get_move_at_position(self, position: tuple[int, int]) -> Move:
         """
         Get the move at the given position
 
@@ -124,7 +143,7 @@ class Board:
             raise ValueError(f"Invalid position: {position}")
         return self.state[position[0]][position[1]]
 
-    def get_neighbors(self, move: Move) -> list[Move]:
+    def get_neighbors(self, move: Move) -> list[Move] | None:
         """
         Get the neighbors of a given position (maximum 4, minimum 2)
 
@@ -135,15 +154,18 @@ class Board:
             list: a list of the neighbors of the given position
         """
         position = move.get_position()
+        if position == PASS_MOVE_POSITION:
+            return None
+
         neighbors = []
         if position[0] - 1 >= 0:
-            neighbors.append(self.get_move((position[0] - 1, position[1])))
+            neighbors.append(self.get_move_at_position((position[0] - 1, position[1])))
         if position[0] + 1 < self.size:
-            neighbors.append(self.get_move((position[0] + 1, position[1])))
+            neighbors.append(self.get_move_at_position((position[0] + 1, position[1])))
         if position[1] - 1 >= 0:
-            neighbors.append(self.get_move((position[0], position[1] - 1)))
+            neighbors.append(self.get_move_at_position((position[0], position[1] - 1)))
         if position[1] + 1 < self.size:
-            neighbors.append(self.get_move((position[0], position[1] + 1)))
+            neighbors.append(self.get_move_at_position((position[0], position[1] + 1)))
         return neighbors
 
     def get_ko_point(self) -> tuple[int, int] | None:
@@ -170,8 +192,10 @@ class Board:
         connected = list[Move]([move])
         while queue:
             queued_move = queue.popleft()
+            if queued_move.is_passed():
+                continue
             neighbors = self.get_neighbors(queued_move)
-            for neighbor in neighbors:
+            for neighbor in neighbors:  # type: ignore
                 if neighbor not in visited and neighbor.get_color() == move.get_color():
                     queue.append(neighbor)
                     connected.append(neighbor)
@@ -200,25 +224,7 @@ class Board:
                 if self.move_is_valid(move):
                     moves.append(move)
                 move.set_color(prev_color)
-        return moves
-
-    def get_winner(self) -> Player | None:
-        """
-        Get the winner of the current game, or None if no winner
-
-        Returns:
-            Player | None: the winner player, None if no winner
-        """
-        return self.winner
-
-    def set_winner(self, winner: Player | None) -> None:
-        """
-        Set the winner of the game
-
-        Args:
-            winner (Player | None): the winner player
-        """
-        self.winner = winner
+        return moves + [Move(passed=True)]
 
     def is_terminate(self) -> bool:
         """
@@ -248,8 +254,10 @@ class Board:
         visited = set[Move]([move])
         while queue:
             queuedMove = queue.popleft()
+            if queuedMove.is_passed():
+                continue
             neighbors = self.get_neighbors(queuedMove)
-            for neighbor in neighbors:
+            for neighbor in neighbors:  # type: ignore
                 if neighbor in visited:
                     continue
                 visited.add(neighbor)
@@ -343,9 +351,11 @@ class Board:
         return True
 
     def check_captures(self, move: Move) -> list[Move]:
+        if move.is_passed():
+            return []
         captures = []
         seen = set[Move]()
-        for neighbor in self.get_neighbors(move):
+        for neighbor in self.get_neighbors(move):  # type: ignore
             if neighbor.get_color() == move.get_color() * -1 and neighbor not in seen:
                 if self.count_liberties(neighbor) == 0:
                     group = self.get_connected(neighbor)
@@ -371,7 +381,7 @@ class Board:
             raise ValueError(f"Invalid position: {position}")
         if not Rules.color_is_valid(color):
             raise ValueError(f"Invalid color: {color}")
-        if not self.get_move(position).is_empty():
+        if not self.get_move_at_position(position).is_empty():
             raise ValueError(f"Position already occupied: {position}")
         if self._is_terminate:
             raise RuntimeError("Game is already over!")
@@ -481,8 +491,10 @@ class Board:
                     empty_moves = 1  # include the move itself
                     while queue:
                         queuedMove = queue.popleft()
+                        if queuedMove.is_passed():
+                            continue
                         neighbors = self.get_neighbors(queuedMove)
-                        for neighbor in neighbors:
+                        for neighbor in neighbors:  # type: ignore
                             if neighbor in queue_visited:
                                 continue
                             queue_visited.add(neighbor)
@@ -515,6 +527,9 @@ class Board:
         return (black_territories, white_territories)
 
     def print_ascii_board(self) -> None:
+        """
+        Print the ascii board in the terminal
+        """
         print()
         for row in self.state:
             for move in row:
@@ -570,9 +585,24 @@ class Board:
         plt.show()
 
     def __eq__(self, other: object, /) -> bool:
+        """
+        Method to compare two Board object
+
+        Args:
+            other (object): another Board object
+
+        Returns:
+            bool: true if two board objet are equal, false otherwise
+        """
         if not isinstance(other, Board):
             return NotImplemented
         return self.__dict__ == other.__dict__
 
     def __repr__(self) -> str:
+        """
+        Return a developer-friendly message for debugging
+
+        Returns:
+            str: the message
+        """
         return f"===Board Information===\nBoard size: {self.size}\nBlack player: {self.black_player!r}\nWhite player: {self.white_player!r}"
