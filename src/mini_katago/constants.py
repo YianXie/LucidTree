@@ -65,7 +65,7 @@ CHANNEL_SIZE = 6
 The channel size for the encoded board in encode_position
 """
 
-PASS_INDEX = 81
+PASS_INDEX = BOARD_SIZE * BOARD_SIZE
 """
 The index of a pass for the CNN Tensor
 """

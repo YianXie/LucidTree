@@ -16,7 +16,6 @@ from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 
 INFINITY = math.inf
-PASS_POS: tuple[int, int] = (-1, -1)
 
 # Here, the min player is black, and the max player is white (MiniMax)
 min_player, max_player = (
@@ -43,7 +42,7 @@ def _apply_move(board: Board, move: Move | None, color: int) -> None:
     """
     Apply a move; None means PASS.
     """
-    if move is None or (isinstance(move, Move) and move.is_passed()):
+    if move is None or move.is_passed():
         board.pass_move()
     else:
         board.place_move(move.get_position(), color)
@@ -176,7 +175,7 @@ if __name__ == "__main__":
 
         # AI is white
         move = next_best_move(board, isMax=True, depth=DEPTH)
-        if move is None or (isinstance(move, Move) and move.is_passed()):
+        if move is None or move.is_passed():
             board.pass_move()
             print("AI plays: PASS")
         else:
