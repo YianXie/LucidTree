@@ -34,7 +34,7 @@ def encode_board(board: Board) -> torch.Tensor:
         board (Board): the board to encode
 
     Returns:
-        torch.Tensor: the resulted tensor
+        torch.Tensor: the resulting tensor
     """
     x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.float32)
 

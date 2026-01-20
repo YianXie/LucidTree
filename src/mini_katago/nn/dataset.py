@@ -13,7 +13,7 @@ from mini_katago.go.game import Game
 @dataclass
 class Sample:
     """
-    A sample dataclass consisting the channels, policy network, and value network
+    A sample dataclass consisting of the channels, policy network, and value network
     """
 
     x: torch.Tensor
@@ -22,15 +22,12 @@ class Sample:
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
-    def __init__(
-        self, games: list[Game], board_cls: object = Board, use_value: bool = True
-    ) -> None:
+    def __init__(self, games: list[Game], use_value: bool = True) -> None:
         """
         Initialize a dataset from the given games
 
         Args:
             games (list[Game]): a list of games
-            board_cls (object, optional): the board class. Defaults to Board.
             use_value (bool, optional): whether to calculate value network or not. Defaults to True.
         """
         self.samples: list[Sample] = []

@@ -119,15 +119,11 @@ class Move:
         if not isinstance(other, Move):
             return NotImplemented
 
-        # Compare by row first, then col, then color, then passed
-        if (isinstance(self.row, int) and isinstance(self.col, int)) and (
-            isinstance(other.row, int) and isinstance(other.col, int)
-        ):
-            if self.row != other.row:
-                return self.row < other.row
-            if self.col != other.col:
-                return self.col < other.col
-
+        # Compare by row first, then col, then passed
+        if self.row != other.row:
+            return self.row < other.row
+        if self.col != other.col:
+            return self.col < other.col
         return self.passed < other.passed
 
     def __repr__(self) -> str:

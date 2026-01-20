@@ -38,7 +38,6 @@ class Board:
             size (int): the size of the board
             black_player (Player): the black player
             white_player (Player): the white player
-            winner (Player): the winner of the game
         """
         self.size: int = size
         self.black_player: Player = black_player
@@ -125,7 +124,9 @@ class Board:
 
         moves: list[Move] = []
         for i in range(len(self._move_history)):
-            moves.append(self.get_nth_move(i))  # type: ignore
+            nth_move = self.get_nth_move(i)
+            if nth_move is not None:
+                moves.append(nth_move)
 
         return moves
 
@@ -207,7 +208,6 @@ class Board:
         Get all legal moves for a given player
 
         Args:
-            board (Board): the board to check
             color (int): the color of the player to get all legal moves with
 
         Returns:
@@ -592,7 +592,7 @@ class Board:
             other (object): another Board object
 
         Returns:
-            bool: true if two board objet are equal, false otherwise
+            bool: true if two board objects are equal, false otherwise
         """
         if not isinstance(other, Board):
             return NotImplemented
