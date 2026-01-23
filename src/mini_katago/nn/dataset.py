@@ -84,9 +84,15 @@ class SgfPolicyValueDataset(Dataset[Any]):
 
     def __repr__(self) -> str:
         """
-        Return a developer-friendly message
+        Return a developer-friendly summary of the dataset.
 
         Returns:
-            str: a developer-friendly message
+            str: a summary including the number of samples and a preview of the first few.
         """
-        return f"{self.samples}"
+        preview_count = 3
+        preview = self.samples[:preview_count]
+        return (
+            f"{self.__class__.__name__}("
+            f"num_samples={len(self.samples)}, preview={preview}"
+            f"{'...' if len(self.samples) > preview_count else ''})"
+        )
