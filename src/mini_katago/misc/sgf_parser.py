@@ -49,7 +49,8 @@ def parse_sgf_file(path: Path) -> Game:
 if __name__ == "__main__":
     path = Path("./src/mini_katago/data/")
     for sgf_file in path.iterdir():
-        game = parse_sgf_file(
-            sgf_file
-        )  # Do note that some sgf file may cause illegal move error
-        print(game)
+        try:
+            game = parse_sgf_file(sgf_file)
+            print(game)
+        except Exception as e:
+            print("Error:", e)

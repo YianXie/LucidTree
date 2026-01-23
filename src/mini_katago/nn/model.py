@@ -8,8 +8,19 @@ from mini_katago.constants import BOARD_SIZE
 
 
 class SmallPVNet(nn.Module):
-    def __init__(self, in_channels: int = 6, board_size: int = BOARD_SIZE) -> None:
+    def __init__(
+        self, in_channels: int = 6, board_size: int = BOARD_SIZE, *, seed: int = 0
+    ) -> None:
+        """
+        Initialize the small policy-value network
+
+        Args:
+            in_channels (int, optional): the in_channels, or how many 'planes' of data is given. Defaults to 6.
+            board_size (int, optional): the board size. Defaults to BOARD_SIZE.
+            seed (int, optional): the seed for PyTorch. Defaults to 0.
+        """
         super().__init__()
+        torch.manual_seed(seed)
         self.board_size = board_size
         self.action_size = board_size * board_size + 1  # + pass
 
@@ -41,6 +52,15 @@ class SmallPVNet(nn.Module):
         self.value_fc2 = nn.Linear(64, 1)
 
     def forward(self, x: Any) -> tuple[Any, torch.Tensor]:
+        """
+        Make one round of prediction
+
+        Args:
+            x (Any): the input data
+
+        Returns:
+            tuple[Any, torch.Tensor]: the policy logits, followed by the value
+        """
         # x: (B, C, 9, 9)
         h = self.trunk(x)
 

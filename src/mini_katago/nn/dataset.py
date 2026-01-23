@@ -81,3 +81,12 @@ class SgfPolicyValueDataset(Dataset[Any]):
             torch.tensor(sample.policy_y, dtype=torch.long),
             torch.tensor(sample.value_y, dtype=torch.float32),
         )
+
+    def __repr__(self) -> str:
+        """
+        Return a developer-friendly message
+
+        Returns:
+            str: a developer-friendly message
+        """
+        return f"{self.samples}"
