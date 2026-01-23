@@ -1,20 +1,32 @@
-# type: ignore
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-
-# from torch.utils.data import DataLoader
 
 default_device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def train_one_epoch(
-    model,
-    loader,
-    optim,
+    model: nn.Module,
+    loader: torch.Tensor,
+    optim: torch.optim.Optimizer,
     value_head: bool,
-    device=default_device,
+    device: str = default_device,
     lambda_value: float = 0.5,
 ) -> float:
+    """
+    Train the model for one epoch
+
+    Args:
+        model (nn.Module): the model to train on
+        loader (torch.Tensor): the loader (sample data)
+        optim (torch.optim.Optimizer): the optimizer
+        value_head (bool): the value head
+        device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
+        lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
+
+    Returns:
+        float: the average loss
+    """
     model.train()
     total = 0.0
     for batch in loader:
@@ -39,8 +51,9 @@ def train_one_epoch(
             policy_logits = out
             loss = F.cross_entropy(policy_logits, y_pol)
 
-        loss.backward()
+        loss.backward()  # type: ignore
         optim.step()
 
         total += float(loss.item())
+
     return total / max(1, len(loader))
