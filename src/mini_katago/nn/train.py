@@ -4,10 +4,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-
-from termcolor import colored
-
 import torch.nn.functional as F
+from termcolor import colored
 from torch.utils.data import DataLoader
 
 from mini_katago import utils

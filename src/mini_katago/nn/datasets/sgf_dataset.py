@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from mini_katago.nn.split import split_game
 import torch
 from torch.utils.data import Dataset
 
@@ -10,6 +9,7 @@ from mini_katago.constants import BLACK_COLOR, USE_VALUE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
 from mini_katago.misc.sgf_parser import parse_sgf_file
+from mini_katago.nn.split import split_game
 
 
 @dataclass

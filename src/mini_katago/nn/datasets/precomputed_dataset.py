@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
-import torch
 
+import torch
 from torch.utils.data import Dataset
 
 
