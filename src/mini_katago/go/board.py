@@ -32,7 +32,7 @@ class Board:
         white_player: Player,
     ) -> None:
         """
-        Initialize the board
+        Initialize a Go board
 
         Args:
             size (int): the size of the board
@@ -95,7 +95,7 @@ class Board:
             index (int): the index of the move
 
         Returns:
-            Move | None: the nth move, or None if the index is invalid
+            Move | None: the nth move, or None if the index is invalid or if there is no moves made yet
         """
         if not self._move_history:
             return None
@@ -103,11 +103,14 @@ class Board:
         if index < -len(self._move_history) or index >= len(self._move_history):
             return None
 
-        # Check if the move is a pass
-        if self._move_history[index]["type"] != "pass":
-            return self.get_move_at_position(self._move_history[index]["position"])
+        move_info = self._move_history[index]
 
-        return Move(passed=True)
+        # Check if the move is a pass
+        if move_info["type"] == "pass":
+            return Move(passed=True)
+
+        row, col = move_info["position"]
+        return Move(row, col, move_info["color"])
 
     def get_last_move(self) -> Move | None:
         """
@@ -119,14 +122,22 @@ class Board:
         return self.get_nth_move(-1)
 
     def get_all_moves(self) -> list[Move]:
+        """
+        Get all the moves on the board
+
+        Returns:
+            list[Move]: all the moves
+        """
         if not self._move_history:
             return []
 
         moves: list[Move] = []
-        for i in range(len(self._move_history)):
-            nth_move = self.get_nth_move(i)
-            if nth_move is not None:
-                moves.append(nth_move)
+        for move in self._move_history:
+            if move["type"] == "pass":
+                moves.append(Move(passed=True))
+            else:
+                row, col = move["position"]
+                moves.append(Move(row, col, move["color"]))
 
         return moves
 
@@ -351,6 +362,15 @@ class Board:
         return True
 
     def check_captures(self, move: Move) -> list[Move]:
+        """
+        Check if a given move captured any stones
+
+        Args:
+            move (Move): the move to check
+
+        Returns:
+            list[Move]: the stones that are captured, or empty list if none
+        """
         if move.is_passed():
             return []
         captures = []

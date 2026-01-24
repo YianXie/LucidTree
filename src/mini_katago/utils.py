@@ -79,3 +79,63 @@ def move_to_index(move_position: tuple[int, int]) -> int:
 
     row, col = move_position
     return row * BOARD_SIZE + col
+
+
+def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
+    """
+    Transform the board with rotation and reflection
+
+    Args:
+        board (Board): the board to transform
+
+    Returns:
+        list[Board]: the resulting boards
+    """
+    rotated_clockwise_board = Board(
+        board.get_size(), board.get_black_player(), board.get_white_player()
+    )
+    rotated_counterclockwise_board = Board(
+        board.get_size(), board.get_black_player(), board.get_white_player()
+    )
+    reflected_x_board = Board(
+        board.get_size(), board.get_black_player(), board.get_white_player()
+    )
+    reflected_y_board = Board(
+        board.get_size(), board.get_black_player(), board.get_white_player()
+    )
+
+    n = board.get_size()
+    for move in board.get_all_moves():
+        if move.is_passed():
+            rotated_clockwise_board.pass_move()
+            rotated_counterclockwise_board.pass_move()
+            reflected_x_board.pass_move()
+            reflected_y_board.pass_move()
+        else:
+            # This is a place move
+            row, col = move.get_position()
+            color = move.get_color()
+
+            # Transform coordinates for each transformation
+            # Rotate 90 degrees clockwise: (row, col) -> (col, n - row - 1)
+            new_row, new_col = col, n - row - 1
+            rotated_clockwise_board.place_move((new_row, new_col), color)
+
+            # Rotate 90 degrees counterclockwise: (row, col) -> (n - col - 1, row)
+            new_row, new_col = n - col - 1, row
+            rotated_counterclockwise_board.place_move((new_row, new_col), color)
+
+            # Reflect across x-axis (horizontal): (row, col) -> (n - row - 1, col)
+            new_row, new_col = n - row - 1, col
+            reflected_x_board.place_move((new_row, new_col), color)
+
+            # Reflect across y-axis (vertical): (row, col) -> (row, n - col - 1)
+            new_row, new_col = row, n - col - 1
+            reflected_y_board.place_move((new_row, new_col), color)
+
+    return (
+        rotated_clockwise_board,
+        rotated_counterclockwise_board,
+        reflected_x_board,
+        reflected_y_board,
+    )
