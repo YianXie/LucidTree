@@ -38,11 +38,13 @@ def encode_board(board: Board) -> torch.Tensor:
     """
     x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.float32)
 
+    # Direct access to board state instead of repeated function calls
     for i in range(board.size):
         for j in range(board.size):
-            if board.get_move_at_position((i, j)).get_color() == BLACK_COLOR:
+            color = board.state[i][j].get_color()
+            if color == BLACK_COLOR:
                 x[0, i, j] = 1  # Black
-            elif board.get_move_at_position((i, j)).get_color() == WHITE_COLOR:
+            elif color == WHITE_COLOR:
                 x[1, i, j] = 1  # White
             else:
                 x[2, i, j] = 1  # Empty

@@ -118,7 +118,7 @@ class Node:
             math.sqrt(parent_visits) / (self.visits + 1)
         )
 
-    def select_child(self) -> tuple[tuple[int, int], Node]:
+    def select_child(self) -> tuple[tuple[int, int], Self]:
         """
         Return the child with the highest PUCT score.
 
@@ -132,4 +132,6 @@ class Node:
         best_pos, (_, best_node) = max(
             self.children.items(), key=lambda kv: kv[1][1].puct_score()
         )
-        return best_pos, best_node
+        # Type checker requires explicit annotation since Self is used
+        node: Self = best_node  # type: ignore[assignment]
+        return best_pos, node

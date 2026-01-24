@@ -1,5 +1,4 @@
 # fmt: off
-import copy
 from collections import deque
 from typing import Any
 
@@ -229,12 +228,12 @@ class Board:
             for move in row:
                 if not move.is_empty():
                     continue
-                # Temporarily set color to test validity
-                prev_color = move.get_color()
+                # Test validity by temporarily setting color
                 move.set_color(color)
-                if self.move_is_valid(move):
+                is_valid = self.move_is_valid(move)
+                move.set_color(EMPTY_COLOR)  # Restore to empty
+                if is_valid:
                     moves.append(move)
-                move.set_color(prev_color)
         return moves + [Move(passed=True)]
 
     def is_terminate(self) -> bool:
@@ -313,11 +312,9 @@ class Board:
             self.state[row][col].set_color(EMPTY_COLOR)
 
             # Restore captured stones
-            for captured_move in captures:
-                captured_row, captured_col = captured_move.get_position()
-                self.state[captured_row][captured_col].set_color(
-                    captured_move.get_color()
-                )
+            for capture_position, capture_color in captures:
+                captured_row, captured_col = capture_position
+                self.state[captured_row][captured_col].set_color(capture_color)
 
             # Restore the capture count of the player who made the move
             if color == BLACK_COLOR:  # Black player made the move
@@ -415,7 +412,10 @@ class Board:
 
         # Calculate captures
         captures: list[Move] = self.check_captures(move)
-        captures_copy: list[Move] = copy.deepcopy(captures)
+        # Store capture positions and colors as tuples instead of deep copying Move objects
+        capture_info: list[tuple[tuple[int, int], int]] = [
+            (capture.get_position(), capture.get_color()) for capture in captures
+        ]
         for capture in captures:
             row, col = capture.get_position()
             self.state[row][col].set_color(EMPTY_COLOR)
@@ -425,7 +425,7 @@ class Board:
                 "type": "place",
                 "position": position,
                 "color": color,
-                "captures": captures_copy,
+                "captures": capture_info,
                 "previous_ko": self._ko_positions,
                 "previous_consecutive_passes": self._consecutive_passes,
                 "previous_is_terminate": self._is_terminate,
@@ -535,14 +535,6 @@ class Board:
                         white_territories += empty_moves
                     visited.update(queue_visited)
                 visited.add(move)
-
-        # Alternative solution to count the territories
-        for row in self.state:
-            for move in row:
-                if move.get_color() == BLACK_COLOR:
-                    black_territories += 1
-                elif move.get_color() == WHITE_COLOR:
-                    white_territories += 1
 
         return (black_territories, white_territories)
 
