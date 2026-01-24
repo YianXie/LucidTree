@@ -89,7 +89,7 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
         board (Board): the board to transform
 
     Returns:
-        list[Board]: the resulting boards
+        tuple[Board, Board, Board, Board]: the resulting boards
     """
     rotated_clockwise_board = Board(
         board.get_size(), board.get_black_player(), board.get_white_player()
