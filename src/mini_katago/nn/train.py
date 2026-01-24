@@ -4,6 +4,9 @@ from typing import Any
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+
+from termcolor import colored
+
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
@@ -71,7 +74,7 @@ def train_one_epoch(
 
 
 if __name__ == "__main__":
-    print("Training start!")
+    print(colored("Training Start!", "green", attrs=["bold"]))
 
     start_time = time.perf_counter()
 
@@ -164,4 +167,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
-    print("Training end!")
+    print(colored("Training end!", "green", attrs=["bold"]))
