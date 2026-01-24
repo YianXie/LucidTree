@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     # We found a better state
     if best_state is not None:
-        torch.save(best_state, "checkpoint.pt")
+        torch.save(best_state, root / "models/checkpoint.pt")
         checkpoint = torch.load("checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
 
