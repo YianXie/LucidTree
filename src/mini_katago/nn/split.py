@@ -10,7 +10,9 @@ def split_game(
     val: float = 0.1,
     test: float = 0.1,
 ) -> tuple[list[Game], list[Game], list[Game]]:
-    assert abs(train + val + test - 1.0) < 1e-6
+    assert abs(train + val + test - 1.0) < 1e-6, (
+        f"Split ratios must sum to 1.0 (within 1e-6), got {train + val + test}"
+    )
 
     rng = random.Random(seed)
     games = games[:]

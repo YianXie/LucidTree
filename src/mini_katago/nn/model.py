@@ -1,5 +1,3 @@
-from typing import Any
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,7 +49,7 @@ class SmallPVNet(nn.Module):
         self.value_fc1 = nn.Linear(board_size * board_size, 64)
         self.value_fc2 = nn.Linear(64, 1)
 
-    def forward(self, x: Any) -> tuple[Any, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Make one round of prediction
 

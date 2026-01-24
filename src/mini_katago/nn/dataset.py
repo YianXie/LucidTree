@@ -32,27 +32,31 @@ class SgfPolicyValueDataset(Dataset[Any]):
         """
         self.samples: list[Sample] = []
         for game in games:
-            board = Board(game.board.get_size(), game.black_player, game.white_player)
             winner = game.winner
+            for transformed_board in utils.transform_board(game.board):
+                board = Board(
+                    game.board.get_size(),
+                    game.black_player,
+                    game.white_player,
+                )
+                for move in transformed_board.get_all_moves():
+                    to_play = board.get_current_player()
 
-            for move in game.board.get_all_moves():
-                to_play = board.get_current_player()
+                    x = utils.encode_board(board)
+                    move_position = move.get_position()
+                    y_policy = utils.move_to_index(move_position)
 
-                x = utils.encode_board(board)
-                move_position = move.get_position()
-                y_policy = utils.move_to_index(move_position)
+                    y_value = None
+                    if use_value and winner is not None:
+                        win_color = 1 if winner.get_color() == BLACK_COLOR else -1
+                        y_value = 1.0 if win_color == to_play.get_color() else -1.0
 
-                y_value = None
-                if use_value and winner is not None:
-                    win_color = 1 if winner.get_color() == BLACK_COLOR else -1
-                    y_value = 1.0 if win_color == to_play.get_color() else -1.0
+                    self.samples.append(Sample(x, y_policy, y_value))
 
-                self.samples.append(Sample(x, y_policy, y_value))
-
-                if move_position != PASS_MOVE_POSITION:
-                    board.place_move(move_position, to_play.get_color())
-                else:
-                    board.pass_move()
+                    if move_position != PASS_MOVE_POSITION:
+                        board.place_move(move_position, to_play.get_color())
+                    else:
+                        board.pass_move()
 
     def __len__(self) -> int:
         """
@@ -84,9 +88,15 @@ class SgfPolicyValueDataset(Dataset[Any]):
 
     def __repr__(self) -> str:
         """
-        Return a developer-friendly message
+        Return a developer-friendly summary of the dataset.
 
         Returns:
-            str: a developer-friendly message
+            str: a summary including the number of samples and a preview of the first few.
         """
-        return f"{self.samples}"
+        preview_count = 3
+        preview = self.samples[:preview_count]
+        return (
+            f"{self.__class__.__name__}("
+            f"num_samples={len(self.samples)}, preview={preview}"
+            f"{'...' if len(self.samples) > preview_count else ''})"
+        )

@@ -61,7 +61,6 @@ def train_one_epoch(
             loss = loss_pol + lambda_value * loss_val
         else:
             policy_logits, _ = out
-            print(policy_logits.shape)
             loss = F.cross_entropy(policy_logits, y_pol)
 
         loss.backward()  # type: ignore
@@ -87,8 +86,12 @@ if __name__ == "__main__":
         try:
             game = parse_sgf_file(sgf_file)
             games.append(game)
+        except ValueError as e:
+            print("Value error:", e)
+        except MemoryError as e:
+            raise e
         except Exception as e:
-            print("Skipped game. Reason:", e)
+            print("Error:", e)
 
     train_games, val_games, test_games = split_game(games)
     train_dataset = SgfPolicyValueDataset(train_games, use_value=use_value)
@@ -103,8 +106,8 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    model = SmallPVNet()
-    model.to(default_device)
+    model = SmallPVNet(seed=0)
+    model = model.to(default_device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)  # learning rate = 0.001
 
     losses: list[float] = []
@@ -115,7 +118,7 @@ if __name__ == "__main__":
             print(f"Epoch {epoch} loss: {loss:.4f}")
 
     end_time = time.perf_counter()
-    print(f"Total time spent: {(end_time - start_time):.4f}")
+    print(f"Total time spent: {(end_time - start_time):.4f} seconds")
 
     plt.plot(range(num_epoch), losses)
     plt.xlabel("Epoch")
