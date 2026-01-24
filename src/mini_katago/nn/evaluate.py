@@ -27,7 +27,10 @@ def evaluate_policy(
     total = 0
 
     for batch in loader:
-        x, y, _ = batch  # y: (B,)
+        if len(batch) == 2:
+            x, y = batch  # y: (B,)
+        else:
+            x, y, _ = batch  # y: (B,)
         x = x.to(device)
         y = y.to(device)
 
