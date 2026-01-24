@@ -69,3 +69,8 @@ PASS_INDEX = BOARD_SIZE * BOARD_SIZE
 """
 The index of a pass for the CNN Tensor
 """
+
+USE_VALUE = False
+"""
+Whether to use value when training
+"""

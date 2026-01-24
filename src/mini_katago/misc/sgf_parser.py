@@ -2,6 +2,7 @@ from pathlib import Path
 
 from sgfmill import sgf
 
+from mini_katago import utils
 from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
@@ -47,7 +48,7 @@ def parse_sgf_file(path: Path) -> Game:
 
 # For testing
 if __name__ == "__main__":
-    path = Path("./src/mini_katago/data/")
+    path = utils.get_project_root() / "data/raw/sgf"
     for sgf_file in path.iterdir():
         try:
             game = parse_sgf_file(sgf_file)

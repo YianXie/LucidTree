@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import Any
 
+from mini_katago.nn.split import split_game
 import torch
 from torch.utils.data import Dataset
 
 from mini_katago import utils
-from mini_katago.constants import BLACK_COLOR
+from mini_katago.constants import BLACK_COLOR, USE_VALUE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
+from mini_katago.misc.sgf_parser import parse_sgf_file
 
 
 @dataclass
@@ -22,13 +24,13 @@ class Sample:
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
-    def __init__(self, games: list[Game], use_value: bool = True) -> None:
+    def __init__(self, games: list[Game], use_value: bool = USE_VALUE) -> None:
         """
         Initialize a dataset from the given games
 
         Args:
             games (list[Game]): a list of games
-            use_value (bool, optional): whether to calculate value network or not. Defaults to True.
+            use_value (bool, optional): whether to calculate value network or not. Defaults to USE_VALUE.
         """
         self.use_value = use_value
 
@@ -100,3 +102,48 @@ class SgfPolicyValueDataset(Dataset[Any]):
         if self.y_value is None:
             return self.X[index], self.y_policy[index]
         return self.X[index], self.y_policy[index], self.y_value[index]
+
+
+if __name__ == "__main__":
+    games: list[Game] = []
+    root = utils.get_project_root()
+    path = root / "data/raw/sgf"
+
+    for sgf_file in path.iterdir():
+        try:
+            game = parse_sgf_file(sgf_file)
+            games.append(game)
+        except ValueError as e:
+            print(f"Value error: {e}")
+        except Exception as e:
+            print(f"Skipped game. Error: {e}")
+
+    train_games, val_games, test_games = split_game(games)
+    train_dataset = SgfPolicyValueDataset(train_games, use_value=USE_VALUE)
+    val_dataset = SgfPolicyValueDataset(val_games, use_value=USE_VALUE)
+    test_dataset = SgfPolicyValueDataset(test_games, use_value=USE_VALUE)
+
+    torch.save(
+        {
+            "X": train_dataset.X,
+            "y_policy": train_dataset.y_policy,
+            "y_value": train_dataset.y_value,
+        },
+        root / "data/processed/go_9x9_train.pt",
+    )
+    torch.save(
+        {
+            "X": val_dataset.X,
+            "y_policy": val_dataset.y_policy,
+            "y_value": val_dataset.y_value,
+        },
+        root / "data/processed/go_9x9_val.pt",
+    )
+    torch.save(
+        {
+            "X": test_dataset.X,
+            "y_policy": test_dataset.y_policy,
+            "y_value": test_dataset.y_value,
+        },
+        root / "data/processed/go_9x9_test.pt",
+    )

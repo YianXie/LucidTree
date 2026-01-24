@@ -3,6 +3,8 @@
 import random
 from typing import Any
 
+from pathlib import Path
+
 import torch
 
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
@@ -11,6 +13,27 @@ from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 
 # fmt: on
+
+
+def get_project_root() -> Path:
+    """
+    Find the project root by searching for a .git directory or a pyproject.toml file
+
+    Raises:
+        FileNotFoundError: if root could not be found
+
+    Returns:
+        Path: the path to start with
+    """
+    current_file_path = Path(__file__).resolve()
+    for parent in current_file_path.parents:
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent
+
+    # Fallback or error handling if the root isn't found
+    raise FileNotFoundError(
+        "Project root could not be found based on standard markers."
+    )
 
 
 def weighted_choice(moves: list[Any], weights: list[float]) -> Any:

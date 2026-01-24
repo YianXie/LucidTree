@@ -1,6 +1,4 @@
-from cProfile import label
 import time
-from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -9,13 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from mini_katago.constants import INFINITY
-from mini_katago.go.game import Game
-from mini_katago.misc.sgf_parser import parse_sgf_file
-from mini_katago.nn.dataset import SgfPolicyValueDataset
+from mini_katago import utils
+from mini_katago.constants import INFINITY, USE_VALUE
+from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
 from mini_katago.nn.evaluate import evaluate_policy
 from mini_katago.nn.model import SmallPVNet
-from mini_katago.nn.split import split_game
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -79,25 +75,13 @@ if __name__ == "__main__":
 
     start_time = time.perf_counter()
 
-    use_value = False
     batch_size = 128
     epochs = 100
+    root = utils.get_project_root()
 
-    games: list[Game] = []
-    path = Path("./src/mini_katago/data/")
-    for sgf_file in path.iterdir():
-        try:
-            game = parse_sgf_file(sgf_file)
-            games.append(game)
-        except ValueError as e:
-            print(f"Value error: {e}")
-        except Exception as e:
-            print(f"Skipped game. Error: {e}")
-
-    train_games, val_games, test_games = split_game(games)
-    train_dataset = SgfPolicyValueDataset(train_games, use_value=use_value)
-    val_dataset = SgfPolicyValueDataset(val_games, use_value=use_value)
-    test_dataset = SgfPolicyValueDataset(test_games, use_value=use_value)
+    train_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_train.pt")
+    val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val.pt")
+    test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test.pt")
 
     print("train_dataset length:", len(train_dataset))
     print("val_dataset length:", len(val_dataset))
@@ -115,48 +99,66 @@ if __name__ == "__main__":
     train_losses: list[float] = []
     val_losses: list[float] = []
     val_acc1s: list[float] = []
+    val_acc5s: list[float] = []
 
     best_val_loss = INFINITY
     best_state = None
+
+    try:
+        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if "best_val_loss" in checkpoint:
+            best_val_loss = checkpoint["best_val_loss"]
+    except FileNotFoundError:
+        print("Checkpoint file does not exist.")
+    except PermissionError:
+        print("Permission denied when accessing the checkpoint file.")
+
     for epoch in range(epochs):
         train_loss = train_one_epoch(
-            model, train_loader, optimizer, use_value=use_value, device=device
+            model, train_loader, optimizer, use_value=USE_VALUE, device=device
         )
         train_losses.append(train_loss)
 
-        val_loss, val_acc1 = evaluate_policy(model, val_loader, device=device)
+        val_loss, val_acc1, val_acc5 = evaluate_policy(model, val_loader, device=device)
         val_losses.append(val_loss)
         val_acc1s.append(val_acc1)
+        val_acc5s.append(val_acc5)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_state = {
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "epoch": epoch,
+                "best_val_loss": best_val_loss,
             }
 
         if epoch % 10 == 0:
             print(
-                f"Epoch {epoch:3d} | train_loss={train_loss:.4f} "
-                f"| val_loss={val_loss:.4f} | val_acc1={val_acc1:.4f}"
+                f"Epoch {epoch:03d} | train_loss={train_loss:.4f} "
+                f"| val_loss={val_loss:.4f} | val_acc1={val_acc1:.4f} | val_acc5={val_acc5:.4f}"
             )
 
     # We found a better state
     if best_state is not None:
         torch.save(best_state, "checkpoint.pt")
+        checkpoint = torch.load("checkpoint.pt", map_location="cpu")
+        model.load_state_dict(checkpoint["model_state_dict"])
 
-    test_loss, test_acc1 = evaluate_policy(model, test_loader, device=device)
-    print(f"TEST | loss={test_loss:.4f} | acc1={test_acc1:.4f}")
+    test_loss, test_acc1, test_acc5 = evaluate_policy(model, test_loader, device=device)
+    print(f"TEST | loss={test_loss:.4f} | acc1={test_acc1:.4f} | acc5={test_acc5:.4f}")
 
     end_time = time.perf_counter()
     print(f"Total time spent: {(end_time - start_time):.4f} seconds")
 
     plt.plot(range(epochs), train_losses, label="Train Losses")
-    plt.plot(range(epochs), val_losses, label="Test Losses")
-    plt.plot(range(epochs), val_acc1s, label="Accuracy Losses")
+    plt.plot(range(epochs), val_losses, label="Validation Losses")
+    plt.plot(range(epochs), val_acc1s, label="Validation Accuracy (top 1)")
+    plt.plot(range(epochs), val_acc5s, label="Validation Accuracy (top 5)")
 
     plt.xlabel("Epoch")
-    plt.ylabel("Losses")
+    plt.ylabel("Losses/Accuracy")
 
     plt.title("Training Overview")
     plt.legend()

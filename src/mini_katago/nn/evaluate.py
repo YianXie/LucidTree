@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 @torch.no_grad()
 def evaluate_policy(
     model: nn.Module, loader: DataLoader[Any], device: torch.device
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     """
     Evaluate the output policy against the validate set
 
@@ -24,6 +24,7 @@ def evaluate_policy(
     model.eval()
     total_loss = 0.0
     correct1 = 0
+    correct5 = 0
     total = 0
 
     for batch in loader:
@@ -39,10 +40,14 @@ def evaluate_policy(
         loss = F.cross_entropy(logits, y)
 
         total_loss += loss.item() * x.size(0)
-        pred = logits.argmax(dim=1)  # (B,)
-        correct1 += (pred == y).sum().item()
+        top1_prediction = logits.argmax(dim=1)  # (B,)
+        _, top5_indices = logits.topk(k=5, dim=1)  # (B, 5)
+        correct1 += (top1_prediction == y).sum().item()
+        y_expanded = y.unsqueeze(1)  # (B, 1) for broadcasting with (B, 5)
+        correct5 += int(torch.any(top5_indices == y_expanded, dim=1).sum().item())
         total += x.size(0)
 
     avg_loss = total_loss / max(1, total)
     acc1 = correct1 / max(1, total)
-    return avg_loss, acc1
+    acc5 = correct5 / max(1, total)
+    return avg_loss, acc1, acc5
