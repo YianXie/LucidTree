@@ -8,21 +8,23 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from mini_katago.constants import INFINITY
 from mini_katago.go.game import Game
 from mini_katago.misc.sgf_parser import parse_sgf_file
 from mini_katago.nn.dataset import SgfPolicyValueDataset
+from mini_katago.nn.evaluate import evaluate_policy
 from mini_katago.nn.model import SmallPVNet
 from mini_katago.nn.split import split_game
 
-default_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def train_one_epoch(
     model: nn.Module,
     loader: DataLoader[Any],
     optim: torch.optim.Optimizer,
-    value_head: bool,
-    device: torch.device = default_device,
+    use_value: bool,
+    device: torch.device = device,
     lambda_value: float = 0.5,
 ) -> float:
     """
@@ -44,7 +46,7 @@ def train_one_epoch(
     for batch in loader:
         optim.zero_grad()
 
-        if value_head:
+        if use_value:
             x, y_pol, y_val = batch
             y_val = y_val.to(device)
         else:
@@ -54,7 +56,7 @@ def train_one_epoch(
         y_pol = y_pol.to(device)
 
         out = model(x)
-        if value_head:
+        if use_value:
             policy_logits, value_pred = out
             loss_pol = F.cross_entropy(policy_logits, y_pol)
             loss_val = F.mse_loss(value_pred, y_val)
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     start_time = time.perf_counter()
 
     use_value = False
-    batch_size = 32
+    batch_size = 128
     num_epoch = 100
 
     games: list[Game] = []
@@ -105,15 +107,40 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     model = SmallPVNet(seed=0)
-    model = model.to(default_device)
+    model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)  # learning rate = 0.001
 
+    # Run the training and save the losses
     losses: list[float] = []
+    best_val_loss = INFINITY
+    best_state = None
     for epoch in range(num_epoch):
-        loss = train_one_epoch(model, train_loader, optimizer, use_value)
-        losses.append(loss)
+        train_loss = train_one_epoch(
+            model, train_loader, optimizer, use_value=use_value, device=device
+        )
+        losses.append(train_loss)
+
+        val_loss, val_acc1 = evaluate_policy(model, val_loader, device=device)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_state = {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "epoch": epoch,
+            }
+
         if epoch % 10 == 0:
-            print(f"Epoch {epoch} loss: {loss:.4f}")
+            print(
+                f"Epoch {epoch:3d} | train_loss={train_loss:.4f} "
+                f"| val_loss={val_loss:.4f} | val_acc1={val_acc1:.4f}"
+            )
+
+    # We found a better state
+    if best_state is not None:
+        torch.save(best_state, "checkpoint.pt")
+
+    test_loss, test_acc1 = evaluate_policy(model, test_loader, device=device)
+    print(f"TEST | loss={test_loss:.4f} | acc1={test_acc1:.4f}")
 
     end_time = time.perf_counter()
     print(f"Total time spent: {(end_time - start_time):.4f} seconds")

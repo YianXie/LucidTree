@@ -31,6 +31,7 @@ def evaluate_policy(
             x, y = batch  # y: (B,)
         else:
             x, y, _ = batch  # y: (B,)
+
         x = x.to(device)
         y = y.to(device)
 

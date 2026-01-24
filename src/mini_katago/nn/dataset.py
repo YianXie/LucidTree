@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 
 from mini_katago import utils
-from mini_katago.constants import BLACK_COLOR, PASS_MOVE_POSITION
+from mini_katago.constants import BLACK_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
 
@@ -30,15 +30,23 @@ class SgfPolicyValueDataset(Dataset[Any]):
             games (list[Game]): a list of games
             use_value (bool, optional): whether to calculate value network or not. Defaults to True.
         """
-        self.samples: list[Sample] = []
+        self.use_value = use_value
+
+        xs: list[torch.Tensor] = []
+        ys_policy: list[int] = []
+        ys_value: list[float] = []
+
         for game in games:
             winner = game.winner
+
+            # Iterate over augmented version of the game
             for transformed_board in (game.board, *utils.transform_board(game.board)):
                 board = Board(
                     game.board.get_size(),
                     game.black_player,
                     game.white_player,
                 )
+
                 for move in transformed_board.get_all_moves():
                     to_play = board.get_current_player()
 
@@ -46,17 +54,29 @@ class SgfPolicyValueDataset(Dataset[Any]):
                     move_position = move.get_position()
                     y_policy = utils.move_to_index(move_position)
 
-                    y_value = None
-                    if use_value and winner is not None:
-                        win_color = 1 if winner.get_color() == BLACK_COLOR else -1
-                        y_value = 1.0 if win_color == to_play.get_color() else -1.0
+                    xs.append(x)
+                    ys_policy.append(y_policy)
 
-                    self.samples.append(Sample(x, y_policy, y_value))
+                    if use_value:
+                        if winner is None:
+                            ys_value.append(0.0)
+                        else:
+                            win_color = 1 if winner.get_color() == BLACK_COLOR else -1
+                            ys_value.append(
+                                1.0 if win_color == to_play.get_color() else -1.0
+                            )
 
-                    if move_position != PASS_MOVE_POSITION:
-                        board.place_move(move_position, to_play.get_color())
-                    else:
+                    if move.is_passed():
                         board.pass_move()
+                    else:
+                        board.place_move(move_position, to_play.get_color())
+
+        self.X: torch.Tensor = torch.stack(xs, dim=0)
+        self.y_policy: torch.Tensor = torch.tensor(ys_policy, dtype=torch.long)
+        self.y_value: torch.Tensor | None = None
+
+        if use_value:
+            self.y_value = torch.tensor(ys_value, dtype=torch.float32)
 
     def __len__(self) -> int:
         """
@@ -65,7 +85,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
         Returns:
             int: the length of the samples
         """
-        return len(self.samples)
+        return self.X.size(0)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
         """
@@ -77,26 +97,6 @@ class SgfPolicyValueDataset(Dataset[Any]):
         Returns:
             tuple[torch.Tensor, ...]: the sample at that specific index
         """
-        sample = self.samples[index]
-        if sample.value_y is None:
-            return sample.x, torch.tensor(sample.policy_y, dtype=torch.long)
-        return (
-            sample.x,
-            torch.tensor(sample.policy_y, dtype=torch.long),
-            torch.tensor(sample.value_y, dtype=torch.float32),
-        )
-
-    def __repr__(self) -> str:
-        """
-        Return a developer-friendly summary of the dataset.
-
-        Returns:
-            str: a summary including the number of samples and a preview of the first few.
-        """
-        preview_count = 3
-        preview = self.samples[:preview_count]
-        return (
-            f"{self.__class__.__name__}("
-            f"num_samples={len(self.samples)}, preview={preview}"
-            f"{'...' if len(self.samples) > preview_count else ''})"
-        )
+        if self.y_value is None:
+            return self.X[index], self.y_policy[index]
+        return self.X[index], self.y_policy[index], self.y_value[index]
