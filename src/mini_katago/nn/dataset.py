@@ -33,7 +33,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
         self.samples: list[Sample] = []
         for game in games:
             winner = game.winner
-            for transformed_board in utils.transform_board(game.board):
+            for transformed_board in (game.board, *utils.transform_board(game.board)):
                 board = Board(
                     game.board.get_size(),
                     game.black_player,

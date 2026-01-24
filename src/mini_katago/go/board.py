@@ -94,7 +94,7 @@ class Board:
             index (int): the index of the move
 
         Returns:
-            Move | None: the nth move, or None if the index is invalid or if there is no moves made yet
+            Move | None: the nth move, or None if the index is invalid or if there are no moves made yet
         """
         if not self._move_history:
             return None

@@ -87,11 +87,9 @@ if __name__ == "__main__":
             game = parse_sgf_file(sgf_file)
             games.append(game)
         except ValueError as e:
-            print("Value error:", e)
-        except MemoryError as e:
-            raise e
+            print(f"Value error: {e}")
         except Exception as e:
-            print("Error:", e)
+            print(f"Skipped game. Error: {e}")
 
     train_games, val_games, test_games = split_game(games)
     train_dataset = SgfPolicyValueDataset(train_games, use_value=use_value)
