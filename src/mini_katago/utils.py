@@ -1,6 +1,7 @@
 # fmt: off
 
 import random
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -8,8 +9,30 @@ import torch
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
                                    PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR)
 from mini_katago.go.board import Board
+from mini_katago.go.player import Player
 
 # fmt: on
+
+
+def get_project_root() -> Path:
+    """
+    Find the project root by searching for a .git directory or a pyproject.toml file
+
+    Raises:
+        FileNotFoundError: if root could not be found
+
+    Returns:
+        Path: the path to start with
+    """
+    current_file_path = Path(__file__).resolve()
+    for parent in current_file_path.parents:
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent
+
+    # Fallback or error handling if the root isn't found
+    raise FileNotFoundError(
+        "Project root could not be found based on standard markers."
+    )
 
 
 def weighted_choice(moves: list[Any], weights: list[float]) -> Any:
@@ -94,16 +117,24 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
         tuple[Board, Board, Board, Board]: the resulting boards
     """
     rotated_clockwise_board = Board(
-        board.get_size(), board.get_black_player(), board.get_white_player()
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
     )
     rotated_counterclockwise_board = Board(
-        board.get_size(), board.get_black_player(), board.get_white_player()
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
     )
     reflected_x_board = Board(
-        board.get_size(), board.get_black_player(), board.get_white_player()
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
     )
     reflected_y_board = Board(
-        board.get_size(), board.get_black_player(), board.get_white_player()
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
     )
 
     n = board.get_size()
@@ -141,3 +172,19 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
         reflected_x_board,
         reflected_y_board,
     )
+
+
+if __name__ == "__main__":
+    # Test transform_board
+    base_board = Board(
+        BOARD_SIZE,
+        Player("Test Black Player", BLACK_COLOR),
+        Player("Test White Player", WHITE_COLOR),
+    )
+    base_board.place_move((1, 2), BLACK_COLOR)
+    base_board.place_move((3, 5), WHITE_COLOR)
+    print(base_board.get_all_moves())
+
+    for board in transform_board(base_board):
+        for move in board.get_all_moves():
+            print(move_to_index(move.get_position()))
