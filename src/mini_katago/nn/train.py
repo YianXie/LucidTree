@@ -1,3 +1,4 @@
+from cProfile import label
 import time
 from pathlib import Path
 from typing import Any
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
     use_value = False
     batch_size = 128
-    num_epoch = 100
+    epochs = 100
 
     games: list[Game] = []
     path = Path("./src/mini_katago/data/")
@@ -111,16 +112,21 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)  # learning rate = 0.001
 
     # Run the training and save the losses
-    losses: list[float] = []
+    train_losses: list[float] = []
+    val_losses: list[float] = []
+    val_acc1s: list[float] = []
+
     best_val_loss = INFINITY
     best_state = None
-    for epoch in range(num_epoch):
+    for epoch in range(epochs):
         train_loss = train_one_epoch(
             model, train_loader, optimizer, use_value=use_value, device=device
         )
-        losses.append(train_loss)
+        train_losses.append(train_loss)
 
         val_loss, val_acc1 = evaluate_policy(model, val_loader, device=device)
+        val_losses.append(val_loss)
+        val_acc1s.append(val_acc1)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_state = {
@@ -145,9 +151,15 @@ if __name__ == "__main__":
     end_time = time.perf_counter()
     print(f"Total time spent: {(end_time - start_time):.4f} seconds")
 
-    plt.plot(range(num_epoch), losses)
+    plt.plot(range(epochs), train_losses, label="Train Losses")
+    plt.plot(range(epochs), val_losses, label="Test Losses")
+    plt.plot(range(epochs), val_acc1s, label="Accuracy Losses")
+
     plt.xlabel("Epoch")
-    plt.ylabel("Loss/Error")
+    plt.ylabel("Losses")
+
+    plt.title("Training Overview")
+    plt.legend()
     plt.show()
 
     print("Training end!")
