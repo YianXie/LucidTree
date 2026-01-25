@@ -167,10 +167,26 @@ if __name__ == "__main__":
     end_time = time.perf_counter()
     print(f"Total time spent: {(end_time - start_time):.4f} seconds")
 
-    plt.plot(range(epochs), train_losses, label="Train Losses")
-    plt.plot(range(epochs), val_losses, label="Validation Losses")
-    plt.plot(range(epochs), val_acc1s, label="Validation Accuracy (top 1)")
-    plt.plot(range(epochs), val_acc5s, label="Validation Accuracy (top 5)")
+    plt.plot(
+        range(starting_epoch, starting_epoch + epochs),
+        train_losses,
+        label="Train Losses",
+    )
+    plt.plot(
+        range(starting_epoch, starting_epoch + epochs),
+        val_losses,
+        label="Validation Losses",
+    )
+    plt.plot(
+        range(starting_epoch, starting_epoch + epochs),
+        val_acc1s,
+        label="Validation Accuracy (top 1)",
+    )
+    plt.plot(
+        range(starting_epoch, starting_epoch + epochs),
+        val_acc5s,
+        label="Validation Accuracy (top 5)",
+    )
 
     plt.xlabel("Epoch")
     plt.ylabel("Losses/Accuracy")
