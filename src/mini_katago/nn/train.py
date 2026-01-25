@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Any
 
@@ -5,11 +6,10 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from termcolor import colored
 from torch.utils.data import DataLoader
 
 from mini_katago import utils
-from mini_katago.constants import INFINITY, USE_VALUE
+from mini_katago.constants import BOARD_SIZE, INFINITY, USE_VALUE
 from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
 from mini_katago.nn.evaluate import evaluate_policy
 from mini_katago.nn.model import SmallPVNet
@@ -23,6 +23,7 @@ def train_one_epoch(
     optim: torch.optim.Optimizer,
     use_value: bool,
     *,
+    epoch: int,
     device: torch.device = device,
     lambda_value: float = 0.5,
     label_smoothing: float = 0.05,
@@ -35,6 +36,7 @@ def train_one_epoch(
         loader (torch.Tensor): the DataLoader
         optim (torch.optim.Optimizer): the optimizer
         value_head (bool): the value head
+        epoch (int): the current epoch count
         device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
         label_smoothing (float, optional): the label smoothing value for cross_entropy loss. Defaults to 0.05.
@@ -44,7 +46,7 @@ def train_one_epoch(
     """
     model.train()
     total = 0.0
-    for batch in loader:
+    for batch_idx, batch in enumerate(loader):
         optim.zero_grad()
 
         if use_value:
@@ -70,31 +72,54 @@ def train_one_epoch(
                 policy_logits, y_pol, label_smoothing=label_smoothing
             )
 
+        if torch.isnan(loss):
+            logger.error("NaN loss detected at epoch %d", epoch)
+            break
+
+        if torch.any(torch.isnan(policy_logits)):
+            logger.error("NaN in policy logits at epoch %d", epoch)
+
         loss.backward()  # type: ignore
         optim.step()
 
         total += float(loss.item())
 
+        if batch_idx % 100 == 0:
+            logger.debug(
+                "Epoch %d | Batch %d | loss = %.4f | total_loss = %.4f",
+                epoch,
+                batch_idx,
+                loss,
+                total,
+            )
+
     return total / max(1, len(loader))
 
 
 if __name__ == "__main__":
-    print(colored("Training Start!", "green", attrs=["bold"]))
+    root = utils.get_project_root()
+    logger = utils.setup_logger(
+        name="training", log_file=root / "logs/training.log", level=logging.INFO
+    )
 
     start_time = time.perf_counter()
 
     torch.manual_seed(0)
     batch_size = 128
     epochs = 100
-    root = utils.get_project_root()
+
+    logger.info("Starting training")
+    logger.info("Board size = %d", BOARD_SIZE)
+    logger.info("Batch size = %d", batch_size)
+    logger.info("Total epoch = %d", epochs)
 
     train_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_train.pt")
     val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val.pt")
     test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test.pt")
 
-    print("train_dataset length:", len(train_dataset))
-    print("val_dataset length:", len(val_dataset))
-    print("test_dataset length:", len(test_dataset))
+    logger.info("train_dataset length: %d", len(train_dataset))
+    logger.info("val_dataset length: %d", len(val_dataset))
+    logger.info("test_dataset length: %d", len(test_dataset))
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -121,15 +146,22 @@ if __name__ == "__main__":
         if "best_val_loss" in checkpoint:
             best_val_loss = checkpoint["best_val_loss"]
         if "epoch" in checkpoint:
-            starting_epoch = checkpoint["epoch"]
+            starting_epoch = (
+                checkpoint["epoch"] + 1
+            )  # add 1 so we move on from previous epoch
     except FileNotFoundError:
-        print("Checkpoint file does not exist.")
+        logger.error("Checkpoint file does not exist.")
     except PermissionError:
-        print("Permission denied when accessing the checkpoint file.")
+        logger.error("Permission denied when accessing the checkpoint file.")
 
     for epoch in range(starting_epoch, starting_epoch + epochs):
         train_loss = train_one_epoch(
-            model, train_loader, optimizer, use_value=USE_VALUE, device=device
+            model,
+            train_loader,
+            optimizer,
+            use_value=USE_VALUE,
+            device=device,
+            epoch=epoch,
         )
         train_losses.append(train_loss)
 
@@ -147,9 +179,13 @@ if __name__ == "__main__":
             }
 
         if epoch % 10 == 0:
-            print(
-                f"Epoch {epoch:03d} | train_loss={train_loss:.4f} "
-                f"| val_loss={val_loss:.4f} | val_acc1={val_acc1:.4f} | val_acc5={val_acc5:.4f}"
+            logger.info(
+                "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
+                epoch,
+                train_loss,
+                val_loss,
+                val_acc1,
+                val_acc5,
             )
 
     # We found a better state
@@ -162,10 +198,15 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint["model_state_dict"])
 
     test_loss, test_acc1, test_acc5 = evaluate_policy(model, test_loader, device=device)
-    print(f"TEST | loss={test_loss:.4f} | acc1={test_acc1:.4f} | acc5={test_acc5:.4f}")
+    logger.info(
+        "TEST | loss = %.4f | acc1 = %.4f | acc5 = %.4f",
+        test_loss,
+        test_acc1,
+        test_acc5,
+    )
 
     end_time = time.perf_counter()
-    print(f"Total time spent: {(end_time - start_time):.4f} seconds")
+    logger.info("Total training time: %.4f seconds", start_time - end_time)
 
     plt.plot(
         range(starting_epoch, starting_epoch + epochs),
@@ -195,4 +236,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
-    print(colored("Training end!", "green", attrs=["bold"]))
+    logger.info("Training end")

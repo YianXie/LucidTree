@@ -1,6 +1,8 @@
 # fmt: off
 
+import logging
 import random
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
@@ -174,17 +176,37 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
     )
 
 
-if __name__ == "__main__":
-    # Test transform_board
-    base_board = Board(
-        BOARD_SIZE,
-        Player("Test Black Player", BLACK_COLOR),
-        Player("Test White Player", WHITE_COLOR),
-    )
-    base_board.place_move((1, 2), BLACK_COLOR)
-    base_board.place_move((3, 5), WHITE_COLOR)
-    print(base_board.get_all_moves())
+def setup_logger(
+    name: str, log_file: Path, level: int = logging.INFO
+) -> logging.Logger:
+    """
+    Set up a logger instance
 
-    for board in transform_board(base_board):
-        for move in board.get_all_moves():
-            print(move_to_index(move.get_position()))
+    Args:
+        name (str): the name of the logger
+        log_file (Path): the Path to the .log file
+        level (int, optional): the default logger level. Defaults to logging.INFO.
+
+    Returns:
+        logging.Logger: the logger
+    """
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)
+    file_handler.setFormatter(formatter)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    return logger
