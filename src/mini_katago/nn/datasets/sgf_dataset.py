@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Any
 
 import torch
@@ -10,17 +9,6 @@ from mini_katago.go.board import Board
 from mini_katago.go.game import Game
 from mini_katago.misc.sgf_parser import parse_sgf_file
 from mini_katago.nn.split import split_game
-
-
-@dataclass
-class Sample:
-    """
-    A sample dataclass consisting of the channels, policy network, and value network
-    """
-
-    x: torch.Tensor
-    policy_y: int
-    value_y: float | None
 
 
 class SgfPolicyValueDataset(Dataset[Any]):

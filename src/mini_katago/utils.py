@@ -1,6 +1,8 @@
 # fmt: off
 
+import logging
 import random
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
@@ -79,7 +81,8 @@ def encode_board(board: Board) -> torch.Tensor:
     # Last move
     last_move = board.get_last_move()
     if last_move is not None and not last_move.is_passed():
-        x[4, last_move.get_position()] = 1
+        row, col = last_move.get_position()
+        x[4, row, col] = 1
 
     # Ko point
     ko_position = board.get_ko_point()
@@ -89,7 +92,7 @@ def encode_board(board: Board) -> torch.Tensor:
     return x
 
 
-def move_to_index(move_position: tuple[int, int]) -> int:
+def move_to_index(move_position: tuple[int, int], /) -> int:
     """
     Calculate the index of a move within the encoded tensor
 
@@ -104,6 +107,19 @@ def move_to_index(move_position: tuple[int, int]) -> int:
 
     row, col = move_position
     return row * BOARD_SIZE + col
+
+
+def index_to_row_col(index: int, /) -> tuple[int, int]:
+    """
+    Convert a board index to a move position
+
+    Args:
+        index (int): the move index
+    """
+    if index == PASS_INDEX:
+        return (-1, -1)
+
+    return divmod(index, BOARD_SIZE)
 
 
 def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
@@ -174,17 +190,37 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
     )
 
 
-if __name__ == "__main__":
-    # Test transform_board
-    base_board = Board(
-        BOARD_SIZE,
-        Player("Test Black Player", BLACK_COLOR),
-        Player("Test White Player", WHITE_COLOR),
-    )
-    base_board.place_move((1, 2), BLACK_COLOR)
-    base_board.place_move((3, 5), WHITE_COLOR)
-    print(base_board.get_all_moves())
+def setup_logger(
+    name: str, log_file: Path, level: int = logging.INFO
+) -> logging.Logger:
+    """
+    Set up a logger instance
 
-    for board in transform_board(base_board):
-        for move in board.get_all_moves():
-            print(move_to_index(move.get_position()))
+    Args:
+        name (str): the name of the logger
+        log_file (Path): the Path to the .log file
+        level (int, optional): the default logger level. Defaults to logging.INFO.
+
+    Returns:
+        logging.Logger: the logger
+    """
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)
+    file_handler.setFormatter(formatter)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    return logger
