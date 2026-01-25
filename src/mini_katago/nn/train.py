@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     torch.manual_seed(0)
     batch_size = 128
-    epochs = 100
+    epochs = 30
 
     logger.info("Starting training")
     logger.info("Board size = %d", BOARD_SIZE)
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                 "best_val_loss": best_val_loss,
             }
 
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             logger.info(
                 "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
                 epoch,
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     )
 
     end_time = time.perf_counter()
-    logger.info("Total training time: %.4f seconds", start_time - end_time)
+    logger.info("Total training time: %.4f seconds", end_time - start_time)
 
     plt.plot(
         range(starting_epoch, starting_epoch + epochs),

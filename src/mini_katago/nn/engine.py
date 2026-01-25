@@ -34,8 +34,13 @@ def pick_move(
             move_pos = None
         else:
             move_pos = utils.index_to_row_col(idx)
-            if board.move_is_valid(
-                Move(move_pos[0], move_pos[1], board.get_current_player().get_color())
+            if (
+                board.move_is_valid(
+                    Move(
+                        move_pos[0], move_pos[1], board.get_current_player().get_color()
+                    )
+                )
+                and board.get_move_at_position(move_pos).is_empty()
             ):
                 return move_pos, probs[idx].item()
 
@@ -48,8 +53,6 @@ if __name__ == "__main__":
         Player("Black player", BLACK_COLOR),
         Player("White player", WHITE_COLOR),
     )
-    board.place_move((2, 2), BLACK_COLOR)
-    board.place_move((6, 6), WHITE_COLOR)
 
     root = utils.get_project_root()
     checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
@@ -57,6 +60,18 @@ if __name__ == "__main__":
 
     model = SmallPVNet()
     model.load_state_dict(checkpoint["model_state_dict"])
-    best = pick_move(model=model, board=board, device=device, temperature=0.0)
 
-    print(best)
+    while not board.is_terminate():
+        row, col = map(int, input("Enter your move: ").split())
+        if row == -1 and col == -1:
+            board.show_board()
+            break
+        board.place_move((row, col), BLACK_COLOR)
+        board.print_ascii_board()
+
+        best = pick_move(model=model, board=board, device=device)
+        if best[0] is not None:
+            board.place_move(best[0], WHITE_COLOR)
+        else:
+            board.pass_move()
+        board.print_ascii_board()
