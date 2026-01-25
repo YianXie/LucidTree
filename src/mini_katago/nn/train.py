@@ -22,8 +22,10 @@ def train_one_epoch(
     loader: DataLoader[Any],
     optim: torch.optim.Optimizer,
     use_value: bool,
+    *,
     device: torch.device = device,
     lambda_value: float = 0.5,
+    label_smoothing: float = 0.05,
 ) -> float:
     """
     Train the model for one epoch
@@ -35,6 +37,7 @@ def train_one_epoch(
         value_head (bool): the value head
         device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
+        label_smoothing (float, optional): the label smoothing value for cross_entropy loss. Defaults to 0.05.
 
     Returns:
         float: the average loss
@@ -56,12 +59,16 @@ def train_one_epoch(
         out = model(x)
         if use_value:
             policy_logits, value_pred = out
-            loss_pol = F.cross_entropy(policy_logits, y_pol)
+            loss_pol = F.cross_entropy(
+                policy_logits, y_pol, label_smoothing=label_smoothing
+            )
             loss_val = F.mse_loss(value_pred, y_val)
             loss = loss_pol + lambda_value * loss_val
         else:
             policy_logits, _ = out
-            loss = F.cross_entropy(policy_logits, y_pol)
+            loss = F.cross_entropy(
+                policy_logits, y_pol, label_smoothing=label_smoothing
+            )
 
         loss.backward()  # type: ignore
         optim.step()
@@ -76,6 +83,7 @@ if __name__ == "__main__":
 
     start_time = time.perf_counter()
 
+    torch.manual_seed(0)
     batch_size = 128
     epochs = 100
     root = utils.get_project_root()
@@ -92,9 +100,9 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    model = SmallPVNet(seed=0)
+    model = SmallPVNet()
     model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)  # learning rate = 0.001
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
 
     # Run the training and save the losses
     train_losses: list[float] = []
@@ -104,6 +112,7 @@ if __name__ == "__main__":
 
     best_val_loss = INFINITY
     best_state = None
+    starting_epoch = 0
 
     try:
         checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
@@ -111,12 +120,14 @@ if __name__ == "__main__":
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if "best_val_loss" in checkpoint:
             best_val_loss = checkpoint["best_val_loss"]
+        if "epoch" in checkpoint:
+            starting_epoch = checkpoint["epoch"]
     except FileNotFoundError:
         print("Checkpoint file does not exist.")
     except PermissionError:
         print("Permission denied when accessing the checkpoint file.")
 
-    for epoch in range(epochs):
+    for epoch in range(starting_epoch, starting_epoch + epochs):
         train_loss = train_one_epoch(
             model, train_loader, optimizer, use_value=USE_VALUE, device=device
         )
@@ -143,8 +154,11 @@ if __name__ == "__main__":
 
     # We found a better state
     if best_state is not None:
+        # Save the best state
         torch.save(best_state, root / "models/checkpoint.pt")
-        checkpoint = torch.load("checkpoint.pt", map_location="cpu")
+
+        # Load it and use it for testing
+        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
 
     test_loss, test_acc1, test_acc5 = evaluate_policy(model, test_loader, device=device)
