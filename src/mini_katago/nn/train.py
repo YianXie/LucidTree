@@ -24,6 +24,7 @@ def train_one_epoch(
     use_value: bool,
     *,
     epoch: int,
+    logger: logging.Logger,
     device: torch.device = device,
     lambda_value: float = 0.5,
     label_smoothing: float = 0.05,
@@ -58,16 +59,14 @@ def train_one_epoch(
         x = x.to(device)
         y_pol = y_pol.to(device)
 
-        out = model(x)
+        policy_logits, value_pred = model(x)
         if use_value:
-            policy_logits, value_pred = out
             loss_pol = F.cross_entropy(
                 policy_logits, y_pol, label_smoothing=label_smoothing
             )
             loss_val = F.mse_loss(value_pred, y_val)
             loss = loss_pol + lambda_value * loss_val
         else:
-            policy_logits, _ = out
             loss = F.cross_entropy(
                 policy_logits, y_pol, label_smoothing=label_smoothing
             )
@@ -162,6 +161,7 @@ if __name__ == "__main__":
             use_value=USE_VALUE,
             device=device,
             epoch=epoch,
+            logger=logger,
         )
         train_losses.append(train_loss)
 

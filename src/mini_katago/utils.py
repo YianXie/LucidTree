@@ -81,7 +81,8 @@ def encode_board(board: Board) -> torch.Tensor:
     # Last move
     last_move = board.get_last_move()
     if last_move is not None and not last_move.is_passed():
-        x[4, last_move.get_position()] = 1
+        row, col = last_move.get_position()
+        x[4, row, col] = 1
 
     # Ko point
     ko_position = board.get_ko_point()
@@ -91,7 +92,7 @@ def encode_board(board: Board) -> torch.Tensor:
     return x
 
 
-def move_to_index(move_position: tuple[int, int]) -> int:
+def move_to_index(move_position: tuple[int, int], /) -> int:
     """
     Calculate the index of a move within the encoded tensor
 
@@ -106,6 +107,19 @@ def move_to_index(move_position: tuple[int, int]) -> int:
 
     row, col = move_position
     return row * BOARD_SIZE + col
+
+
+def index_to_row_col(index: int, /) -> tuple[int, int]:
+    """
+    Convert a board index to a move position
+
+    Args:
+        index (int): the move index
+    """
+    if index == PASS_INDEX:
+        return (-1, -1)
+
+    return divmod(index, BOARD_SIZE)
 
 
 def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
