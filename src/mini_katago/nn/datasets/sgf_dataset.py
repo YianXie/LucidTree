@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset
 
 from mini_katago import utils
-from mini_katago.constants import BLACK_COLOR, USE_VALUE
+from mini_katago.constants import USE_VALUE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
 from mini_katago.misc.sgf_parser import parse_sgf_file
@@ -51,9 +51,10 @@ class SgfPolicyValueDataset(Dataset[Any]):
                         if winner is None:
                             ys_value.append(0.0)
                         else:
-                            win_color = 1 if winner.get_color() == BLACK_COLOR else -1
                             ys_value.append(
-                                1.0 if win_color == to_play.get_color() else -1.0
+                                1.0
+                                if winner.get_color() == to_play.get_color()
+                                else -1.0
                             )
 
                     if move.is_passed():

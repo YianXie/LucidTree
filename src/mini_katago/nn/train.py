@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from mini_katago import utils
 from mini_katago.constants import BOARD_SIZE, INFINITY, USE_VALUE
 from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
-from mini_katago.nn.evaluate import evaluate_policy
+from mini_katago.nn.evaluate import evaluate_both, evaluate_policy
 from mini_katago.nn.model import SmallPVNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -111,10 +111,18 @@ if __name__ == "__main__":
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
     logger.info("Total epoch = %d", epochs)
+    logger.info("USE_VALUE = %s", USE_VALUE)
 
-    train_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_train.pt")
-    val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val.pt")
-    test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test.pt")
+    if USE_VALUE:
+        train_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_train.pt")
+        val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val.pt")
+        test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test.pt")
+    else:
+        train_dataset = PrecomputedGoDataset(
+            root / "data/processed/go_9x9_train_pol.pt"
+        )
+        val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val_pol.pt")
+        test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test_pol.pt")
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -139,17 +147,23 @@ if __name__ == "__main__":
     starting_epoch = 0
 
     try:
-        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        if USE_VALUE:
+            checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        else:
+            checkpoint = torch.load(
+                root / "models/checkpoint_pol.pt", map_location="cpu"
+            )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        if "best_val_loss" in checkpoint:
-            best_val_loss = checkpoint["best_val_loss"]
-        if "epoch" in checkpoint:
-            starting_epoch = (
-                checkpoint["epoch"] + 1
-            )  # add 1 so we move on from previous epoch
+        best_val_loss = checkpoint["best_val_loss"]
+        starting_epoch = (
+            checkpoint["epoch"] + 1
+        )  # add 1 so we move on from previous epoch
+        batch_size = checkpoint["batch_size"]
     except FileNotFoundError:
-        logger.error("Checkpoint file does not exist.")
+        logger.warning(
+            "Checkpoint file does not exist. Starting with no checkpoint file."
+        )
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
@@ -165,16 +179,25 @@ if __name__ == "__main__":
         )
         train_losses.append(train_loss)
 
-        val_loss, val_acc1, val_acc5 = evaluate_policy(model, val_loader, device=device)
+        if USE_VALUE:
+            val_loss, val_acc1, val_acc5 = evaluate_policy(
+                model, val_loader, device=device
+            )
+        else:
+            val_loss, val_acc1, val_acc5 = evaluate_both(
+                model, val_loader, device=device
+            )
         val_losses.append(val_loss)
         val_acc1s.append(val_acc1)
         val_acc5s.append(val_acc5)
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_state = {
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "epoch": epoch,
+                "batch_size": batch_size,
                 "best_val_loss": best_val_loss,
             }
 

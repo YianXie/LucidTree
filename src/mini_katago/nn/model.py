@@ -5,6 +5,10 @@ from mini_katago.constants import BOARD_SIZE
 
 
 class SmallPVNet(nn.Module):
+    """
+    A small policy-value network for Go
+    """
+
     def __init__(
         self,
         in_channels: int = 6,
