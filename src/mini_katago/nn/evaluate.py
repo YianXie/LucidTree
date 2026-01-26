@@ -51,3 +51,66 @@ def evaluate_policy(
     acc1 = correct1 / max(1, total)
     acc5 = correct5 / max(1, total)
     return avg_loss, acc1, acc5
+
+
+@torch.no_grad()
+def evaluate_value(
+    model: nn.Module,
+    loader: DataLoader[Any],
+    device: torch.device,
+) -> float:
+    """
+    Evaluate the model's value network
+
+    Args:
+        model (nn.Module): the model to evaluate
+        loader (DataLoader[Any]): the DataLoader
+        device (torch.device): the PyTorch device
+
+    Returns:
+        float: the average loss
+    """
+    model.eval()
+    total_loss = 0.0
+    total = 0
+
+    for batch in loader:
+        x, _, y_value = batch
+
+        x = x.to(device)
+        y_value = y_value.to(device).float()
+
+        _, value = model(x)
+
+        y_value = y_value.view(-1)
+        value = value.view(-1)
+
+        loss = F.mse_loss(value, y_value)
+
+        total_loss += loss.item() * x.size(0)
+        total += x.size(0)
+
+    return total_loss / max(1, total)
+
+
+@torch.no_grad()
+def evaluate_both(
+    model: nn.Module,
+    loader: DataLoader[Any],
+    device: torch.device,
+) -> tuple[float, float, float]:
+    """
+    Evaluate the model based with both the policy and value network
+
+    Args:
+        model (nn.Module): the model to evaluate
+        loader (DataLoader[Any]): the DataLoader
+        device (torch.device): the PyTorch device
+
+    Returns:
+        tuple[float, float, float]: the result of the evaluation
+    """
+    policy_loss = evaluate_policy(model=model, loader=loader, device=device)
+    value_loss = evaluate_value(model=model, loader=loader, device=device)
+
+    return (policy_loss[0] + value_loss, policy_loss[1], policy_loss[2])

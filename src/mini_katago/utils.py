@@ -92,17 +92,17 @@ def encode_board(board: Board) -> torch.Tensor:
     return x
 
 
-def move_to_index(move_position: tuple[int, int], /) -> int:
+def move_to_index(move_position: tuple[int, int] | None, /) -> int:
     """
     Calculate the index of a move within the encoded tensor
 
     Args:
-        move_position (tuple[int, int]): the move's position
+        move_position (tuple[int, int] | None): the move's position
 
     Returns:
         int: the index within the tensor
     """
-    if move_position == PASS_MOVE_POSITION:
+    if move_position == PASS_MOVE_POSITION or move_position is None:
         return PASS_INDEX
 
     row, col = move_position
