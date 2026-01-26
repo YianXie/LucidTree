@@ -1,3 +1,5 @@
+# fmt: off
+
 import torch
 import torch.nn as nn
 
@@ -8,6 +10,8 @@ from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.nn.model import SmallPVNet
+
+# fmt: on
 
 
 @torch.no_grad()
