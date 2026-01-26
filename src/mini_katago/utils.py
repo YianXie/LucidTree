@@ -122,7 +122,7 @@ def index_to_row_col(index: int, /) -> tuple[int, int]:
     return divmod(index, BOARD_SIZE)
 
 
-def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
+def transform_board(board: Board) -> tuple[Board, ...]:
     """
     Transform the board with rotation and reflection
 
@@ -130,14 +130,19 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
         board (Board): the board to transform
 
     Returns:
-        tuple[Board, Board, Board, Board]: the resulting boards
+        tuple[Board, ...]: the resulting boards
     """
-    rotated_clockwise_board = Board(
+    rotated_clockwise_board_90 = Board(
         board.get_size(),
         Player(board.get_black_player().get_name(), BLACK_COLOR),
         Player(board.get_white_player().get_name(), WHITE_COLOR),
     )
-    rotated_counterclockwise_board = Board(
+    rotated_counterclockwise_board_90 = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+    rotated_board_180 = Board(
         board.get_size(),
         Player(board.get_black_player().get_name(), BLACK_COLOR),
         Player(board.get_white_player().get_name(), WHITE_COLOR),
@@ -156,8 +161,9 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
     n = board.get_size()
     for move in board.get_all_moves():
         if move.is_passed():
-            rotated_clockwise_board.pass_move()
-            rotated_counterclockwise_board.pass_move()
+            rotated_clockwise_board_90.pass_move()
+            rotated_counterclockwise_board_90.pass_move()
+            rotated_board_180.pass_move()
             reflected_x_board.pass_move()
             reflected_y_board.pass_move()
         else:
@@ -168,11 +174,15 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
             # Transform coordinates for each transformation
             # Rotate 90 degrees clockwise: (row, col) -> (col, n - row - 1)
             new_row, new_col = col, n - row - 1
-            rotated_clockwise_board.place_move((new_row, new_col), color)
+            rotated_clockwise_board_90.place_move((new_row, new_col), color)
 
             # Rotate 90 degrees counterclockwise: (row, col) -> (n - col - 1, row)
             new_row, new_col = n - col - 1, row
-            rotated_counterclockwise_board.place_move((new_row, new_col), color)
+            rotated_counterclockwise_board_90.place_move((new_row, new_col), color)
+
+            # Rotate 180 degrees: (row, col) -> (n - row - 1, n - col - 1)
+            new_row, new_col = n - row - 1, n - col - 1
+            rotated_board_180.place_move((new_row, new_col), color)
 
             # Reflect across x-axis (horizontal): (row, col) -> (n - row - 1, col)
             new_row, new_col = n - row - 1, col
@@ -183,8 +193,9 @@ def transform_board(board: Board) -> tuple[Board, Board, Board, Board]:
             reflected_y_board.place_move((new_row, new_col), color)
 
     return (
-        rotated_clockwise_board,
-        rotated_counterclockwise_board,
+        rotated_clockwise_board_90,
+        rotated_counterclockwise_board_90,
+        rotated_board_180,
         reflected_x_board,
         reflected_y_board,
     )
