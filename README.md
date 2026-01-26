@@ -12,28 +12,31 @@ For the .pt model, please checkout this url on [Google Drive](https://drive.goog
 
 NN training graph:
 
-![Training Graph](./assets/training_overview.png)
+|            Training without value network             |            Training with value network            |
+| :---------------------------------------------------: | :-----------------------------------------------: |
+| ![Training Graph](./assets/training_overview_pol.png) | ![Training Graph](./assets/training_overview.png) |
 
 Sample training log:
 
 ```log
-2026-01-26 08:31:06 | INFO | training | Starting training
-2026-01-26 08:31:06 | INFO | training | Board size = 9
-2026-01-26 08:31:06 | INFO | training | Batch size = 128
-2026-01-26 08:31:06 | INFO | training | Total epoch = 30
-2026-01-26 08:31:06 | INFO | training | train_dataset length: 89892
-2026-01-26 08:31:06 | INFO | training | val_dataset length: 11448
-2026-01-26 08:31:06 | INFO | training | test_dataset length: 10734
-2026-01-26 08:31:07 | ERROR | training | Checkpoint file does not exist.
-2026-01-26 08:31:30 | INFO | training | Epoch 0 finished | train_loss = 4.0949 | val_loss = 3.9046 | val_acc1 = 0.0669 | val_acc5 = 0.2091
-2026-01-26 08:33:31 | INFO | training | Epoch 5 finished | train_loss = 2.7103 | val_loss = 2.3862 | val_acc1 = 0.3567 | val_acc5 = 0.7342
-2026-01-26 08:35:33 | INFO | training | Epoch 10 finished | train_loss = 2.4824 | val_loss = 2.2356 | val_acc1 = 0.3760 | val_acc5 = 0.7540
-2026-01-26 08:37:41 | INFO | training | Epoch 15 finished | train_loss = 2.3750 | val_loss = 2.1655 | val_acc1 = 0.3898 | val_acc5 = 0.7695
-2026-01-26 08:39:48 | INFO | training | Epoch 20 finished | train_loss = 2.3064 | val_loss = 2.1701 | val_acc1 = 0.3909 | val_acc5 = 0.7640
-2026-01-26 08:41:50 | INFO | training | Epoch 25 finished | train_loss = 2.2553 | val_loss = 2.1621 | val_acc1 = 0.3877 | val_acc5 = 0.7648
-2026-01-26 08:43:32 | INFO | training | TEST | loss = 2.1182 | acc1 = 0.3959 | acc5 = 0.7773
-2026-01-26 08:43:32 | INFO | training | Total training time: 745.6234 seconds
-2026-01-26 08:44:07 | INFO | training | Training end
+2026-01-26 16:47:57 | INFO | training | Starting training
+2026-01-26 16:47:57 | INFO | training | Board size = 9
+2026-01-26 16:47:57 | INFO | training | Batch size = 128
+2026-01-26 16:47:57 | INFO | training | Total epoch = 30
+2026-01-26 16:47:57 | INFO | training | USE_VALUE = True
+2026-01-26 16:47:57 | INFO | training | train_dataset length: 89892
+2026-01-26 16:47:57 | INFO | training | val_dataset length: 11448
+2026-01-26 16:47:57 | INFO | training | test_dataset length: 10734
+2026-01-26 16:47:57 | WARNING | training | Checkpoint file does not exist. Starting with no checkpoint file.
+2026-01-26 16:48:22 | INFO | training | Epoch 0 finished | train_loss = 4.5951 | val_loss = 3.9123 | val_acc1 = 0.0670 | val_acc5 = 0.2148
+2026-01-26 16:50:32 | INFO | training | Epoch 5 finished | train_loss = 3.1954 | val_loss = 2.3428 | val_acc1 = 0.3636 | val_acc5 = 0.7381
+2026-01-26 16:52:40 | INFO | training | Epoch 10 finished | train_loss = 2.8843 | val_loss = 2.2491 | val_acc1 = 0.3759 | val_acc5 = 0.7554
+2026-01-26 16:54:46 | INFO | training | Epoch 15 finished | train_loss = 2.7346 | val_loss = 2.1951 | val_acc1 = 0.3892 | val_acc5 = 0.7616
+2026-01-26 16:56:57 | INFO | training | Epoch 20 finished | train_loss = 2.6515 | val_loss = 2.1944 | val_acc1 = 0.3849 | val_acc5 = 0.7644
+2026-01-26 16:59:10 | INFO | training | Epoch 25 finished | train_loss = 2.6001 | val_loss = 2.1881 | val_acc1 = 0.3870 | val_acc5 = 0.7620
+2026-01-26 17:01:04 | INFO | training | TEST | loss = 2.1382 | acc1 = 0.4037 | acc5 = 0.7723
+2026-01-26 17:01:04 | INFO | training | Total training time: 786.9798 seconds
+2026-01-26 17:01:37 | INFO | training | Training end
 ```
 
 ## Timeline
