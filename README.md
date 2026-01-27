@@ -8,6 +8,9 @@ For the .pt datasets, please check out this url on [Google Drive](https://drive.
 
 For the .pt model, please checkout this url on [Google Drive](https://drive.google.com/drive/folders/12OCXJz11Ely8U9kf6R822n4Apfg3QOef?usp=sharing)
 
+> [!NOTE]
+> All .pt files ended with \_pol are policy-only, meaning they don't contain any value-network related data
+
 ## Training Result Overview
 
 NN training graph:
