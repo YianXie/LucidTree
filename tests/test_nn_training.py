@@ -1,22 +1,24 @@
 """Comprehensive tests for neural network training functionality."""
 
+# fmt: off
+
 import logging
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from mini_katago.constants import BOARD_SIZE, USE_VALUE
+from mini_katago.constants import BOARD_SIZE
 from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
 from mini_katago.nn.evaluate import (evaluate_both, evaluate_policy,
                                      evaluate_value)
 from mini_katago.nn.model import SmallPVNet
 from mini_katago.nn.train import train_one_epoch
+
+# fmt: on
 
 
 class TestModelArchitecture:
