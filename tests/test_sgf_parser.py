@@ -8,7 +8,6 @@ from sgfmill import sgf
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.game import Game
-from mini_katago.go.player import Player
 from mini_katago.misc.sgf_parser import parse_sgf_file, parsed_sgf_game_to_game
 
 
@@ -170,7 +169,6 @@ class TestSGFParsing:
     def test_parse_sgf_with_missing_player_names(self) -> None:
         """Test parsing SGF game with missing player names raises KeyError."""
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
-        root_node = sgf_game.get_root()
         # Don't set PB or PW
 
         # The parser expects PB and PW to exist, so this should raise KeyError
