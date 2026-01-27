@@ -117,9 +117,10 @@ mini-katago/
 │   │   │   ├── datasets/
 │   │   │   │   ├── precomputed_dataset.py  # A class that represents a pre-computed dataset
 │   │   │   │   ├── sgf_dataset.py          # A one-time running file that generates all the datasets
-│   │   │   ├── engine.py                   # The engine that runs the model and pick a move
+│   │   │   ├── agent.py                    # The agent that loads the model and pick a move
 │   │   │   ├── evaluate.py                 # A function that evaluate the training result based on the validation dataset
 │   │   │   ├── model.py                    # The SmallPVNet CNN model
+│   │   │   ├── play.py                     # A file that is mainly used for testing (e.g., nn v.s. nn and human v.s. nn)
 │   │   │   ├── split.py                    # Splits the game into training, validation, and testing set
 │   │   │   ├── train.py                    # Runs the actual training with 30 epochs
 │   │   │── constants.py                    # A file containing all the essential constants used in the project
