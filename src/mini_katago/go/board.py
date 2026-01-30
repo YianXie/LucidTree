@@ -499,7 +499,8 @@ class Board:
             tuple: a tuple containing the territories for both side in the format (black, white)
         """
         visited = set[Move]()
-        black_territories = white_territories = 0
+        black_territories = 0
+        white_territories = 0
         for row in self.state:
             for move in row:
                 if move in visited:

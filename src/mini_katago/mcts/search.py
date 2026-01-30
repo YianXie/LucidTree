@@ -55,7 +55,7 @@ def move_weight(
 
     neighbors = board.get_neighbors(move)
     for neighbor in neighbors:  # type: ignore
-        if neighbor.get_color() == move.color:
+        if neighbor.get_color() == move.get_color():
             weight *= adj_boost
             break
 

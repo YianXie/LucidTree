@@ -49,7 +49,8 @@ def pick_move(
 
     for idx in order:
         if idx == PASS_INDEX:
-            move_pos = None
+            # PASS move is always valid
+            return None, probs[idx].item(), value
         else:
             move_pos = utils.index_to_row_col(idx)
             if (
@@ -62,7 +63,8 @@ def pick_move(
             ):
                 return move_pos, probs[idx].item(), value
 
-    return None, probs[idx].item(), value
+    # If no valid move found (should not happen in normal gameplay), return pass
+    return None, probs[PASS_INDEX].item(), value
 
 
 if __name__ == "__main__":
