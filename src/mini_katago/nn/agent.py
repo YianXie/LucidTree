@@ -1,17 +1,41 @@
 # fmt: off
 
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 
 from mini_katago import utils
-from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, PASS_INDEX,
-                                   WHITE_COLOR)
+from mini_katago.constants import PASS_INDEX
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
-from mini_katago.go.player import Player
 from mini_katago.nn.model import SmallPVNet
 
 # fmt: on
+
+root = utils.get_project_root()
+
+
+@torch.no_grad()
+def load_model(
+    path: Path = root / "models/checkpoint.pt",
+    map_location: str = "cpu",
+) -> nn.Module:
+    """
+    Load the Neural Network model
+
+    Args:
+        path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint.pt".
+        map_location (str, optional): the map_location for checkpoint. Defaults to "cpu".
+
+    Returns:
+        nn.Module: the loaded model
+    """
+    checkpoint = torch.load(path, map_location=map_location)
+    model = SmallPVNet()
+    model.load_state_dict(checkpoint["model_state_dict"])
+
+    return model
 
 
 @torch.no_grad()
@@ -33,7 +57,6 @@ def pick_move(
     model.eval()
 
     x = utils.encode_board(board)
-    print(x)
     x = x.unsqueeze(0).to(device)
 
     policy_logits, value = model(x)
@@ -63,38 +86,4 @@ def pick_move(
             ):
                 return move_pos, probs[idx].item(), value
 
-    # If no valid move found (should not happen in normal gameplay), return pass
-    return None, probs[PASS_INDEX].item(), value
-
-
-if __name__ == "__main__":
-    board = Board(
-        BOARD_SIZE,
-        Player("Black player", BLACK_COLOR),
-        Player("White player", WHITE_COLOR),
-    )
-
-    root = utils.get_project_root()
-    checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = SmallPVNet()
-    model.load_state_dict(checkpoint["model_state_dict"])
-
-    while not board.is_terminate():
-        row, col = map(int, input("Enter your move: ").split())
-        if row == -1 and col == -1:
-            board.show_board()
-            break
-        board.place_move((row, col), BLACK_COLOR)
-        board.print_ascii_board()
-
-        best, prob, value = pick_move(model=model, board=board, device=device)
-        print(f"Move probability: {prob}")
-        print(f"Value: {value}")
-
-        if best is not None:
-            board.place_move(best, WHITE_COLOR)
-        else:
-            board.pass_move()
-        board.print_ascii_board()
+    return None, probs[idx].item(), value

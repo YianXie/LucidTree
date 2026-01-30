@@ -7,7 +7,7 @@ from mini_katago import utils
 from mini_katago.constants import USE_VALUE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
-from mini_katago.misc.sgf_parser import parse_sgf_file
+from mini_katago.nn.datasets.sgf_parser import parse_sgf_file
 from mini_katago.nn.split import split_game
 
 

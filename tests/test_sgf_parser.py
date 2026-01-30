@@ -1,5 +1,7 @@
 """Comprehensive tests for SGF parsing functionality."""
 
+# fmt: off
+
 import tempfile
 from pathlib import Path
 
@@ -8,7 +10,10 @@ from sgfmill import sgf
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.game import Game
-from mini_katago.misc.sgf_parser import parse_sgf_file, parsed_sgf_game_to_game
+from mini_katago.nn.datasets.sgf_parser import (parse_sgf_file,
+                                                parsed_sgf_game_to_game)
+
+# fmt: on
 
 
 class TestSGFParsing:
