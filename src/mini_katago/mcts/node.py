@@ -73,7 +73,7 @@ class Node:
         action_visits = self.children_visit_count[action]
         return float(C * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
 
-    def select_child(self) -> Node | None:
+    def select_child(self) -> Node | None:  # noqa: F821
         """
         Select the child with the highest mean value + PUCT score
 
