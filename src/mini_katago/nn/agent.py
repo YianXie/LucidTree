@@ -18,7 +18,6 @@ root = utils.get_project_root()
 
 @torch.no_grad()
 def load_model(
-    model: nn.Module = SmallPVNet(),
     path: Path = root / "models/checkpoint.pt",
     map_location: str = "cpu",
 ) -> nn.Module:
@@ -26,7 +25,6 @@ def load_model(
     Load the Neural Network model
 
     Args:
-        model (nn.Module, optional): the nn.Module model. Defaults to SmallPVNet().
         path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint.pt".
         map_location (str, optional): the map_location for checkpoint. Defaults to "cpu".
 
@@ -34,10 +32,10 @@ def load_model(
         nn.Module: the loaded model
     """
     checkpoint = torch.load(path, map_location=map_location)
-    new_model = model
-    new_model.load_state_dict(checkpoint["model_state_dict"])
+    model = SmallPVNet()
+    model.load_state_dict(checkpoint["model_state_dict"])
 
-    return new_model
+    return model
 
 
 @torch.no_grad()

@@ -54,7 +54,9 @@ def nn_vs_nn() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     while not board.is_terminate():
-        best, prob, value = pick_move(model=model, board=board, device=device)
+        best, prob, value = pick_move(
+            model=model, board=board, device=device, temperature=0.0
+        )
         print(f"Move probability: {prob}")
         print(f"Value: {value}")
 
@@ -64,9 +66,11 @@ def nn_vs_nn() -> None:
             board.pass_move()
         board.print_ascii_board()
 
-        time.sleep(1)
+        time.sleep(2.5)
 
-        best, prob, value = pick_move(model=model, board=board, device=device)
+        best, prob, value = pick_move(
+            model=model, board=board, device=device, temperature=0.5
+        )
         print(f"Move probability: {prob}")
         print(f"Value: {value}")
 
@@ -76,7 +80,7 @@ def nn_vs_nn() -> None:
             board.pass_move()
         board.print_ascii_board()
 
-        time.sleep(1)
+        time.sleep(2.5)
 
 
 if __name__ == "__main__":

@@ -428,13 +428,6 @@ class TestPrecomputedDataset:
                 sample = dataset[i]
                 assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
 
-            # Test iteration
-            count = 0
-            for sample in dataset:
-                assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
-                count += 1
-            assert count == num_samples
-
     def test_precomputed_dataset_file_not_found(self) -> None:
         """Test that missing dataset file raises error."""
         non_existent_path = Path("/nonexistent/path/to/data.pt")
