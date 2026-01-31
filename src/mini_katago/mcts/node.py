@@ -3,10 +3,13 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import torch
+import torch.nn as nn
 
 from mini_katago.constants import BOARD_SIZE, INFINITY
+from mini_katago.go.board import Board
 from mini_katago.go.player import Player
-from mini_katago.typing import BoolArray, FloatArray, IntArray
+from mini_katago.utils import encode_board, move_to_index
 
 
 class Node:
@@ -19,30 +22,64 @@ class Node:
 
     def __init__(
         self,
-        prior: FloatArray,
-        player_to_play: Player,
+        board: Board,
+        to_play: Player,
     ) -> None:
         """
         Initialize a node
 
         Args:
-            prior (FloatArray): the prior probability for selecting each move
-            player_to_play (Player): the current player to play in this board state
+            board (Board): the current board state
+            to_play (Player): the current player to play in this board state
         """
-        self.prior = prior
-        self.children_visit_count: IntArray = np.ndarray(
-            [self.total_actions], dtype=np.int32
-        )
-        self.total_value_sum: FloatArray = np.ndarray(
-            [self.total_actions], dtype=np.float32
-        )
-        self.player_to_play = player_to_play
+        self.board = board
+        self.to_play = to_play
 
-        self.is_expanded = False
+        self.N = np.zeros([self.total_actions], dtype=np.int32)
+        self.W = np.zeros([self.total_actions], dtype=np.float32)
+
         self.children: list[Node | None] = [None] * self.total_actions
-        self.legal: BoolArray
+        self.legal_mask = np.zeros(self.total_actions, dtype=np.bool_)
 
-    def get_mean_value(self, action: int) -> float:
+        self.P = np.zeros(self.total_actions, dtype=np.float32)
+        self.is_expanded = False
+
+    def expand(self, model: nn.Module) -> float:
+        """
+        Expand the node by computing legal moves
+
+        Args:
+            model (nn.Module): the policy/value policy network model
+        """
+        if self.is_expanded:
+            raise RuntimeError("expanded() called on already expanded node")
+
+        legal_moves = self.board.get_legal_moves(self.to_play.get_color())
+        for move in legal_moves:
+            idx = move_to_index(move.get_position())
+            self.legal_mask[idx] = np.True_
+
+        policy_logits, value = model(encode_board(self.board))
+        probs = (
+            torch.softmax(policy_logits[0], dim=0)
+            .detach()
+            .cpu()
+            .numpy()
+            .astype(np.float32)
+        )
+        probs *= self.legal_mask.astype(np.float32)
+        s = float(probs.sum())
+        if s > 0:
+            probs /= s
+        else:
+            legal_count = int(self.legal_mask.sum())
+            probs[self.legal_mask] = 1.0 / max(1, legal_count)
+
+        self.P = probs
+        self.is_expanded = True
+        return float(value.item())
+
+    def Q(self, action: int) -> float:
         """
         Return the mean value of a child index
 
@@ -52,11 +89,11 @@ class Node:
         Returns:
             float: the mean value
         """
-        total_value_sum = self.total_value_sum[action]
-        total_visit_count = self.children_visit_count[action] + self.eps
+        total_value_sum = self.W[action]
+        total_visit_count = self.N[action] + self.eps
         return float(total_value_sum / total_visit_count)
 
-    def get_puct_score(self, action: int, C: float = math.sqrt(2)) -> float:
+    def U(self, action: int, c_puct: float = 1.5) -> float:
         """
         Calculate the PUCT score for a given action
 
@@ -67,32 +104,27 @@ class Node:
         Returns:
             float: the PUCT score
         """
-        if not self.legal[action]:
-            return -INFINITY
+        sum_visits = self.N.sum()
+        prior = self.P[action]
+        action_visits = self.N[action]
+        return float(c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
 
-        sum_visits = self.children_visit_count.sum()
-        prior = self.prior[action]
-        action_visits = self.children_visit_count[action]
-        return float(C * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
-
-    def select_child(self) -> Node | None:
+    def select_action(self, c_puct: float = 1.5) -> int:
         """
-        Select the child with the highest mean value + PUCT score
+        Select the action with the highest mean value + PUCT score
 
         Returns:
-            Node | None: the child node, or None if there is no children
+            int: the action index
         """
-        if not self.children:
-            return None
-
-        best_score = 0.0
-        best_node = None
-        for i in range(self.total_actions):
-            if self.children[i] is None:
+        best_score = -INFINITY
+        best_action = 0
+        for action in range(self.total_actions):
+            if not self.legal_mask[action]:
                 continue
-            score = self.get_mean_value(i) + self.get_puct_score(i)
+
+            score = self.Q(action) + self.U(action, c_puct)
             if score > best_score:
                 best_score = score
-                best_node = self.children[i]
+                best_action = action
 
-        return best_node
+        return best_action
