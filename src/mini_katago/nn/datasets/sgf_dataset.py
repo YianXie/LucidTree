@@ -1,3 +1,6 @@
+import logging
+import time
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -93,12 +96,80 @@ class SgfPolicyValueDataset(Dataset[Any]):
         return self.X[index], self.y_policy[index], self.y_value[index]
 
 
+SHARD_SIZE = 20_000
+MAX_SAVE_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
+logger = logging.getLogger(__name__)
+
+
+def _save_dataset_as_shards(
+    dataset: SgfPolicyValueDataset,
+    output_dir: Path,
+) -> int:
+    """Save dataset as shards of SHARD_SIZE positions each.
+    Returns the number of shards successfully saved.
+    Continues on per-shard errors; logs failures but does not abort.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    n_positions = len(dataset)
+    print(f"Total positions: {n_positions}")
+    shard_idx = 0
+    saved_count = 0
+
+    for start in range(0, n_positions, SHARD_SIZE):
+        end = min(start + SHARD_SIZE, n_positions)
+        shard_data = {
+            "X": dataset.X[start:end],
+            "y_policy": dataset.y_policy[start:end],
+        }
+        if dataset.y_value is not None:
+            shard_data["y_value"] = dataset.y_value[start:end]
+
+        shard_path = output_dir / f"{shard_idx:03d}.pt"
+        tmp_path = output_dir / f"{shard_idx:03d}.pt.tmp"
+
+        for attempt in range(MAX_SAVE_RETRIES):
+            try:
+                torch.save(shard_data, tmp_path)
+                tmp_path.rename(shard_path)
+                saved_count += 1
+                break
+            except (RuntimeError, OSError) as e:
+                if attempt < MAX_SAVE_RETRIES - 1:
+                    logger.warning(
+                        "Shard %s save attempt %d failed: %s. Retrying in %ds...",
+                        shard_path.name,
+                        attempt + 1,
+                        e,
+                        RETRY_DELAY_SECONDS,
+                    )
+                    time.sleep(RETRY_DELAY_SECONDS)
+                else:
+                    logger.error(
+                        "Shard %s failed after %d attempts: %s. Skipping.",
+                        shard_path.name,
+                        MAX_SAVE_RETRIES,
+                        e,
+                    )
+                    if tmp_path.exists():
+                        try:
+                            tmp_path.unlink()
+                        except OSError:
+                            pass
+
+        shard_idx += 1
+
+    return saved_count
+
+
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
     games: list[Game] = []
     root = utils.get_project_root()
     path = root / "data/raw/sgf"
 
-    for sgf_file in path.iterdir():
+    for sgf_file in path.glob("*.sgf"):
         try:
             game = parse_sgf_file(sgf_file)
             games.append(game)
@@ -112,27 +183,22 @@ if __name__ == "__main__":
     val_dataset = SgfPolicyValueDataset(val_games, use_value=USE_VALUE)
     test_dataset = SgfPolicyValueDataset(test_games, use_value=USE_VALUE)
 
-    torch.save(
-        {
-            "X": train_dataset.X,
-            "y_policy": train_dataset.y_policy,
-            "y_value": train_dataset.y_value,
-        },
-        root / "data/processed/go_9x9_train.pt",
+    train_saved = _save_dataset_as_shards(train_dataset, root / "data/processed/train")
+    val_saved = _save_dataset_as_shards(val_dataset, root / "data/processed/val")
+    test_saved = _save_dataset_as_shards(test_dataset, root / "data/processed/test")
+
+    total_train = (len(train_dataset) + SHARD_SIZE - 1) // SHARD_SIZE
+    total_val = (len(val_dataset) + SHARD_SIZE - 1) // SHARD_SIZE
+    total_test = (len(test_dataset) + SHARD_SIZE - 1) // SHARD_SIZE
+
+    logger.info(
+        "Saved shards: train %d/%d, val %d/%d, test %d/%d",
+        train_saved,
+        total_train,
+        val_saved,
+        total_val,
+        test_saved,
+        total_test,
     )
-    torch.save(
-        {
-            "X": val_dataset.X,
-            "y_policy": val_dataset.y_policy,
-            "y_value": val_dataset.y_value,
-        },
-        root / "data/processed/go_9x9_val.pt",
-    )
-    torch.save(
-        {
-            "X": test_dataset.X,
-            "y_policy": test_dataset.y_policy,
-            "y_value": test_dataset.y_value,
-        },
-        root / "data/processed/go_9x9_test.pt",
-    )
+    if train_saved < total_train or val_saved < total_val or test_saved < total_test:
+        logger.warning("Some shards failed to save. Check logs above for details.")

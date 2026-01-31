@@ -435,6 +435,29 @@ class TestPrecomputedDataset:
         with pytest.raises((FileNotFoundError, OSError)):
             PrecomputedGoDataset(non_existent_path)
 
+    def test_precomputed_dataset_shard_directory(self) -> None:
+        """Test loading precomputed dataset from directory of shards."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shard_dir = Path(tmpdir) / "shards"
+            shard_dir.mkdir()
+
+            # Create 2 shards with 5 samples each
+            for shard_idx in range(2):
+                num_samples = 5
+                x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
+                y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
+                y_val = torch.randn(num_samples) * 2 - 1
+
+                shard_path = shard_dir / f"{shard_idx:03d}.pt"
+                torch.save({"X": x, "y_policy": y_pol, "y_value": y_val}, shard_path)
+
+            dataset = PrecomputedGoDataset(shard_dir)
+
+            assert len(dataset) == 10
+            sample = dataset[0]
+            assert len(sample) == 3
+            assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
+
 
 class TestTrainingEdgeCases:
     """Test suite for edge cases in training."""

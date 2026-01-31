@@ -1,7 +1,6 @@
 import random
 
 from mini_katago.go.game import Game
-
 from mini_katago.utils import get_project_root
 
 

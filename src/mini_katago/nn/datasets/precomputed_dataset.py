@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from typing import Any
 
@@ -10,17 +11,40 @@ class PrecomputedGoDataset(Dataset[Any]):
     A class representing a pre-computed dataset
     """
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, **kwargs: int) -> None:
         """
         Initialize a pre-computed dataset
 
         Args:
-            path (Path): the path to the .pt file
+            path (Path): the path to a .pt file or a directory of shard .pt files
         """
-        data = torch.load(path, map_location="cpu")
-        self.X: torch.Tensor = data["X"]
-        self.y_policy: torch.Tensor = data["y_policy"]
-        self.y_value: torch.Tensor = data.get("y_value")
+        if path.is_dir():
+            shard_paths = sorted(path.glob("*.pt"))
+            if not shard_paths:
+                raise FileNotFoundError(f"No .pt shards found in {path}")
+            xs: list[torch.Tensor] = []
+            ys_policy: list[torch.Tensor] = []
+            ys_value: list[torch.Tensor] | None = None
+
+            random.shuffle(shard_paths)
+            max_shards = kwargs.get("amount", len(shard_paths))
+            for shard_path in shard_paths[: min(len(shard_paths), max_shards)]:
+                data = torch.load(shard_path, map_location="cpu")
+                xs.append(data["X"])
+                ys_policy.append(data["y_policy"])
+                if "y_value" in data and data["y_value"] is not None:
+                    if ys_value is None:
+                        ys_value = []
+                    ys_value.append(data["y_value"])
+
+            self.X = torch.cat(xs, dim=0)
+            self.y_policy = torch.cat(ys_policy, dim=0)
+            self.y_value = torch.cat(ys_value, dim=0) if ys_value else None
+        else:
+            data = torch.load(path, map_location="cpu")
+            self.X = data["X"]
+            self.y_policy = data["y_policy"]
+            self.y_value = data.get("y_value")
 
     def __len__(self) -> int:
         """

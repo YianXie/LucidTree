@@ -122,7 +122,7 @@ def index_to_row_col(index: int, /) -> tuple[int, int]:
     return divmod(index, BOARD_SIZE)
 
 
-def transform_board(board: Board) -> tuple[Board, ...]:
+def transform_board(board: Board) -> list[Board]:
     """
     Transform the board with rotation and reflection
 
@@ -192,13 +192,16 @@ def transform_board(board: Board) -> tuple[Board, ...]:
             new_row, new_col = row, n - col - 1
             reflected_y_board.place_move((new_row, new_col), color)
 
-    return (
+    boards = [
         rotated_clockwise_board_90,
         rotated_counterclockwise_board_90,
         rotated_board_180,
         reflected_x_board,
         reflected_y_board,
-    )
+    ]
+    random.shuffle(boards)
+
+    return boards[:2]
 
 
 def setup_logger(

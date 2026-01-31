@@ -54,7 +54,7 @@ def train_one_epoch(
             x, y_pol, y_val = batch
             y_val = y_val.to(device)
         else:
-            x, y_pol = batch
+            x, y_pol, *_ = batch
 
         x = x.to(device)
         y_pol = y_pol.to(device)
@@ -113,16 +113,10 @@ if __name__ == "__main__":
     logger.info("Total epoch = %d", epochs)
     logger.info("USE_VALUE = %s", USE_VALUE)
 
-    if USE_VALUE:
-        train_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_train.pt")
-        val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val.pt")
-        test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test.pt")
-    else:
-        train_dataset = PrecomputedGoDataset(
-            root / "data/processed/go_9x9_train_pol.pt"
-        )
-        val_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_val_pol.pt")
-        test_dataset = PrecomputedGoDataset(root / "data/processed/go_9x9_test_pol.pt")
+    processed_dir = root / "data/processed"
+    train_dataset = PrecomputedGoDataset(processed_dir / "train", amount=20)
+    val_dataset = PrecomputedGoDataset(processed_dir / "val", amount=5)
+    test_dataset = PrecomputedGoDataset(processed_dir / "test", amount=5)
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -147,12 +141,7 @@ if __name__ == "__main__":
     starting_epoch = 0
 
     try:
-        if USE_VALUE:
-            checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
-        else:
-            checkpoint = torch.load(
-                root / "models/checkpoint_pol.pt", map_location="cpu"
-            )
+        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         best_val_loss = checkpoint["best_val_loss"]
@@ -228,9 +217,11 @@ if __name__ == "__main__":
         test_acc5,
     )
 
+    # Log performance
     end_time = time.perf_counter()
     logger.info("Total training time: %.4f seconds", end_time - start_time)
 
+    # Plot the training overview
     plt.plot(
         range(starting_epoch, starting_epoch + epochs),
         train_losses,
