@@ -57,7 +57,7 @@ class Node:
         legal_moves = self.board.get_legal_moves(self.to_play.get_color())
         for move in legal_moves:
             idx = move_to_index(move.get_position())
-            self.legal_mask[idx] = np.True_
+            self.legal_mask[idx] = True
 
         policy_logits, value = model(encode_board(self.board).unsqueeze(0))
         probs = (
