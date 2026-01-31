@@ -59,7 +59,7 @@ class Node:
             idx = move_to_index(move.get_position())
             self.legal_mask[idx] = np.True_
 
-        policy_logits, value = model(encode_board(self.board))
+        policy_logits, value = model(encode_board(self.board).unsqueeze(0))
         probs = (
             torch.softmax(policy_logits[0], dim=0)
             .detach()
@@ -99,7 +99,7 @@ class Node:
 
         Args:
             action (int): the action
-            C (float, optional): the exploration constant. Defaults to math.sqrt(2).
+            c_puct (float, optional): the exploration constant. Defaults to math.sqrt(2).
 
         Returns:
             float: the PUCT score
@@ -107,7 +107,9 @@ class Node:
         sum_visits = self.N.sum()
         prior = self.P[action]
         action_visits = self.N[action]
-        return float(c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
+        return float(
+            c_puct * prior * (math.sqrt(sum_visits + 1.0) / (1.0 + action_visits))
+        )
 
     def select_action(self, c_puct: float = 1.5) -> int:
         """

@@ -1,6 +1,9 @@
 import copy
 
-from mini_katago.constants import PASS_MOVE_POSITION
+import numpy as np
+import torch
+
+from mini_katago.constants import PASS_INDEX
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
@@ -9,12 +12,18 @@ from mini_katago.utils import index_to_row_col
 
 
 class MCTS:
+    """
+    A Monte Carlo Tree Search algorithm
+    """
+
     def __init__(self) -> None:
         """
         Initialize a Monte Carlo Tree Search program
         """
         self.model = load_model()
+        self.model.eval()
 
+    @torch.no_grad()
     def run(self, board: Board, to_play: Player, num_simulations: int = 1000) -> Node:
         """
         Run the MCTS on the current board
@@ -44,14 +53,17 @@ class MCTS:
 
                 child = node.children[child_action]
                 if child is None:
+                    move_color = node.to_play.get_color()
                     next_board = copy.deepcopy(node.board)
-                    next_player = node.to_play.opponent
 
-                    pos = index_to_row_col(child_action)
-                    if pos == PASS_MOVE_POSITION:
+                    if child_action == PASS_INDEX:
                         next_board.pass_move()
                     else:
-                        next_board.place_move(pos, next_player.get_color())  # type: ignore
+                        next_board.place_move(
+                            index_to_row_col(child_action), move_color
+                        )
+
+                    next_player = node.to_play.opponent
                     child = Node(board=next_board, to_play=next_player)  # type: ignore
                     node.children[child_action] = child
 
@@ -64,7 +76,7 @@ class MCTS:
             value = node.expand(self.model)
 
             # Backup
-            self._backup(path, -value)
+            self._backup(path, value)
 
         return root
 
@@ -80,3 +92,18 @@ class MCTS:
             parent.N[action] += 1
             parent.W[action] += value
             value = -value
+
+    @staticmethod
+    def pick_move(root: Node) -> tuple[int, int]:
+        """
+        Pick a move position based on the highest visit count
+
+        Args:
+            root (Node): the searched root node
+
+        Returns:
+            tuple[int, int]: the position
+        """
+        legal = root.legal_mask
+        idx = int(np.argmax(np.where(legal, root.N, -1)))
+        return index_to_row_col(int(idx))

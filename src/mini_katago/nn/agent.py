@@ -9,6 +9,7 @@ from mini_katago import utils
 from mini_katago.constants import PASS_INDEX
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
+from mini_katago.go.player import Player
 from mini_katago.nn.model import SmallPVNet
 
 # fmt: on
@@ -72,8 +73,8 @@ def pick_move(
 
     for idx in order:
         if idx == PASS_INDEX:
-            # PASS move is always valid
             return None, probs[idx].item(), value
+
         else:
             move_pos = utils.index_to_row_col(idx)
             if (
@@ -87,3 +88,14 @@ def pick_move(
                 return move_pos, probs[idx].item(), value
 
     return None, probs[idx].item(), value
+
+
+@torch.no_grad()
+def pick_move_mcts(board: Board, to_play: Player) -> tuple[int, int]:
+    from mini_katago.mcts.search import MCTS
+
+    mcts = MCTS()
+    root = mcts.run(board=board, to_play=to_play)
+
+    pos = MCTS.pick_move(root)
+    return pos
