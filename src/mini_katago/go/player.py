@@ -1,5 +1,3 @@
-from typing import Self
-
 from .rules import Rules
 
 
@@ -19,7 +17,7 @@ class Player:
         self.name = name
         self.color = color
         self.capture_count = 0
-        self.opponent: Self
+        self.opponent: Player | None = None
 
     def set_name(self, name: str) -> None:
         """

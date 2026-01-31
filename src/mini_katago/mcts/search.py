@@ -1,5 +1,6 @@
 import copy
 
+from mini_katago.constants import PASS_MOVE_POSITION
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
@@ -26,6 +27,9 @@ class MCTS:
         Returns:
             Node: the searched root
         """
+        if to_play.opponent is None or to_play.opponent.opponent is None:
+            raise RuntimeError("Player argument missing `opponent` attribute")
+
         root = Node(board=board, to_play=to_play)
         root.expand(self.model)
 
@@ -43,10 +47,12 @@ class MCTS:
                     next_board = copy.deepcopy(node.board)
                     next_player = node.to_play.opponent
 
-                    next_board.place_move(
-                        index_to_row_col(child_action), next_player.get_color()
-                    )
-                    child = Node(board=next_board, to_play=next_player)
+                    pos = index_to_row_col(child_action)
+                    if pos == PASS_MOVE_POSITION:
+                        next_board.pass_move()
+                    else:
+                        next_board.place_move(pos, next_player.get_color())  # type: ignore
+                    child = Node(board=next_board, to_play=next_player)  # type: ignore
                     node.children[child_action] = child
 
                 node = child
