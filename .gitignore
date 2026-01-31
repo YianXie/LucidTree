@@ -240,10 +240,13 @@ pyrightconfig.json
 .history
 .ionide
 
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,python,git
+
 ### PyTorch ###
 *.pt
 *.pth
 
 logs/
 
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,python,git
+### Data ###
+data/

@@ -15,9 +15,7 @@ For the .pt model, please checkout this url on [Google Drive](https://drive.goog
 
 NN training graph:
 
-|            Training without value network             |            Training with value network            |
-| :---------------------------------------------------: | :-----------------------------------------------: |
-| ![Training Graph](./assets/training_overview_pol.png) | ![Training Graph](./assets/training_overview.png) |
+![Training Graph](./assets/training_overview.png)
 
 Sample training log:
 
@@ -50,12 +48,12 @@ Implemented basic Go board engine and a simple minimax file for tac-tac-toe that
 
 New features include:
 
-- Place move at specific position with specific color
-- Captures detection
-- Ko detection
-- Score estimation at the end of the game
-- Illegal move detection
-- Display a real Go board with MatPlotLib
+-   Place move at specific position with specific color
+-   Captures detection
+-   Ko detection
+-   Score estimation at the end of the game
+-   Illegal move detection
+-   Display a real Go board with MatPlotLib
 
 ### Week 2
 
@@ -63,9 +61,9 @@ Implemented a basic depth-limited MiniMax algorithm for Go with alpha-beta pruni
 
 New features include:
 
-- Depth-limited Minimax algorithm with alpha-beta pruning
-- Auto game-over when there are 2 consecutive passes
-- Undo feature for game board
+-   Depth-limited Minimax algorithm with alpha-beta pruning
+-   Auto game-over when there are 2 consecutive passes
+-   Undo feature for game board
 
 ### Week 3 + 4
 
@@ -73,8 +71,8 @@ Implemented a basic Monte Carlo Tree Search for Go, as well as a Node class. The
 
 New features include:
 
-- A basic Monte Carlo Tree Search for Go
-- A new Node class data structure
+-   A basic Monte Carlo Tree Search for Go
+-   A new Node class data structure
 
 ### Week 5 + 6 + 7
 
@@ -82,10 +80,10 @@ Implemented a Convolution Neural Network (CNN) for Go with PyTorch. It works alo
 
 New features include:
 
-- A decent Neural Network that learn from over 400 9\*9 Go .sgf files.
-- Comprehensive logging when training
-- Pre-computed dataset
-- Model auto-saving
+-   A decent Neural Network that learn from over 400 9\*9 Go .sgf files.
+-   Comprehensive logging when training
+-   Pre-computed dataset
+-   Model auto-saving
 
 ## File structure
 

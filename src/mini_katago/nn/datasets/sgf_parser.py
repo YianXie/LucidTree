@@ -11,6 +11,8 @@ from mini_katago.go.player import Player
 
 def parsed_sgf_game_to_game(sgf_game: sgf.Sgf_game) -> Game:
     winner = sgf_game.get_winner()
+    if winner is None:
+        raise AttributeError("Winner attribute not found")
     board_size = sgf_game.get_size()
     root_node = sgf_game.get_root()
     black_player = Player(root_node.get("PB"), BLACK_COLOR)
