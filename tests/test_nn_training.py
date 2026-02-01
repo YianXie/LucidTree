@@ -87,38 +87,7 @@ class TestModelArchitecture:
 class TestTrainingLoop:
     """Test suite for training loop functionality."""
 
-    def test_train_one_epoch_policy_only(self) -> None:
-        """Test training one epoch with policy network only."""
-        model = SmallPVNet()
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
-
-        # Create dummy dataset
-        batch_size = 4
-        num_samples = 16
-        x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-        y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-
-        dataset = TensorDataset(x, y_pol)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-        logger = logging.getLogger("test")
-        logger.setLevel(logging.ERROR)  # Suppress debug logs
-
-        loss = train_one_epoch(
-            model=model,
-            loader=loader,
-            optim=optimizer,
-            use_value=False,
-            epoch=0,
-            logger=logger,
-            device=torch.device("cpu"),
-        )
-
-        assert isinstance(loss, float)
-        assert loss > 0
-        assert not torch.isnan(torch.tensor(loss))
-
-    def test_train_one_epoch_with_value(self) -> None:
+    def test_train_one_epoch(self) -> None:
         """Test training one epoch with both policy and value networks."""
         model = SmallPVNet()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
@@ -140,7 +109,6 @@ class TestTrainingLoop:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=True,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -159,8 +127,9 @@ class TestTrainingLoop:
         num_samples = 16
         x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
         y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
+        y_val = torch.randn(num_samples) * 2 - 1
 
-        dataset = TensorDataset(x, y_pol)
+        dataset = TensorDataset(x, y_pol, y_val)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         logger = logging.getLogger("test")
@@ -170,7 +139,6 @@ class TestTrainingLoop:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=False,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -201,7 +169,6 @@ class TestTrainingLoop:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=True,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -216,7 +183,6 @@ class TestTrainingLoop:
             model=model2,
             loader=loader,
             optim=optimizer2,
-            use_value=True,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -248,7 +214,6 @@ class TestTrainingLoop:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=False,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -472,8 +437,9 @@ class TestTrainingEdgeCases:
         num_samples = 8
         x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE) * 1000
         y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
+        y_val = torch.randn(num_samples) * 2 - 1
 
-        dataset = TensorDataset(x, y_pol)
+        dataset = TensorDataset(x, y_pol, y_val)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         logger = logging.getLogger("test")
@@ -484,7 +450,6 @@ class TestTrainingEdgeCases:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=False,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -502,8 +467,9 @@ class TestTrainingEdgeCases:
         num_samples = 8
         x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
         y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
+        y_val = torch.randn(num_samples) * 2 - 1
 
-        dataset = TensorDataset(x, y_pol)
+        dataset = TensorDataset(x, y_pol, y_val)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         logger = logging.getLogger("test")
@@ -516,7 +482,6 @@ class TestTrainingEdgeCases:
             model=model,
             loader=loader,
             optim=optimizer,
-            use_value=False,
             epoch=0,
             logger=logger,
             device=torch.device("cpu"),
@@ -558,15 +523,15 @@ class TestTrainingEdgeCases:
             num_samples = batch_size * 2
             x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
             y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
+            y_val = torch.randn(num_samples) * 2 - 1
 
-            dataset = TensorDataset(x, y_pol)
+            dataset = TensorDataset(x, y_pol, y_val)
             loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
             loss = train_one_epoch(
                 model=model,
                 loader=loader,
                 optim=optimizer,
-                use_value=False,
                 epoch=0,
                 logger=logger,
                 device=torch.device("cpu"),

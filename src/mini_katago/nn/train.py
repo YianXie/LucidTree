@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from mini_katago import utils
-from mini_katago.constants import BOARD_SIZE, INFINITY, USE_VALUE
+from mini_katago.constants import BOARD_SIZE, INFINITY
 from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
 from mini_katago.nn.evaluate import evaluate_both, evaluate_policy
 from mini_katago.nn.model import SmallPVNet
@@ -21,7 +21,6 @@ def train_one_epoch(
     model: nn.Module,
     loader: DataLoader[Any],
     optim: torch.optim.Optimizer,
-    use_value: bool,
     *,
     epoch: int,
     logger: logging.Logger,
@@ -36,7 +35,6 @@ def train_one_epoch(
         model (nn.Module): the model to train on
         loader (torch.Tensor): the DataLoader
         optim (torch.optim.Optimizer): the optimizer
-        value_head (bool): the value head
         epoch (int): the current epoch count
         device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
@@ -50,26 +48,18 @@ def train_one_epoch(
     for batch_idx, batch in enumerate(loader):
         optim.zero_grad()
 
-        if use_value:
-            x, y_pol, y_val = batch
-            y_val = y_val.to(device)
-        else:
-            x, y_pol, *_ = batch
+        x, y_pol, y_val = batch
+        y_val = y_val.to(device)
 
         x = x.to(device)
         y_pol = y_pol.to(device)
 
         policy_logits, value_pred = model(x)
-        if use_value:
-            loss_pol = F.cross_entropy(
-                policy_logits, y_pol, label_smoothing=label_smoothing
-            )
-            loss_val = F.mse_loss(value_pred, y_val)
-            loss = loss_pol + lambda_value * loss_val
-        else:
-            loss = F.cross_entropy(
-                policy_logits, y_pol, label_smoothing=label_smoothing
-            )
+        loss_pol = F.cross_entropy(
+            policy_logits, y_pol, label_smoothing=label_smoothing
+        )
+        loss_val = F.mse_loss(value_pred, y_val)
+        loss = loss_pol + lambda_value * loss_val
 
         if torch.isnan(loss):
             logger.error("NaN loss detected at epoch %d", epoch)
@@ -116,7 +106,6 @@ if __name__ == "__main__":
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
     logger.info("Total epoch = %d", epochs)
-    logger.info("USE_VALUE = %s", USE_VALUE)
 
     processed_dir = root / "data/processed"
     train_dataset = PrecomputedGoDataset(processed_dir / "train", amount=10)
@@ -167,21 +156,15 @@ if __name__ == "__main__":
                 model,
                 train_loader,
                 optimizer,
-                use_value=USE_VALUE,
                 device=device,
                 epoch=epoch,
                 logger=logger,
             )
             train_losses.append(train_loss)
 
-            if USE_VALUE:
-                val_loss, val_acc1, val_acc5 = evaluate_policy(
-                    model, val_loader, device=device
-                )
-            else:
-                val_loss, val_acc1, val_acc5 = evaluate_both(
-                    model, val_loader, device=device
-                )
+            val_loss, val_acc1, val_acc5 = evaluate_both(
+                model, val_loader, device=device
+            )
             val_losses.append(val_loss)
             val_acc1s.append(val_acc1)
             val_acc5s.append(val_acc5)

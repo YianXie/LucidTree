@@ -7,7 +7,6 @@ import torch
 from torch.utils.data import Dataset
 
 from mini_katago import utils
-from mini_katago.constants import USE_VALUE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
 from mini_katago.nn.datasets.sgf_parser import parse_sgf_file
@@ -15,16 +14,13 @@ from mini_katago.nn.split import split_game
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
-    def __init__(self, games: list[Game], use_value: bool = USE_VALUE) -> None:
+    def __init__(self, games: list[Game], /) -> None:
         """
         Initialize a dataset from the given games
 
         Args:
             games (list[Game]): a list of games
-            use_value (bool, optional): whether to calculate value network or not. Defaults to USE_VALUE.
         """
-        self.use_value = use_value
-
         xs: list[torch.Tensor] = []
         ys_policy: list[int] = []
         ys_value: list[float] = []
@@ -50,15 +46,12 @@ class SgfPolicyValueDataset(Dataset[Any]):
                     xs.append(x)
                     ys_policy.append(y_policy)
 
-                    if use_value:
-                        if winner is None:
-                            ys_value.append(0.0)
-                        else:
-                            ys_value.append(
-                                1.0
-                                if winner.get_color() == to_play.get_color()
-                                else -1.0
-                            )
+                    if winner is None:
+                        ys_value.append(0.0)
+                    else:
+                        ys_value.append(
+                            1.0 if winner.get_color() == to_play.get_color() else -1.0
+                        )
 
                     if move.is_passed():
                         board.pass_move()
@@ -68,9 +61,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
         self.X: torch.Tensor = torch.stack(xs, dim=0)
         self.y_policy: torch.Tensor = torch.tensor(ys_policy, dtype=torch.long)
         self.y_value: torch.Tensor | None = None
-
-        if use_value:
-            self.y_value = torch.tensor(ys_value, dtype=torch.float32)
+        self.y_value = torch.tensor(ys_value, dtype=torch.float32)
 
     def __len__(self) -> int:
         """
@@ -179,9 +170,9 @@ if __name__ == "__main__":
             print(f"Skipped game. Error: {e}")
 
     train_games, val_games, test_games = split_game(games)
-    train_dataset = SgfPolicyValueDataset(train_games, use_value=USE_VALUE)
-    val_dataset = SgfPolicyValueDataset(val_games, use_value=USE_VALUE)
-    test_dataset = SgfPolicyValueDataset(test_games, use_value=USE_VALUE)
+    train_dataset = SgfPolicyValueDataset(train_games)
+    val_dataset = SgfPolicyValueDataset(val_games)
+    test_dataset = SgfPolicyValueDataset(test_games)
 
     train_saved = _save_dataset_as_shards(train_dataset, root / "data/processed/train")
     val_saved = _save_dataset_as_shards(val_dataset, root / "data/processed/val")
