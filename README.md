@@ -24,7 +24,6 @@ Sample training log:
 2026-01-26 16:47:57 | INFO | training | Board size = 9
 2026-01-26 16:47:57 | INFO | training | Batch size = 128
 2026-01-26 16:47:57 | INFO | training | Total epoch = 30
-2026-01-26 16:47:57 | INFO | training | USE_VALUE = True
 2026-01-26 16:47:57 | INFO | training | train_dataset length: 89892
 2026-01-26 16:47:57 | INFO | training | val_dataset length: 11448
 2026-01-26 16:47:57 | INFO | training | test_dataset length: 10734
