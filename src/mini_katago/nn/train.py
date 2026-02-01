@@ -95,6 +95,11 @@ def train_one_epoch(
     return total / max(1, len(loader))
 
 
+def save_best_model(state: dict[str, Any] | None) -> None:
+    if state is not None:
+        torch.save(state, root / "models/checkpoint.pt")
+
+
 if __name__ == "__main__":
     root = utils.get_project_root()
     logger = utils.setup_logger(
@@ -114,7 +119,7 @@ if __name__ == "__main__":
     logger.info("USE_VALUE = %s", USE_VALUE)
 
     processed_dir = root / "data/processed"
-    train_dataset = PrecomputedGoDataset(processed_dir / "train", amount=20)
+    train_dataset = PrecomputedGoDataset(processed_dir / "train", amount=10)
     val_dataset = PrecomputedGoDataset(processed_dir / "val", amount=5)
     test_dataset = PrecomputedGoDataset(processed_dir / "test", amount=5)
 
@@ -157,54 +162,59 @@ if __name__ == "__main__":
         logger.error("Permission denied when accessing the checkpoint file.")
 
     for epoch in range(starting_epoch, starting_epoch + epochs):
-        train_loss = train_one_epoch(
-            model,
-            train_loader,
-            optimizer,
-            use_value=USE_VALUE,
-            device=device,
-            epoch=epoch,
-            logger=logger,
-        )
-        train_losses.append(train_loss)
-
-        if USE_VALUE:
-            val_loss, val_acc1, val_acc5 = evaluate_policy(
-                model, val_loader, device=device
+        try:
+            train_loss = train_one_epoch(
+                model,
+                train_loader,
+                optimizer,
+                use_value=USE_VALUE,
+                device=device,
+                epoch=epoch,
+                logger=logger,
             )
-        else:
-            val_loss, val_acc1, val_acc5 = evaluate_both(
-                model, val_loader, device=device
-            )
-        val_losses.append(val_loss)
-        val_acc1s.append(val_acc1)
-        val_acc5s.append(val_acc5)
+            train_losses.append(train_loss)
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_state = {
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "epoch": epoch,
-                "batch_size": batch_size,
-                "best_val_loss": best_val_loss,
-            }
+            if USE_VALUE:
+                val_loss, val_acc1, val_acc5 = evaluate_policy(
+                    model, val_loader, device=device
+                )
+            else:
+                val_loss, val_acc1, val_acc5 = evaluate_both(
+                    model, val_loader, device=device
+                )
+            val_losses.append(val_loss)
+            val_acc1s.append(val_acc1)
+            val_acc5s.append(val_acc5)
 
-        if epoch % 5 == 0:
-            logger.info(
-                "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
-                epoch,
-                train_loss,
-                val_loss,
-                val_acc1,
-                val_acc5,
-            )
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_state = {
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "batch_size": batch_size,
+                    "best_val_loss": best_val_loss,
+                }
 
-    # We found a better state
+            if epoch % 5 == 0:
+                save_best_model(
+                    best_state
+                )  # save our best model so we don't lose our progress
+                logger.info(
+                    "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
+                    epoch,
+                    train_loss,
+                    val_loss,
+                    val_acc1,
+                    val_acc5,
+                )
+
+        except KeyboardInterrupt:
+            logger.info("Training stopped by user at epoch %d", epoch)
+            save_best_model(best_state)
+
+    save_best_model(best_state)
     if best_state is not None:
-        # Save the best state
-        torch.save(best_state, root / "models/checkpoint.pt")
-
         # Load it and use it for testing
         checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
