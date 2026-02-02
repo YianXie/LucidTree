@@ -93,7 +93,7 @@ def save_best_model(state: dict[str, Any] | None) -> None:
 if __name__ == "__main__":
     root = utils.get_project_root()
     logger = utils.setup_logger(
-        name="training", log_file=root / "logs/training.log", level=logging.INFO
+        name="training", log_file="training.log", level=logging.INFO
     )
 
     start_time = time.perf_counter()

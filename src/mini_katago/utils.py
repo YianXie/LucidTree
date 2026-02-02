@@ -61,7 +61,7 @@ def encode_board(board: Board) -> torch.Tensor:
     Returns:
         torch.Tensor: the resulting tensor
     """
-    x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.float32)
+    x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.uint8)
 
     # Direct access to board state instead of repeated function calls
     for i in range(board.size):
@@ -205,20 +205,22 @@ def transform_board(board: Board) -> list[Board]:
 
 
 def setup_logger(
-    name: str, log_file: Path, level: int = logging.INFO
+    name: str, log_file: Path | str, level: int = logging.INFO
 ) -> logging.Logger:
     """
     Set up a logger instance
 
     Args:
         name (str): the name of the logger
-        log_file (Path): the Path to the .log file
+        log_file (Path | str): the name of the .log file
         level (int, optional): the default logger level. Defaults to logging.INFO.
 
     Returns:
         logging.Logger: the logger
     """
-    log_file.parent.mkdir(parents=True, exist_ok=True)
+    root = get_project_root() / "logs"
+    path = root / log_file
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -228,7 +230,7 @@ def setup_logger(
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)
+    file_handler = RotatingFileHandler(path, maxBytes=10_000_000, backupCount=5)
     file_handler.setFormatter(formatter)
 
     console_handler = logging.StreamHandler()

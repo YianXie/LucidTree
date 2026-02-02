@@ -1,8 +1,8 @@
 import logging
-import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -14,6 +14,12 @@ from mini_katago.nn.split import split_game
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
+    """
+    A dataset class representing a sgf policy-value network
+    """
+
+    MAX_MOVES = 64
+
     def __init__(self, games: list[Game], /) -> None:
         """
         Initialize a dataset from the given games
@@ -36,7 +42,8 @@ class SgfPolicyValueDataset(Dataset[Any]):
                     game.white_player,
                 )
 
-                for move in transformed_board.get_all_moves():
+                moves = transformed_board.get_all_moves()
+                for move in moves[: min(self.MAX_MOVES, len(moves))]:
                     to_play = board.get_current_player()
 
                     x = utils.encode_board(board)
@@ -59,9 +66,8 @@ class SgfPolicyValueDataset(Dataset[Any]):
                         board.place_move(move_position, to_play.get_color())
 
         self.X: torch.Tensor = torch.stack(xs, dim=0)
-        self.y_policy: torch.Tensor = torch.tensor(ys_policy, dtype=torch.long)
-        self.y_value: torch.Tensor | None = None
-        self.y_value = torch.tensor(ys_value, dtype=torch.float32)
+        self.y_policy: torch.Tensor = torch.tensor(ys_policy, dtype=torch.uint8)
+        self.y_value: torch.Tensor = torch.tensor(ys_value, dtype=torch.int8)
 
     def __len__(self) -> int:
         """
@@ -87,75 +93,49 @@ class SgfPolicyValueDataset(Dataset[Any]):
         return self.X[index], self.y_policy[index], self.y_value[index]
 
 
-SHARD_SIZE = 20_000
+SHARD_SIZE = 50_000
 MAX_SAVE_RETRIES = 3
 RETRY_DELAY_SECONDS = 2
-logger = logging.getLogger(__name__)
+logger = utils.setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
 
 
 def _save_dataset_as_shards(
     dataset: SgfPolicyValueDataset,
     output_dir: Path,
 ) -> int:
-    """Save dataset as shards of SHARD_SIZE positions each.
-    Returns the number of shards successfully saved.
-    Continues on per-shard errors; logs failures but does not abort.
+    """
+    Save the dataset into multiple different shards
+
+    Args:
+        dataset (SgfPolicyValueDataset): the dataset
+        output_dir (Path): the directory to save the data
+
+    Returns:
+        int: the total shards saved
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     n_positions = len(dataset)
-    print(f"Total positions: {n_positions}")
-    shard_idx = 0
-    saved_count = 0
+    logger.info("n_positions: %d", n_positions)
 
+    saved_count = 0
     for start in range(0, n_positions, SHARD_SIZE):
         end = min(start + SHARD_SIZE, n_positions)
-        shard_data = {
-            "X": dataset.X[start:end],
-            "y_policy": dataset.y_policy[start:end],
-        }
-        if dataset.y_value is not None:
-            shard_data["y_value"] = dataset.y_value[start:end]
+        x_np = dataset.X[start:end].cpu().numpy()
+        y_policy_np = dataset.y_policy[start:end].cpu().numpy()
+        y_value_np = dataset.y_value[start:end].cpu().numpy()
 
-        shard_path = output_dir / f"{shard_idx:03d}.pt"
-        tmp_path = output_dir / f"{shard_idx:03d}.pt.tmp"
+        shard_path = output_dir / f"{saved_count:03d}.npz"
+        np.savez_compressed(
+            shard_path, x=x_np, y_policy=y_policy_np, y_value=y_value_np
+        )
+        saved_count += 1
 
-        for attempt in range(MAX_SAVE_RETRIES):
-            try:
-                torch.save(shard_data, tmp_path)
-                tmp_path.rename(shard_path)
-                saved_count += 1
-                break
-            except (RuntimeError, OSError) as e:
-                if attempt < MAX_SAVE_RETRIES - 1:
-                    logger.warning(
-                        "Shard %s save attempt %d failed: %s. Retrying in %ds...",
-                        shard_path.name,
-                        attempt + 1,
-                        e,
-                        RETRY_DELAY_SECONDS,
-                    )
-                    time.sleep(RETRY_DELAY_SECONDS)
-                else:
-                    logger.error(
-                        "Shard %s failed after %d attempts: %s. Skipping.",
-                        shard_path.name,
-                        MAX_SAVE_RETRIES,
-                        e,
-                    )
-                    if tmp_path.exists():
-                        try:
-                            tmp_path.unlink()
-                        except OSError:
-                            pass
-
-        shard_idx += 1
+        logger.info("Saved shard %d successfully.", saved_count)
 
     return saved_count
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
     games: list[Game] = []
     root = utils.get_project_root()
     path = root / "data/raw/sgf"
@@ -192,4 +172,4 @@ if __name__ == "__main__":
         total_test,
     )
     if train_saved < total_train or val_saved < total_val or test_saved < total_test:
-        logger.warning("Some shards failed to save. Check logs above for details.")
+        logger.warning("Some shards failed to save.")
