@@ -90,6 +90,7 @@ def save_best_model(state: dict[str, Any] | None) -> None:
         torch.save(state, root / "models/checkpoint.pt")
 
 
+NUM_EPOCH = 30
 if __name__ == "__main__":
     root = utils.get_project_root()
     logger = utils.setup_logger(
@@ -100,12 +101,11 @@ if __name__ == "__main__":
 
     torch.manual_seed(0)
     batch_size = 128
-    epochs = 30
 
     logger.info("Starting training")
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
-    logger.info("Total epoch = %d", epochs)
+    logger.info("Total epoch = %d", NUM_EPOCH)
 
     processed_dir = root / "data/processed"
     train_dataset = NPZPolicyValueDataset(processed_dir / "train", amount=10)
@@ -150,7 +150,8 @@ if __name__ == "__main__":
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
-    for epoch in range(starting_epoch, starting_epoch + epochs):
+    epoch = 0
+    for _ in range(starting_epoch, starting_epoch + NUM_EPOCH):
         try:
             train_loss = train_one_epoch(
                 model,
@@ -192,6 +193,8 @@ if __name__ == "__main__":
                     val_acc5,
                 )
 
+            epoch += 1
+
         except KeyboardInterrupt:
             logger.info("Training stopped by user at epoch %d", epoch)
             break
@@ -214,33 +217,34 @@ if __name__ == "__main__":
     end_time = time.perf_counter()
     logger.info("Total training time: %.4f seconds", end_time - start_time)
 
-    # Plot the training overview
-    plt.plot(
-        range(starting_epoch, starting_epoch + epochs),
-        train_losses,
-        label="Train Losses",
-    )
-    plt.plot(
-        range(starting_epoch, starting_epoch + epochs),
-        val_losses,
-        label="Validation Losses",
-    )
-    plt.plot(
-        range(starting_epoch, starting_epoch + epochs),
-        val_acc1s,
-        label="Validation Accuracy (top 1)",
-    )
-    plt.plot(
-        range(starting_epoch, starting_epoch + epochs),
-        val_acc5s,
-        label="Validation Accuracy (top 5)",
-    )
+    if epoch > 0:
+        # Plot the training overview
+        plt.plot(
+            range(starting_epoch, starting_epoch + epoch),
+            train_losses,
+            label="Train Losses",
+        )
+        plt.plot(
+            range(starting_epoch, starting_epoch + epoch),
+            val_losses,
+            label="Validation Losses",
+        )
+        plt.plot(
+            range(starting_epoch, starting_epoch + epoch),
+            val_acc1s,
+            label="Validation Accuracy (top 1)",
+        )
+        plt.plot(
+            range(starting_epoch, starting_epoch + epoch),
+            val_acc5s,
+            label="Validation Accuracy (top 5)",
+        )
 
-    plt.xlabel("Epoch")
-    plt.ylabel("Losses/Accuracy")
+        plt.xlabel("Epoch")
+        plt.ylabel("Losses/Accuracy")
 
-    plt.title("Training Overview")
-    plt.legend()
-    plt.show()
+        plt.title("Training Overview")
+        plt.legend()
+        plt.show()
 
     logger.info("Training end")
