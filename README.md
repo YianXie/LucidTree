@@ -47,12 +47,12 @@ Implemented basic Go board engine and a simple minimax file for tac-tac-toe that
 
 New features include:
 
--   Place move at specific position with specific color
--   Captures detection
--   Ko detection
--   Score estimation at the end of the game
--   Illegal move detection
--   Display a real Go board with MatPlotLib
+- Place move at specific position with specific color
+- Captures detection
+- Ko detection
+- Score estimation at the end of the game
+- Illegal move detection
+- Display a real Go board with MatPlotLib
 
 ### Week 2
 
@@ -60,9 +60,9 @@ Implemented a basic depth-limited MiniMax algorithm for Go with alpha-beta pruni
 
 New features include:
 
--   Depth-limited Minimax algorithm with alpha-beta pruning
--   Auto game-over when there are 2 consecutive passes
--   Undo feature for game board
+- Depth-limited Minimax algorithm with alpha-beta pruning
+- Auto game-over when there are 2 consecutive passes
+- Undo feature for game board
 
 ### Week 3 + 4
 
@@ -70,8 +70,8 @@ Implemented a basic Monte Carlo Tree Search for Go, as well as a Node class. The
 
 New features include:
 
--   A basic Monte Carlo Tree Search for Go
--   A new Node class data structure
+- A basic Monte Carlo Tree Search for Go
+- A new Node class data structure
 
 ### Week 5 + 6 + 7
 
@@ -79,25 +79,17 @@ Implemented a Convolution Neural Network (CNN) for Go with PyTorch. It works alo
 
 New features include:
 
--   A decent Neural Network that learn from over 400 9\*9 Go .sgf files.
--   Comprehensive logging when training
--   Pre-computed dataset
--   Model auto-saving
+- A decent Neural Network that learn from over 400 9\*9 Go .sgf files.
+- Comprehensive logging when training
+- Pre-computed dataset
+- Model auto-saving
 
-## File structure
+## Src File structure
 
 ```yaml
 mini-katago/
-├── .github/
-│   ├── workflows
-│       ├── ci.yml
-│       ├── tests.yml
 ├── src/                                    # All Python files
 │   ├── mini_katago/                        # Go related files
-│   │   │── data                            # All .sgf game data files
-│   │   │   ├── 0001.sgf
-│   │   │   ├── 0002.sgf
-│   │   │   ├── ...
 │   │   │── go                              # All Python files related to Go, such as board.py and rules.py
 │   │   │   ├── board.py                    # Python class that represents a Go game board
 │   │   │   ├── game.py                     # Python class that represents a Go game, including board, players, and the winner
@@ -109,11 +101,11 @@ mini-katago/
 │   │   │   ├── search.py                   # A python program that searches for the most optimum move given the board and player
 │   │   │── misc                            # All Python files that are not absolutely essential to this project
 │   │   │   ├── minimax.py                  # A depth-limited MiniMax algorithm for Go with alpha-beta pruning
-│   │   │   ├── sgf_parser.py               # An util file that parses SGF files and convert it to a Game object
 │   │   │── nn                              # All neural network related files
 │   │   │   ├── datasets/
 │   │   │   │   ├── precomputed_dataset.py  # A class that represents a pre-computed dataset
 │   │   │   │   ├── sgf_dataset.py          # A one-time running file that generates all the datasets
+│   │   │   │   ├── sgf_parser.py           # An util file that parses SGF files and convert it to a Game object
 │   │   │   ├── agent.py                    # The agent that loads the model and pick a move
 │   │   │   ├── evaluate.py                 # A function that evaluate the training result based on the validation dataset
 │   │   │   ├── model.py                    # The SmallPVNet CNN model
@@ -123,15 +115,6 @@ mini-katago/
 │   │   │── constants.py                    # A file containing all the essential constants used in the project
 │   │   │── main.py                         # A file for testing
 │   │   │── utils.py                        # Some utility functions
-├── tests/                                  # All unit-tests
-│   ├── test_board_rules.py                 # Test if board rules works correctly
-├── .gitignore
-├── .python-version
-├── LICENSE
-├── Makefile
-├── pyproject.toml
-├── README.md
-└── uv.lock
 ```
 
 ## Development
