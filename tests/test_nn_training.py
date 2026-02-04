@@ -3,16 +3,12 @@
 # fmt: off
 
 import logging
-import tempfile
-from pathlib import Path
 
-import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from mini_katago.constants import BOARD_SIZE
-from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
 from mini_katago.nn.evaluate import (evaluate_both, evaluate_policy,
                                      evaluate_value)
 from mini_katago.nn.model import SmallPVNet
@@ -331,97 +327,6 @@ class TestEvaluation:
         assert loss == 0.0
         assert acc1 == 0.0
         assert acc5 == 0.0
-
-
-class TestPrecomputedDataset:
-    """Test suite for precomputed dataset."""
-
-    def test_precomputed_dataset_policy_only(self) -> None:
-        """Test loading precomputed dataset with policy only."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create dummy data
-            num_samples = 20
-            x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-            y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-
-            data_path = Path(tmpdir) / "test_data.pt"
-            torch.save({"X": x, "y_policy": y_pol}, data_path)
-
-            dataset = PrecomputedGoDataset(data_path)
-
-            assert len(dataset) == num_samples
-            sample = dataset[0]
-            assert len(sample) == 2  # x, y_policy
-            assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
-            assert isinstance(sample[1], torch.Tensor)
-
-    def test_precomputed_dataset_with_value(self) -> None:
-        """Test loading precomputed dataset with value."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create dummy data
-            num_samples = 20
-            x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-            y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-            y_val = torch.randn(num_samples) * 2 - 1
-
-            data_path = Path(tmpdir) / "test_data.pt"
-            torch.save({"X": x, "y_policy": y_pol, "y_value": y_val}, data_path)
-
-            dataset = PrecomputedGoDataset(data_path)
-
-            assert len(dataset) == num_samples
-            sample = dataset[0]
-            assert len(sample) == 3  # x, y_policy, y_value
-            assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
-            assert isinstance(sample[1], torch.Tensor)
-            assert isinstance(sample[2], torch.Tensor)
-
-    def test_precomputed_dataset_indexing(self) -> None:
-        """Test dataset indexing and iteration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            num_samples = 10
-            x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-            y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-
-            data_path = Path(tmpdir) / "test_data.pt"
-            torch.save({"X": x, "y_policy": y_pol}, data_path)
-
-            dataset = PrecomputedGoDataset(data_path)
-
-            # Test indexing
-            for i in range(num_samples):
-                sample = dataset[i]
-                assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
-
-    def test_precomputed_dataset_file_not_found(self) -> None:
-        """Test that missing dataset file raises error."""
-        non_existent_path = Path("/nonexistent/path/to/data.pt")
-
-        with pytest.raises((FileNotFoundError, OSError)):
-            PrecomputedGoDataset(non_existent_path)
-
-    def test_precomputed_dataset_shard_directory(self) -> None:
-        """Test loading precomputed dataset from directory of shards."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            shard_dir = Path(tmpdir) / "shards"
-            shard_dir.mkdir()
-
-            # Create 2 shards with 5 samples each
-            for shard_idx in range(2):
-                num_samples = 5
-                x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-                y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-                y_val = torch.randn(num_samples) * 2 - 1
-
-                shard_path = shard_dir / f"{shard_idx:03d}.pt"
-                torch.save({"X": x, "y_policy": y_pol, "y_value": y_val}, shard_path)
-
-            dataset = PrecomputedGoDataset(shard_dir)
-
-            assert len(dataset) == 10
-            sample = dataset[0]
-            assert len(sample) == 3
-            assert sample[0].shape == (6, BOARD_SIZE, BOARD_SIZE)
 
 
 class TestTrainingEdgeCases:

@@ -126,7 +126,7 @@ def _save_dataset_as_shards(
 
         shard_path = output_dir / f"{saved_count:03d}.npz"
         np.savez_compressed(
-            shard_path, x=x_np, y_policy=y_policy_np, y_value=y_value_np
+            shard_path, X=x_np, y_policy=y_policy_np, y_value=y_value_np
         )
         saved_count += 1
 

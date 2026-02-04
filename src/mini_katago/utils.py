@@ -6,6 +6,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
@@ -240,3 +241,21 @@ def setup_logger(
     logger.addHandler(console_handler)
 
     return logger
+
+
+def load_npz_dataset(path: Path | str) -> dict[str, Any]:
+    """
+    Load a npz dataset from a given path
+
+    Args:
+        path (Path | str): the path to the .npz file
+
+    Returns:
+        dict[str, Any]: the data in the dataset
+    """
+    data = np.load(path, mmap_mode="r")
+    return {
+        "X": data["X"],
+        "y_policy": data["y_policy"],
+        "y_value": data["y_value"],
+    }

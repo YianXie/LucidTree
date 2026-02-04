@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from mini_katago import utils
 from mini_katago.constants import BOARD_SIZE, INFINITY
-from mini_katago.nn.datasets.precomputed_dataset import PrecomputedGoDataset
+from mini_katago.nn.datasets.precomputed_dataset import NPZPolicyValueDataset
 from mini_katago.nn.evaluate import evaluate_both, evaluate_policy
 from mini_katago.nn.model import SmallPVNet
 
@@ -108,9 +108,9 @@ if __name__ == "__main__":
     logger.info("Total epoch = %d", epochs)
 
     processed_dir = root / "data/processed"
-    train_dataset = PrecomputedGoDataset(processed_dir / "train", amount=10)
-    val_dataset = PrecomputedGoDataset(processed_dir / "val", amount=5)
-    test_dataset = PrecomputedGoDataset(processed_dir / "test", amount=5)
+    train_dataset = NPZPolicyValueDataset(processed_dir / "train", amount=10)
+    val_dataset = NPZPolicyValueDataset(processed_dir / "val", amount=5)
+    test_dataset = NPZPolicyValueDataset(processed_dir / "test", amount=5)
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
         except KeyboardInterrupt:
             logger.info("Training stopped by user at epoch %d", epoch)
-            save_best_model(best_state)
+            break
 
     save_best_model(best_state)
     if best_state is not None:
