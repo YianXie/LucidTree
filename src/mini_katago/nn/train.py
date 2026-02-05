@@ -33,9 +33,10 @@ def train_one_epoch(
 
     Args:
         model (nn.Module): the model to train on
-        loader (torch.Tensor): the DataLoader
+        loader (DataLoader[Any]): the DataLoader
         optim (torch.optim.Optimizer): the optimizer
         epoch (int): the current epoch count
+        logger (logging.Logger): the logger to log outputs
         device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
         label_smoothing (float, optional): the label smoothing value for cross_entropy loss. Defaults to 0.05.
@@ -73,7 +74,7 @@ def train_one_epoch(
 
         total += float(loss.item())
 
-        if batch_idx % 100 == 0:
+        if batch_idx % 5 == 0:
             logger.debug(
                 "Epoch %d | Batch %d | loss = %.4f | total_loss = %.4f",
                 epoch,
@@ -86,11 +87,16 @@ def train_one_epoch(
 
 
 def save_best_model(state: dict[str, Any] | None) -> None:
+    """
+    Save the best model state
+
+    Args:
+        state (dict[str, Any] | None): the best model state
+    """
     if state is not None:
         torch.save(state, root / "models/checkpoint.pt")
 
 
-NUM_EPOCH = 30
 if __name__ == "__main__":
     root = utils.get_project_root()
     logger = utils.setup_logger(
@@ -100,12 +106,14 @@ if __name__ == "__main__":
     start_time = time.perf_counter()
 
     torch.manual_seed(0)
-    batch_size = 128
+    NUM_EPOCH = 30
+
+    batch_size = 256
 
     logger.info("Starting training")
+    logger.info("Total epoch = %d", NUM_EPOCH)
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
-    logger.info("Total epoch = %d", NUM_EPOCH)
 
     processed_dir = root / "data/processed"
     train_dataset = NPZPolicyValueDataset(processed_dir / "train", amount=10)
@@ -139,18 +147,21 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         best_val_loss = checkpoint["best_val_loss"]
-        starting_epoch = (
-            checkpoint["epoch"] + 1
-        )  # add 1 so we move on from previous epoch
+        starting_epoch = checkpoint["epoch"] + 1
         batch_size = checkpoint["batch_size"]
+        val_losses = checkpoint["val_losses"]
+        val_acc1s = checkpoint["val_acc1s"]
+        val_acc5s = checkpoint["val_acc5s"]
+
     except FileNotFoundError:
         logger.warning(
             "Checkpoint file does not exist. Starting with no checkpoint file."
         )
+
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
-    epoch = 0
+    epoch = starting_epoch
     for _ in range(starting_epoch, starting_epoch + NUM_EPOCH):
         try:
             train_loss = train_one_epoch(
@@ -175,15 +186,18 @@ if __name__ == "__main__":
                 best_state = {
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
-                    "epoch": epoch,
                     "batch_size": batch_size,
+                    "epoch": epoch,
                     "best_val_loss": best_val_loss,
+                    "val_losses": val_losses,
+                    "val_acc1s": val_acc1s,
+                    "val_acc5s": val_acc5s,
                 }
 
             if epoch % 5 == 0:
                 save_best_model(
                     best_state
-                )  # save our best model so we don't lose our progress
+                )  # auto-save our best model so we don't lose our progress
                 logger.info(
                     "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
                     epoch,
@@ -220,22 +234,22 @@ if __name__ == "__main__":
     if epoch > 0:
         # Plot the training overview
         plt.plot(
-            range(starting_epoch, starting_epoch + epoch),
+            range(0, epoch),
             train_losses,
             label="Train Losses",
         )
         plt.plot(
-            range(starting_epoch, starting_epoch + epoch),
+            range(0, epoch),
             val_losses,
             label="Validation Losses",
         )
         plt.plot(
-            range(starting_epoch, starting_epoch + epoch),
+            range(0, epoch),
             val_acc1s,
             label="Validation Accuracy (top 1)",
         )
         plt.plot(
-            range(starting_epoch, starting_epoch + epoch),
+            range(0, epoch),
             val_acc5s,
             label="Validation Accuracy (top 5)",
         )

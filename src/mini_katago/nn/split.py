@@ -6,11 +6,24 @@ from mini_katago.utils import get_project_root
 
 def split_game(
     games: list[Game],
-    seed: int = 0,
+    seed: int | None = 0,
     train: float = 0.8,
     val: float = 0.1,
     test: float = 0.1,
 ) -> tuple[list[Game], list[Game], list[Game]]:
+    """
+    Split the games to train, val, and test group
+
+    Args:
+        games (list[Game]): the games
+        seed (int | None, optional): the random seed. Defaults to 0.
+        train (float, optional): the percentage of games for training. Defaults to 0.8.
+        val (float, optional): the percentage of games for validation. Defaults to 0.1.
+        test (float, optional): the percentage of games for testing. Defaults to 0.1.
+
+    Returns:
+        tuple[list[Game], list[Game], list[Game]]: the splitted games
+    """
     assert abs(train + val + test - 1.0) < 1e-6, (
         f"Split ratios must sum to 1.0 (within 1e-6), got {train + val + test}"
     )
