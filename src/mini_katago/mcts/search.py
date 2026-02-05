@@ -90,8 +90,8 @@ class MCTS:
         """
         for parent, action in reversed(path):
             parent.N[action] += 1
-            parent.W[action] += value
             value = -value
+            parent.W[action] += value
 
     @staticmethod
     def pick_move(root: Node) -> tuple[int, int]:

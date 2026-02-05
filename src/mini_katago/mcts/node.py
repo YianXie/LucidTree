@@ -18,7 +18,6 @@ class Node:
     """
 
     total_actions = BOARD_SIZE * BOARD_SIZE + 1
-    eps = 1e-8
 
     def __init__(
         self,
@@ -53,6 +52,14 @@ class Node:
         """
         if self.is_expanded:
             raise RuntimeError("expanded() called on already expanded node")
+
+        # Check if game is over
+        if self.board.is_terminate():
+            self.is_expanded = True
+            # Return a value based on the game outcome
+            # For a terminated game, we could return 0 (draw) or calculate winner
+            # For simplicity, return 0 as the game is over
+            return 0.0
 
         legal_moves = self.board.get_legal_moves(self.to_play.get_color())
         for move in legal_moves:
@@ -89,8 +96,10 @@ class Node:
         Returns:
             float: the mean value
         """
+        total_visit_count = self.N[action]
+        if total_visit_count == 0:
+            return 0.0
         total_value_sum = self.W[action]
-        total_visit_count = self.N[action] + self.eps
         return float(total_value_sum / total_visit_count)
 
     def U(self, action: int, c_puct: float = 1.5) -> float:
@@ -99,7 +108,7 @@ class Node:
 
         Args:
             action (int): the action
-            c_puct (float, optional): the exploration constant. Defaults to math.sqrt(2).
+            c_puct (float, optional): the exploration constant. Defaults to 1.5.
 
         Returns:
             float: the PUCT score
@@ -108,7 +117,7 @@ class Node:
         prior = self.P[action]
         action_visits = self.N[action]
         return float(
-            c_puct * prior * (math.sqrt(sum_visits + 1.0) / (1.0 + action_visits))
+            c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits))
         )
 
     def select_action(self, c_puct: float = 1.5) -> int:
@@ -120,10 +129,8 @@ class Node:
         """
         best_score = -INFINITY
         best_action = 0
-        for action in range(self.total_actions):
-            if not self.legal_mask[action]:
-                continue
-
+        legal_indices = np.where(self.legal_mask)[0]
+        for action in legal_indices:
             score = self.Q(action) + self.U(action, c_puct)
             if score > best_score:
                 best_score = score
