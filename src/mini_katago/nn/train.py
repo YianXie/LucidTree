@@ -140,15 +140,16 @@ if __name__ == "__main__":
 
     best_val_loss = INFINITY
     best_state = None
-    starting_epoch = 0
+    epoch = 0
 
     try:
         checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         best_val_loss = checkpoint["best_val_loss"]
-        starting_epoch = checkpoint["epoch"] + 1
+        epoch = checkpoint["epoch"] + 1
         batch_size = checkpoint["batch_size"]
+        train_losses = checkpoint["train_losses"]
         val_losses = checkpoint["val_losses"]
         val_acc1s = checkpoint["val_acc1s"]
         val_acc5s = checkpoint["val_acc5s"]
@@ -161,8 +162,7 @@ if __name__ == "__main__":
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
-    epoch = starting_epoch
-    for _ in range(starting_epoch, starting_epoch + NUM_EPOCH):
+    for _ in range(NUM_EPOCH):
         try:
             train_loss = train_one_epoch(
                 model,
@@ -189,6 +189,7 @@ if __name__ == "__main__":
                     "batch_size": batch_size,
                     "epoch": epoch,
                     "best_val_loss": best_val_loss,
+                    "train_losses": train_losses,
                     "val_losses": val_losses,
                     "val_acc1s": val_acc1s,
                     "val_acc5s": val_acc5s,
