@@ -144,4 +144,4 @@ def nn_vs_nn() -> None:
 
 
 if __name__ == "__main__":
-    mcts_nn_vs_mcts_nn()
+    human_vs_mcts_nn()

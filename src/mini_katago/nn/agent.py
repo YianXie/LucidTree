@@ -59,6 +59,7 @@ def pick_move(
 
     x = utils.encode_board(board)
     x = x.unsqueeze(0).to(device)
+    x = x.float()
 
     policy_logits, value = model(x)
     logits = policy_logits[0]

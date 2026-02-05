@@ -59,7 +59,7 @@ class Node:
             idx = move_to_index(move.get_position())
             self.legal_mask[idx] = True
 
-        policy_logits, value = model(encode_board(self.board).unsqueeze(0))
+        policy_logits, value = model(encode_board(self.board).unsqueeze(0).float())
         probs = (
             torch.softmax(policy_logits[0], dim=0)
             .detach()
