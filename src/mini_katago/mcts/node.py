@@ -58,25 +58,20 @@ class Node:
             self.is_expanded = True
             # Calculate the game outcome from the current player's perspective
             black_score, white_score = self.board.calculate_score()
-            # Determine winner (with KOMI for white)
+            # Determine winner from Black's perspective (with KOMI for white)
             black_final = black_score
             white_final = white_score + KOMI
             
+            # Calculate result from Black's perspective
+            if black_final > white_final:
+                result = 1.0  # Black wins
+            elif black_final < white_final:
+                result = -1.0  # Black loses
+            else:
+                result = 0.0  # Draw
+            
             # Return value from current player's perspective
-            if self.to_play.get_color() == BLACK_COLOR:
-                if black_final > white_final:
-                    return 1.0  # Black wins
-                elif black_final < white_final:
-                    return -1.0  # Black loses
-                else:
-                    return 0.0  # Draw
-            else:  # WHITE_COLOR
-                if white_final > black_final:
-                    return 1.0  # White wins
-                elif white_final < black_final:
-                    return -1.0  # White loses
-                else:
-                    return 0.0  # Draw
+            return result if self.to_play.get_color() == BLACK_COLOR else -result
 
         legal_moves = self.board.get_legal_moves(self.to_play.get_color())
         for move in legal_moves:
@@ -146,8 +141,8 @@ class Node:
         """
         best_score = -INFINITY
         best_action = 0
-        legal_indices = np.where(self.legal_mask)[0]
-        for action in legal_indices:
+        legal_actions = np.where(self.legal_mask)[0]
+        for action in legal_actions:
             score = self.Q(action) + self.U(action, c_puct)
             if score > best_score:
                 best_score = score
