@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from mini_katago.constants import BOARD_SIZE, INFINITY
+from mini_katago.constants import BOARD_SIZE, INFINITY, BLACK_COLOR, WHITE_COLOR, KOMI
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 from mini_katago.utils import encode_board, move_to_index
@@ -56,10 +56,27 @@ class Node:
         # Check if game is over
         if self.board.is_terminate():
             self.is_expanded = True
-            # Return a value based on the game outcome
-            # For a terminated game, we could return 0 (draw) or calculate winner
-            # For simplicity, return 0 as the game is over
-            return 0.0
+            # Calculate the game outcome from the current player's perspective
+            black_score, white_score = self.board.calculate_score()
+            # Determine winner (with KOMI for white)
+            black_final = black_score
+            white_final = white_score + KOMI
+            
+            # Return value from current player's perspective
+            if self.to_play.get_color() == BLACK_COLOR:
+                if black_final > white_final:
+                    return 1.0  # Black wins
+                elif black_final < white_final:
+                    return -1.0  # Black loses
+                else:
+                    return 0.0  # Draw
+            else:  # WHITE_COLOR
+                if white_final > black_final:
+                    return 1.0  # White wins
+                elif white_final < black_final:
+                    return -1.0  # White loses
+                else:
+                    return 0.0  # Draw
 
         legal_moves = self.board.get_legal_moves(self.to_play.get_color())
         for move in legal_moves:
