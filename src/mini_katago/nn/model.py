@@ -72,7 +72,7 @@ class SmallPVNet(nn.Module):
             x (Any): the input data
 
         Returns:
-            tuple[Any, torch.Tensor]: the policy logits, followed by the value
+            tuple[torch.Tensor, torch.Tensor]: the policy logits, followed by the value
         """
         # x: (B, C, 9, 9)
         h = self.trunk(x)

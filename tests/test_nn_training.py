@@ -9,8 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from mini_katago.constants import BOARD_SIZE
-from mini_katago.nn.evaluate import (evaluate_both, evaluate_policy,
-                                     evaluate_value)
+from mini_katago.nn.evaluate import evaluate
 from mini_katago.nn.model import SmallPVNet
 from mini_katago.nn.train import train_one_epoch
 
@@ -222,71 +221,6 @@ class TestTrainingLoop:
 class TestEvaluation:
     """Test suite for evaluation functions."""
 
-    def test_evaluate_policy(self) -> None:
-        """Test policy evaluation function."""
-        model = SmallPVNet()
-        model.eval()
-
-        batch_size = 4
-        num_samples = 16
-        x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-        y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-
-        dataset = TensorDataset(x, y_pol)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-        loss, acc1, acc5 = evaluate_policy(model, loader, torch.device("cpu"))
-
-        assert isinstance(loss, float)
-        assert isinstance(acc1, float)
-        assert isinstance(acc5, float)
-        assert loss >= 0
-        assert 0 <= acc1 <= 1
-        assert 0 <= acc5 <= 1
-        assert acc5 >= acc1  # Top-5 accuracy should be >= top-1
-
-    def test_evaluate_policy_with_value_data(self) -> None:
-        """Test policy evaluation with dataset that includes value."""
-        model = SmallPVNet()
-        model.eval()
-
-        batch_size = 4
-        num_samples = 16
-        x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-        y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-        y_val = torch.randn(num_samples) * 2 - 1
-
-        dataset = TensorDataset(x, y_pol, y_val)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-        loss, acc1, acc5 = evaluate_policy(model, loader, torch.device("cpu"))
-
-        assert isinstance(loss, float)
-        assert isinstance(acc1, float)
-        assert isinstance(acc5, float)
-        assert loss >= 0
-        assert 0 <= acc1 <= 1
-        assert 0 <= acc5 <= 1
-
-    def test_evaluate_value(self) -> None:
-        """Test value network evaluation."""
-        model = SmallPVNet()
-        model.eval()
-
-        batch_size = 4
-        num_samples = 16
-        x = torch.randn(num_samples, 6, BOARD_SIZE, BOARD_SIZE)
-        y_pol = torch.randint(0, BOARD_SIZE * BOARD_SIZE + 1, (num_samples,))
-        y_val = torch.randn(num_samples) * 2 - 1
-
-        dataset = TensorDataset(x, y_pol, y_val)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-        loss = evaluate_value(model, loader, torch.device("cpu"))
-
-        assert isinstance(loss, float)
-        assert loss >= 0
-
     def test_evaluate_both(self) -> None:
         """Test evaluation of both policy and value networks."""
         model = SmallPVNet()
@@ -301,7 +235,7 @@ class TestEvaluation:
         dataset = TensorDataset(x, y_pol, y_val)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-        loss, acc1, acc5 = evaluate_both(model, loader, torch.device("cpu"))
+        loss, acc1, acc5 = evaluate(model, loader, torch.device("cpu"))
 
         assert isinstance(loss, float)
         assert isinstance(acc1, float)
@@ -321,7 +255,7 @@ class TestEvaluation:
         dataset = TensorDataset(x, y_pol)
         loader = DataLoader(dataset, batch_size=4, shuffle=False)
 
-        loss, acc1, acc5 = evaluate_policy(model, loader, torch.device("cpu"))
+        loss, acc1, acc5 = evaluate(model, loader, torch.device("cpu"))
 
         # Should return 0.0 for empty loader
         assert loss == 0.0

@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from typing import Any
@@ -11,7 +12,7 @@ from torch.utils.data import DataLoader
 from mini_katago import utils
 from mini_katago.constants import BOARD_SIZE, INFINITY
 from mini_katago.nn.datasets.precomputed_dataset import NPZPolicyValueDataset
-from mini_katago.nn.evaluate import evaluate_both, evaluate_policy
+from mini_katago.nn.evaluate import evaluate
 from mini_katago.nn.model import SmallPVNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,18 +50,17 @@ def train_one_epoch(
     for batch_idx, batch in enumerate(loader):
         optim.zero_grad()
 
-        x, y_pol, y_val = batch
-        y_val = y_val.to(device)
-
+        x, y_policy, y_value = batch
         x = x.to(device)
-        y_pol = y_pol.to(device)
+        y_policy = y_policy.to(device)
+        y_value = y_value.to(device)
 
-        policy_logits, value_pred = model(x)
-        loss_pol = F.cross_entropy(
-            policy_logits, y_pol, label_smoothing=label_smoothing
+        policy_logits, value = model(x)
+        policy_loss = F.cross_entropy(
+            policy_logits, y_policy, label_smoothing=label_smoothing
         )
-        loss_val = F.mse_loss(value_pred, y_val)
-        loss = loss_pol + lambda_value * loss_val
+        value_loss = F.mse_loss(value, y_value)
+        loss = policy_loss + lambda_value * value_loss
 
         if torch.isnan(loss):
             logger.error("NaN loss detected at epoch %d", epoch)
@@ -68,13 +68,14 @@ def train_one_epoch(
 
         if torch.any(torch.isnan(policy_logits)):
             logger.error("NaN in policy logits at epoch %d", epoch)
+            break
 
         loss.backward()  # type: ignore
         optim.step()
 
         total += float(loss.item())
 
-        if batch_idx % 5 == 0:
+        if batch_idx % 100 == 0:
             logger.debug(
                 "Epoch %d | Batch %d | loss = %.4f | total_loss = %.4f",
                 epoch,
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     start_time = time.perf_counter()
 
     torch.manual_seed(0)
-    NUM_EPOCH = 30
+    NUM_EPOCH = 5
 
     batch_size = 256
 
@@ -124,9 +125,9 @@ if __name__ == "__main__":
     logger.info("val_dataset length: %d", len(val_dataset))
     logger.info("test_dataset length: %d", len(test_dataset))
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader[Any](train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader[Any](val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader[Any](test_dataset, batch_size=batch_size, shuffle=False)
 
     model = SmallPVNet()
     model = model.to(device)
@@ -174,9 +175,7 @@ if __name__ == "__main__":
             )
             train_losses.append(train_loss)
 
-            val_loss, val_acc1, val_acc5 = evaluate_both(
-                model, val_loader, device=device
-            )
+            val_loss, val_acc1, val_acc5 = evaluate(model, val_loader, device=device)
             val_losses.append(val_loss)
             val_acc1s.append(val_acc1)
             val_acc5s.append(val_acc5)
@@ -220,7 +219,7 @@ if __name__ == "__main__":
         checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
 
-    test_loss, test_acc1, test_acc5 = evaluate_policy(model, test_loader, device=device)
+    test_loss, test_acc1, test_acc5 = evaluate(model, test_loader, device=device)
     logger.info(
         "TEST | loss = %.4f | acc1 = %.4f | acc5 = %.4f",
         test_loss,
@@ -260,6 +259,10 @@ if __name__ == "__main__":
 
         plt.title("Training Overview")
         plt.legend()
+
+        t = datetime.datetime.now()
+        plt.savefig(root / f"figures/{t}.png", dpi=300)
+
         plt.show()
 
     logger.info("Training end")

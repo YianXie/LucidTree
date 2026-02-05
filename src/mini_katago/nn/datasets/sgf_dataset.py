@@ -78,7 +78,9 @@ class SgfPolicyValueDataset(Dataset[Any]):
         """
         return self.X.size(0)
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
+    def __getitem__(
+        self, index: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Retrieve the sample at a specific index
 
@@ -86,11 +88,9 @@ class SgfPolicyValueDataset(Dataset[Any]):
             index (int): the index of the sample
 
         Returns:
-            tuple[torch.Tensor, ...]: the sample at that specific index
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: the sample at that specific index
         """
-        if self.y_value is None:
-            return self.X[index], self.y_policy[index]
-        return self.X[index], self.y_policy[index], self.y_value[index]
+        return (self.X[index], self.y_policy[index], self.y_value[index])
 
 
 SHARD_SIZE = 50_000
