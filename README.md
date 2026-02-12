@@ -4,39 +4,35 @@ A basic implementation of Go AI, similar to [KataGo](https://github.com/lightvec
 
 ## Data/Model Download
 
-For the .pt datasets, please check out this url on [Google Drive](https://drive.google.com/drive/folders/1Brh3DSuQ2fcs2gPFlytn4BvrR4j-qWHK?usp=sharing)
+For the .npz datasets, please check out this url on [Google Drive](https://drive.google.com/drive/folders/1Brh3DSuQ2fcs2gPFlytn4BvrR4j-qWHK?usp=sharing)
 
 For the .pt model, please checkout this url on [Google Drive](https://drive.google.com/drive/folders/12OCXJz11Ely8U9kf6R822n4Apfg3QOef?usp=sharing)
-
-> [!NOTE]
-> All .pt files ended with \_pol are policy-only, meaning they don't contain any value-network related data
 
 ## Training Result Overview
 
 NN training graph:
 
-![Training Graph](./assets/training_overview.png)
+![Training Graph](./assets/training.png)
 
 Sample training log:
 
 ```log
-2026-02-04 21:27:00 | INFO | training | Starting training
-2026-02-04 21:27:00 | INFO | training | Total epoch = 30
-2026-02-04 21:27:00 | INFO | training | Board size = 9
-2026-02-04 21:27:00 | INFO | training | Batch size = 256
-2026-02-04 21:27:00 | INFO | training | train_dataset length: 484462
-2026-02-04 21:27:00 | INFO | training | val_dataset length: 159855
-2026-02-04 21:27:00 | INFO | training | test_dataset length: 161460
-2026-02-04 21:27:01 | WARNING | training | Checkpoint file does not exist. Starting with no checkpoint file.
-2026-02-04 21:29:05 | INFO | training | Epoch 0 finished | train_loss = 3.8185 | val_loss = 3.2441 | val_acc1 = 0.3797 | val_acc5 = 0.7475
-2026-02-04 21:40:40 | INFO | training | Epoch 5 finished | train_loss = 2.7320 | val_loss = 3.0867 | val_acc1 = 0.4340 | val_acc5 = 0.8111
-2026-02-04 21:52:35 | INFO | training | Epoch 10 finished | train_loss = 2.6108 | val_loss = 3.1063 | val_acc1 = 0.4437 | val_acc5 = 0.8184
-2026-02-04 22:09:05 | INFO | training | Epoch 15 finished | train_loss = 2.5570 | val_loss = 3.1156 | val_acc1 = 0.4473 | val_acc5 = 0.8231
-2026-02-04 23:28:42 | INFO | training | Epoch 20 finished | train_loss = 2.5254 | val_loss = 3.1386 | val_acc1 = 0.4505 | val_acc5 = 0.8237
-2026-02-04 23:57:42 | INFO | training | Epoch 25 finished | train_loss = 2.5021 | val_loss = 3.1494 | val_acc1 = 0.4522 | val_acc5 = 0.8257
-2026-02-05 00:11:29 | INFO | training | TEST | loss = 1.9065 | acc1 = 0.4478 | acc5 = 0.8210
-2026-02-05 00:11:29 | INFO | training | Total training time: 5056.0261 seconds
-
+2026-02-12 20:52:51 | INFO | training | Starting training
+2026-02-12 20:52:51 | INFO | training | Total epoch = 5
+2026-02-12 20:52:51 | INFO | training | Board size = 9
+2026-02-12 20:52:51 | INFO | training | Batch size = 256
+2026-02-12 20:52:51 | INFO | training | train_dataset length: 654166
+2026-02-12 20:52:51 | INFO | training | val_dataset length: 80000
+2026-02-12 20:52:51 | INFO | training | test_dataset length: 80000
+2026-02-12 20:52:52 | WARNING | training | Checkpoint file does not exist. Starting with no checkpoint file.
+2026-02-12 20:55:24 | INFO | training | Epoch 0 finished | train_loss = 3.9646 | val_loss = 3.4206 | val_acc1 = 0.3646 | val_acc5 = 0.7308
+2026-02-12 20:57:58 | INFO | training | Epoch 1 finished | train_loss = 3.2181 | val_loss = 2.9906 | val_acc1 = 0.4190 | val_acc5 = 0.7948
+2026-02-12 21:00:37 | INFO | training | Epoch 2 finished | train_loss = 2.9080 | val_loss = 2.8786 | val_acc1 = 0.4320 | val_acc5 = 0.8131
+2026-02-12 21:03:18 | INFO | training | Epoch 3 finished | train_loss = 2.8115 | val_loss = 2.8563 | val_acc1 = 0.4421 | val_acc5 = 0.8180
+2026-02-12 21:05:59 | INFO | training | Epoch 4 finished | train_loss = 2.7502 | val_loss = 2.8610 | val_acc1 = 0.4446 | val_acc5 = 0.8209
+2026-02-12 21:06:04 | INFO | training | TEST | loss = 2.8651 | acc1 = 0.4498 | acc5 = 0.8234
+2026-02-12 21:06:04 | INFO | training | Total training time: 793.3938 seconds
+2026-02-12 21:15:41 | INFO | training | Training end
 ```
 
 ## Timeline
@@ -83,6 +79,16 @@ New features include:
 - Comprehensive logging when training
 - Pre-computed dataset
 - Model auto-saving
+
+### Week 8
+
+Combined Monte Carlo Tree Search with Neural Network, similar to how AlphaZero works. It uses a PUCT (prior upper confidence score for trees) score instead of the ordinary UCT, (or "UCB"), in order to balance exploration and exploitation.
+
+New features include:
+
+- Combination of Monte Carlo Tree Search and Neural Network
+- Stronger NN with more datasets
+- Minor bug fixes for board.py
 
 ## Src File structure
 
