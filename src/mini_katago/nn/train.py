@@ -117,9 +117,9 @@ if __name__ == "__main__":
     logger.info("Batch size = %d", batch_size)
 
     processed_dir = root / "data/processed"
-    train_dataset = NPZPolicyValueDataset(processed_dir / "train", amount=10)
-    val_dataset = NPZPolicyValueDataset(processed_dir / "val", amount=5)
-    test_dataset = NPZPolicyValueDataset(processed_dir / "test", amount=5)
+    train_dataset = NPZPolicyValueDataset(processed_dir / "train", percentage=0.5)
+    val_dataset = NPZPolicyValueDataset(processed_dir / "val", percentage=0.5)
+    test_dataset = NPZPolicyValueDataset(processed_dir / "test", percentage=0.5)
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -193,19 +193,18 @@ if __name__ == "__main__":
                     "val_acc1s": val_acc1s,
                     "val_acc5s": val_acc5s,
                 }
-
-            if epoch % 5 == 0:
                 save_best_model(
                     best_state
                 )  # auto-save our best model so we don't lose our progress
-                logger.info(
-                    "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
-                    epoch,
-                    train_loss,
-                    val_loss,
-                    val_acc1,
-                    val_acc5,
-                )
+
+            logger.info(
+                "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
+                epoch,
+                train_loss,
+                val_loss,
+                val_acc1,
+                val_acc5,
+            )
 
             epoch += 1
 

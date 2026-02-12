@@ -10,8 +10,7 @@ from sgfmill import sgf
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from mini_katago.go.game import Game
-from mini_katago.nn.datasets.sgf_parser import (parse_sgf_file,
-                                                parsed_sgf_game_to_game)
+from mini_katago.nn.datasets.sgf_parser import parse_sgf_file, parse_sgf_game
 
 # fmt: on
 
@@ -35,7 +34,7 @@ class TestSGFParsing:
         node3 = node2.new_child()
         node3.set_move("b", (4, 4))  # Black at (4, 4)
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.black_player.name == "Black Player"
@@ -57,7 +56,7 @@ class TestSGFParsing:
         node3 = node2.new_child()
         node3.set_move("b", (3, 3))
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         # Verify that passes are handled correctly
@@ -71,7 +70,7 @@ class TestSGFParsing:
         root_node.set("PW", "White")
         root_node.set("RE", "B+R")  # Black wins by resignation
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.winner is not None
@@ -85,7 +84,7 @@ class TestSGFParsing:
         root_node.set("PW", "White")
         root_node.set("RE", "W+R")  # White wins by resignation
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.winner is not None
@@ -99,7 +98,7 @@ class TestSGFParsing:
         root_node.set("PW", "White")
         # No RE (result) property
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.winner is None
@@ -112,7 +111,7 @@ class TestSGFParsing:
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.board.get_size() == board_size
@@ -124,7 +123,7 @@ class TestSGFParsing:
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.board.get_size() == BOARD_SIZE
@@ -178,7 +177,7 @@ class TestSGFParsing:
 
         # The parser expects PB and PW to exist, so this should raise KeyError
         with pytest.raises(KeyError):
-            parsed_sgf_game_to_game(sgf_game)
+            parse_sgf_game(sgf_game)
 
     def test_parse_sgf_complex_game(self) -> None:
         """Test parsing a more complex SGF game with many moves."""
@@ -203,7 +202,7 @@ class TestSGFParsing:
             new_node.set_move(color, pos)
             current_node = new_node
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.board.get_size() == BOARD_SIZE
@@ -221,7 +220,7 @@ class TestSGFParsing:
         node2 = node1.new_child()
         node2.set_move("w", None)  # White passes
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         # Game should be terminated after two consecutive passes
@@ -241,7 +240,7 @@ class TestSGFParsing:
         node2 = node1.new_child()
         node2.set_move("w", (3, 3))
 
-        game = parsed_sgf_game_to_game(sgf_game)
+        game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         # Verify the moves were placed with correct colors
@@ -258,7 +257,7 @@ class TestSGFParsing:
             root_node.set("PW", "White")
             root_node.set("RE", result)
 
-            game = parsed_sgf_game_to_game(sgf_game)
+            game = parse_sgf_game(sgf_game)
 
             assert isinstance(game, Game)
             # The winner should be determined based on the first character

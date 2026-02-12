@@ -13,14 +13,18 @@ class NPZPolicyValueDataset(Dataset[Any]):
     A class representing a `.npz` policy-value dataset
     """
 
-    def __init__(self, path: Path, amount: int | None = None) -> None:
+    def __init__(self, path: Path, percentage: float = 1.0) -> None:
         """
         Initialize a `.npz` policy-value dataset
 
         Args:
             path (Path): the path to a directory of shard .npz files
-            amount (int | None): the amount of shards to retrieve
+            amount (float | None, optional): the amount of shards to retrieve, defaults to 1.0
         """
+        assert percentage > 0.0 and percentage <= 1.0, (
+            f"percentage must be within (0, 1], got {percentage}"
+        )
+
         if not path.is_dir():
             raise ValueError("Invalid path. Expecting a directory.")
 
@@ -33,12 +37,8 @@ class NPZPolicyValueDataset(Dataset[Any]):
         ys_value: list[torch.Tensor] = []
         random.shuffle(shard_paths)
 
-        if amount is None:
-            max_shards = len(shard_paths)
-        else:
-            max_shards = amount
-
-        for shard_path in shard_paths[: min(len(shard_paths), max_shards)]:
+        max_shards = int(len(shard_paths) * percentage)
+        for shard_path in shard_paths[:max_shards]:
             data = utils.load_npz_dataset(shard_path)
             xs_np = data["X"]
             ys_policy_np = data["y_policy"]

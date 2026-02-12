@@ -93,9 +93,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
         return (self.X[index], self.y_policy[index], self.y_value[index])
 
 
-SHARD_SIZE = 50_000
-MAX_SAVE_RETRIES = 3
-RETRY_DELAY_SECONDS = 2
+SHARD_SIZE = 20_000
 logger = utils.setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
 
 
