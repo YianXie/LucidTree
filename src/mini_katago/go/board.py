@@ -465,6 +465,8 @@ class Board:
         if self._is_terminate:
             raise RuntimeError("Game is already over!")
 
+        self._ko_positions = None
+
         # Append to move history
         self._move_history.append(
             {
