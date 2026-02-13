@@ -63,7 +63,7 @@ echo "Running pip audit..."
 if uv run pip-audit; then
     print_status "pip audit passed"
 else
-    print_warning "pip audit found issues."
+    print_error "pip audit found issues."
     exit 1
 fi
 
