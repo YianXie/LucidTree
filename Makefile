@@ -1,6 +1,6 @@
 # Makefile for Mini-KataGo project
 
-.PHONY: help install test lint format security ci-local clean
+.PHONY: help install test lint format security ci-local all clean
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  format       - Format code"
 	@echo "  security     - Run security checks"
 	@echo "  ci-local     - Run all CI checks locally"
+	@echo "  all 		  - Run all checks (CI & Tests)"
 	@echo "  clean        - Clean up generated files"
 
 # Install dependencies
@@ -21,7 +22,7 @@ install:
 # Run tests
 test:
 	@echo "Running tests..."
-	pip install -e . && uv run pytest
+	uv run pytest
 
 # Run linting
 lint:
@@ -41,6 +42,11 @@ security:
 # Run all CI checks locally
 ci-local:
 	@./scripts/ci-local.sh
+
+all:
+	@echo "Running all checks..."
+	@./scripts/ci-local.sh
+	uv run pytest
 
 # Clean up generated files
 clean:

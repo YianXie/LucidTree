@@ -64,6 +64,7 @@ if uv run pip-audit; then
     print_status "pip audit passed"
 else
     print_warning "pip audit found issues."
+    exit 1
 fi
 
 echo -e "\n${GREEN}🎉 All CI checks passed!${NC}"
