@@ -9,13 +9,16 @@ from mini_katago.go.game import Game
 from mini_katago.go.player import Player
 
 
-def parse_sgf_file(path: Path) -> Game:
-    if not path.exists():
-        raise FileNotFoundError("Invalid file path")
+def parse_sgf_game(sgf_game: sgf.Sgf_game) -> Game:
+    """
+    Parse an in-memory SGF game object into a Game.
 
-    with open(path, "rb") as f:
-        sgf_game = sgf.Sgf_game.from_bytes(f.read())
+    Args:
+        sgf_game: An sgfmill Sgf_game object (e.g. from Sgf_game.from_bytes or Sgf_game(size=...))
 
+    Returns:
+        Game: The parsed game with board, players, and winner (if specified).
+    """
     winner = sgf_game.get_winner()
     if winner is None:
         warnings.warn("Winner attribute not found")
@@ -33,7 +36,7 @@ def parse_sgf_file(path: Path) -> Game:
         black_player if winner == "b" else white_player if winner == "w" else None,
     )
 
-    for idx, node in enumerate(game_sequence):
+    for node in game_sequence:
         color, pos = node.get_move()
         if color is None:
             continue
@@ -44,3 +47,25 @@ def parse_sgf_file(path: Path) -> Game:
             game.board.place_move(pos, BLACK_COLOR if color == "b" else WHITE_COLOR)
 
     return game
+
+
+def parse_sgf_file(path: Path) -> Game:
+    """
+    Parse a given sgf file into game
+
+    Args:
+        path (Path): the path to the game file
+
+    Raises:
+        FileNotFoundError: if the file path is invalid
+
+    Returns:
+        Game: the parsed game
+    """
+    if not path.exists():
+        raise FileNotFoundError("Invalid file path")
+
+    with open(path, "rb") as f:
+        sgf_game = sgf.Sgf_game.from_bytes(f.read())
+
+    return parse_sgf_game(sgf_game)

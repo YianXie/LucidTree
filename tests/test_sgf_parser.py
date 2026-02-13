@@ -16,15 +16,20 @@ from mini_katago.nn.datasets.sgf_parser import parse_sgf_file, parse_sgf_game
 
 
 class TestSGFParsing:
-    """Test suite for SGF file parsing."""
+    """
+    Test suite for SGF file parsing.
+    """
 
     def test_parse_simple_sgf_game(self) -> None:
-        """Test parsing a simple SGF game with basic moves."""
+        """
+        Test parsing a simple SGF game with basic moves.
+        """
         # Create a simple SGF game
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black Player")
         root_node.set("PW", "White Player")
+        root_node.set("RE", "B+R")
 
         # Add some moves
         node1 = root_node.new_child()
@@ -42,11 +47,14 @@ class TestSGFParsing:
         assert game.board.get_size() == BOARD_SIZE
 
     def test_parse_sgf_with_passes(self) -> None:
-        """Test parsing SGF game with pass moves."""
+        """
+        Test parsing SGF game with pass moves.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         # Add moves including passes
         node1 = root_node.new_child()
@@ -62,54 +70,48 @@ class TestSGFParsing:
         # Verify that passes are handled correctly
         assert game.board.get_size() == BOARD_SIZE
 
-    def test_parse_sgf_with_winner_black(self) -> None:
-        """Test parsing SGF game with black winner."""
-        sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
-        root_node = sgf_game.get_root()
-        root_node.set("PB", "Black")
-        root_node.set("PW", "White")
-        root_node.set("RE", "B+R")  # Black wins by resignation
-
-        game = parse_sgf_game(sgf_game)
-
-        assert isinstance(game, Game)
-        assert game.winner is not None
-        assert game.winner.get_color() == BLACK_COLOR
-
-    def test_parse_sgf_with_winner_white(self) -> None:
-        """Test parsing SGF game with white winner."""
-        sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
-        root_node = sgf_game.get_root()
-        root_node.set("PB", "Black")
-        root_node.set("PW", "White")
-        root_node.set("RE", "W+R")  # White wins by resignation
-
-        game = parse_sgf_game(sgf_game)
-
-        assert isinstance(game, Game)
-        assert game.winner is not None
-        assert game.winner.get_color() == WHITE_COLOR
-
     def test_parse_sgf_with_no_winner(self) -> None:
-        """Test parsing SGF game with no winner specified."""
+        """
+        Test parsing SGF game with no winner specified.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
         # No RE (result) property
 
-        game = parse_sgf_game(sgf_game)
+        with pytest.warns(UserWarning, match="Winner attribute not found"):
+            game = parse_sgf_game(sgf_game)
+
+        assert isinstance(game, Game)
+        assert game.winner is None
+
+    def test_parse_sgf_with_junk_result(self) -> None:
+        """
+        Test parsing SGF game with junk result
+        """
+        sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
+        root_node = sgf_game.get_root()
+        root_node.set("PB", "Black")
+        root_node.set("PW", "White")
+        root_node.set("RE", "0")  # 0 - junk result
+
+        with pytest.warns(UserWarning, match="Winner attribute not found"):
+            game = parse_sgf_game(sgf_game)
 
         assert isinstance(game, Game)
         assert game.winner is None
 
     def test_parse_sgf_different_board_size(self) -> None:
-        """Test parsing SGF game with different board size."""
+        """
+        Test parsing SGF game with different board size.
+        """
         board_size = 13
         sgf_game = sgf.Sgf_game(size=board_size)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         game = parse_sgf_game(sgf_game)
 
@@ -117,11 +119,14 @@ class TestSGFParsing:
         assert game.board.get_size() == board_size
 
     def test_parse_sgf_empty_game(self) -> None:
-        """Test parsing an empty SGF game (no moves)."""
+        """
+        Test parsing an empty SGF game (no moves).
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         game = parse_sgf_game(sgf_game)
 
@@ -129,13 +134,16 @@ class TestSGFParsing:
         assert game.board.get_size() == BOARD_SIZE
 
     def test_parse_sgf_file_valid(self) -> None:
-        """Test parsing a valid SGF file from disk."""
+        """
+        Test parsing a valid SGF file from disk.
+        """
         # Create a temporary SGF file
         with tempfile.NamedTemporaryFile(mode="wb", suffix=".sgf", delete=False) as f:
             sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
             root_node = sgf_game.get_root()
             root_node.set("PB", "Black")
             root_node.set("PW", "White")
+            root_node.set("RE", "B+R")
             node1 = root_node.new_child()
             node1.set_move("b", (2, 2))
 
@@ -147,18 +155,23 @@ class TestSGFParsing:
             assert isinstance(game, Game)
             assert game.black_player.name == "Black"
             assert game.white_player.name == "White"
+
         finally:
             temp_path.unlink()
 
     def test_parse_sgf_file_not_found(self) -> None:
-        """Test parsing a non-existent SGF file raises FileNotFoundError."""
+        """
+        Test parsing a non-existent SGF file raises FileNotFoundError.
+        """
         non_existent_path = Path("/nonexistent/path/to/file.sgf")
 
         with pytest.raises(FileNotFoundError, match="Invalid file path"):
             parse_sgf_file(non_existent_path)
 
     def test_parse_sgf_file_invalid_format(self) -> None:
-        """Test parsing an invalid SGF file format."""
+        """
+        Test parsing an invalid SGF file format.
+        """
         # Create a file with invalid SGF content
         with tempfile.NamedTemporaryFile(mode="wb", suffix=".sgf", delete=False) as f:
             f.write(b"Invalid SGF content")
@@ -171,8 +184,12 @@ class TestSGFParsing:
             temp_path.unlink()
 
     def test_parse_sgf_with_missing_player_names(self) -> None:
-        """Test parsing SGF game with missing player names raises KeyError."""
+        """
+        Test parsing SGF game with missing player names raises KeyError.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
+        root_node = sgf_game.get_root()
+        root_node.set("RE", "B+R")
         # Don't set PB or PW
 
         # The parser expects PB and PW to exist, so this should raise KeyError
@@ -180,11 +197,14 @@ class TestSGFParsing:
             parse_sgf_game(sgf_game)
 
     def test_parse_sgf_complex_game(self) -> None:
-        """Test parsing a more complex SGF game with many moves."""
+        """
+        Test parsing a more complex SGF game with many moves.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         # Create a sequence of moves
         current_node = root_node
@@ -208,11 +228,14 @@ class TestSGFParsing:
         assert game.board.get_size() == BOARD_SIZE
 
     def test_parse_sgf_with_alternating_passes(self) -> None:
-        """Test parsing SGF game with alternating pass moves."""
+        """
+        Test parsing SGF game with alternating pass moves.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         # Add alternating passes
         node1 = root_node.new_child()
@@ -227,11 +250,14 @@ class TestSGFParsing:
         assert game.board.get_size() == BOARD_SIZE
 
     def test_parse_sgf_color_mapping(self) -> None:
-        """Test that SGF color mapping (b/w) is correctly converted."""
+        """
+        Test that SGF color mapping (b/w) is correctly converted.
+        """
         sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
         root_node = sgf_game.get_root()
         root_node.set("PB", "Black")
         root_node.set("PW", "White")
+        root_node.set("RE", "B+R")
 
         # Black move
         node1 = root_node.new_child()
@@ -247,8 +273,10 @@ class TestSGFParsing:
         # The board should have moves at the specified positions
 
     def test_parse_sgf_with_result_variations(self) -> None:
-        """Test parsing SGF games with different result formats."""
-        result_formats = ["B+R", "W+R", "B+0.5", "W+1.5", "0"]
+        """
+        Test parsing SGF games with different result formats.
+        """
+        result_formats = ["B+R", "W+R", "B+0.5", "W+1.5"]
 
         for result in result_formats:
             sgf_game = sgf.Sgf_game(size=BOARD_SIZE)
