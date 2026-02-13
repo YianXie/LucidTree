@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from mini_katago.constants import BOARD_SIZE, INFINITY, BLACK_COLOR, WHITE_COLOR, KOMI
+from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, INFINITY, KOMI
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 from mini_katago.utils import encode_board, move_to_index
@@ -61,7 +61,7 @@ class Node:
             # Determine winner from Black's perspective (with KOMI for white)
             black_final = black_score
             white_final = white_score + KOMI
-            
+
             # Calculate result from Black's perspective
             if black_final > white_final:
                 result = 1.0  # Black wins
@@ -69,7 +69,7 @@ class Node:
                 result = -1.0  # Black loses
             else:
                 result = 0.0  # Draw
-            
+
             # Return value from current player's perspective
             return result if self.to_play.get_color() == BLACK_COLOR else -result
 
@@ -128,9 +128,7 @@ class Node:
         sum_visits = self.N.sum()
         prior = self.P[action]
         action_visits = self.N[action]
-        return float(
-            c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits))
-        )
+        return float(c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
 
     def select_action(self, c_puct: float = 1.5) -> int:
         """
