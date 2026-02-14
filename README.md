@@ -17,22 +17,28 @@ NN training graph:
 Sample training log:
 
 ```log
-2026-02-12 20:52:51 | INFO | training | Starting training
-2026-02-12 20:52:51 | INFO | training | Total epoch = 5
-2026-02-12 20:52:51 | INFO | training | Board size = 9
-2026-02-12 20:52:51 | INFO | training | Batch size = 256
-2026-02-12 20:52:51 | INFO | training | train_dataset length: 654166
-2026-02-12 20:52:51 | INFO | training | val_dataset length: 80000
-2026-02-12 20:52:51 | INFO | training | test_dataset length: 80000
-2026-02-12 20:52:52 | WARNING | training | Checkpoint file does not exist. Starting with no checkpoint file.
-2026-02-12 20:55:24 | INFO | training | Epoch 0 finished | train_loss = 3.9646 | val_loss = 3.4206 | val_acc1 = 0.3646 | val_acc5 = 0.7308
-2026-02-12 20:57:58 | INFO | training | Epoch 1 finished | train_loss = 3.2181 | val_loss = 2.9906 | val_acc1 = 0.4190 | val_acc5 = 0.7948
-2026-02-12 21:00:37 | INFO | training | Epoch 2 finished | train_loss = 2.9080 | val_loss = 2.8786 | val_acc1 = 0.4320 | val_acc5 = 0.8131
-2026-02-12 21:03:18 | INFO | training | Epoch 3 finished | train_loss = 2.8115 | val_loss = 2.8563 | val_acc1 = 0.4421 | val_acc5 = 0.8180
-2026-02-12 21:05:59 | INFO | training | Epoch 4 finished | train_loss = 2.7502 | val_loss = 2.8610 | val_acc1 = 0.4446 | val_acc5 = 0.8209
-2026-02-12 21:06:04 | INFO | training | TEST | loss = 2.8651 | acc1 = 0.4498 | acc5 = 0.8234
-2026-02-12 21:06:04 | INFO | training | Total training time: 793.3938 seconds
-2026-02-12 21:15:41 | INFO | training | Training end
+2026-02-14 09:02:29 | INFO | training | Starting training
+2026-02-14 09:02:29 | INFO | training | Total epoch = 10
+2026-02-14 09:02:29 | INFO | training | Board size = 9
+2026-02-14 09:02:29 | INFO | training | Batch size = 256
+2026-02-14 09:02:30 | INFO | training | train_dataset length: 1334166
+2026-02-14 09:02:30 | INFO | training | val_dataset length: 165765
+2026-02-14 09:02:30 | INFO | training | test_dataset length: 165807
+2026-02-14 09:07:35 | INFO | training | Epoch 5 finished | train_loss = 2.6912 | val_loss = 2.6936 | val_acc1 = 0.4633 | val_acc5 = 0.8359
+2026-02-14 09:12:38 | INFO | training | Epoch 6 finished | train_loss = 2.6755 | val_loss = 2.7035 | val_acc1 = 0.4667 | val_acc5 = 0.8368
+2026-02-14 09:17:53 | INFO | training | Epoch 7 finished | train_loss = 2.6620 | val_loss = 2.6867 | val_acc1 = 0.4657 | val_acc5 = 0.8383
+2026-02-14 09:23:37 | INFO | training | Epoch 8 finished | train_loss = 2.6499 | val_loss = 2.6805 | val_acc1 = 0.4702 | val_acc5 = 0.8395
+2026-02-14 09:29:22 | INFO | training | Epoch 9 finished | train_loss = 2.6407 | val_loss = 2.7104 | val_acc1 = 0.4689 | val_acc5 = 0.8392
+2026-02-14 09:35:19 | INFO | training | Found a better state at epoch 10
+2026-02-14 09:35:19 | INFO | training | Epoch 10 finished | train_loss = 2.6327 | val_loss = 2.6564 | val_acc1 = 0.4747 | val_acc5 = 0.8416
+2026-02-14 09:41:24 | INFO | training | Found a better state at epoch 11
+2026-02-14 09:41:24 | INFO | training | Epoch 11 finished | train_loss = 2.6255 | val_loss = 2.6533 | val_acc1 = 0.4727 | val_acc5 = 0.8397
+2026-02-14 09:47:25 | INFO | training | Epoch 12 finished | train_loss = 2.6176 | val_loss = 2.6856 | val_acc1 = 0.4709 | val_acc5 = 0.8398
+2026-02-14 09:53:44 | INFO | training | Epoch 13 finished | train_loss = 2.6127 | val_loss = 2.6849 | val_acc1 = 0.4699 | val_acc5 = 0.8426
+2026-02-14 10:00:11 | INFO | training | Epoch 14 finished | train_loss = 2.6067 | val_loss = 2.6682 | val_acc1 = 0.4727 | val_acc5 = 0.8433
+2026-02-14 10:00:24 | INFO | training | TEST | loss = 2.7019 | acc1 = 0.4711 | acc5 = 0.8416
+2026-02-14 10:00:24 | INFO | training | Total training time: 3475.0965 seconds
+2026-02-14 10:00:52 | INFO | training | Training end
 ```
 
 ## Timeline
