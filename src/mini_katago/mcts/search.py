@@ -77,12 +77,10 @@ class MCTS:
                 # Node is already expanded (terminal node case)
                 # Recompute the value based on game outcome
                 black_score, white_score = node.board.calculate_score()
-                black_final = black_score
-                white_final = white_score + KOMI
                 
-                if black_final > white_final:
+                if black_score > white_score + KOMI:
                     result = 1.0  # Black wins
-                elif black_final < white_final:
+                elif black_score < white_score + KOMI:
                     result = -1.0  # Black loses
                 else:
                     result = 0.0  # Draw
