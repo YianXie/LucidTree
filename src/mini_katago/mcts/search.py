@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import torch
 
-from mini_katago.constants import PASS_INDEX
+from mini_katago.constants import BLACK_COLOR, KOMI, PASS_INDEX
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
@@ -47,7 +47,7 @@ class MCTS:
             path: list[tuple[Node, int]] = []
 
             # Selection
-            while node.is_expanded:
+            while node.is_expanded and not node.board.is_terminate():
                 child_action = node.select_action()
                 path.append((node, child_action))
 
@@ -73,7 +73,22 @@ class MCTS:
                     break
 
             # Expansion + "Simulation" (nn value)
-            value = node.expand(self.model)
+            if node.is_expanded:
+                # Node is already expanded (terminal node case)
+                # Recompute the value based on game outcome
+                black_score, white_score = node.board.calculate_score()
+                
+                if black_score > white_score + KOMI:
+                    result = 1.0  # Black wins
+                elif black_score < white_score + KOMI:
+                    result = -1.0  # Black loses
+                else:
+                    result = 0.0  # Draw
+                
+                # Return value from current player's perspective
+                value = result if node.to_play.get_color() == BLACK_COLOR else -result
+            else:
+                value = node.expand(self.model)
 
             # Backup
             self._backup(path, value)
