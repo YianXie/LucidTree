@@ -107,7 +107,7 @@ if __name__ == "__main__":
     start_time = time.perf_counter()
 
     torch.manual_seed(0)
-    NUM_EPOCH = 5
+    NUM_EPOCH = 10
 
     batch_size = 256
 
@@ -117,9 +117,9 @@ if __name__ == "__main__":
     logger.info("Batch size = %d", batch_size)
 
     processed_dir = root / "data/processed"
-    train_dataset = NPZPolicyValueDataset(processed_dir / "train", percentage=0.5)
-    val_dataset = NPZPolicyValueDataset(processed_dir / "val", percentage=0.5)
-    test_dataset = NPZPolicyValueDataset(processed_dir / "test", percentage=0.5)
+    train_dataset = NPZPolicyValueDataset(processed_dir / "train")
+    val_dataset = NPZPolicyValueDataset(processed_dir / "val")
+    test_dataset = NPZPolicyValueDataset(processed_dir / "test")
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -181,6 +181,7 @@ if __name__ == "__main__":
             val_acc5s.append(val_acc5)
 
             if val_loss < best_val_loss:
+                logger.info("Found a better state at epoch %d", epoch)
                 best_val_loss = val_loss
                 best_state = {
                     "model_state_dict": model.state_dict(),
