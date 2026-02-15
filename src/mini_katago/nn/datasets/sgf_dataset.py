@@ -13,7 +13,6 @@ from mini_katago.go.game import Game
 from mini_katago.nn.datasets.sgf_parser import parse_sgf_file
 from mini_katago.nn.split import split_game
 
-
 logger = utils.setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
 MAX_GAMES = 10_000
 
