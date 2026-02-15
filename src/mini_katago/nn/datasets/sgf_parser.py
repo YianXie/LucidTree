@@ -24,9 +24,8 @@ def parse_sgf_game(sgf_game: sgf.Sgf_game) -> Game:
         warnings.warn("Winner attribute not found")
 
     board_size = sgf_game.get_size()
-    root_node = sgf_game.get_root()
-    black_player = Player(root_node.get("PB"), BLACK_COLOR)
-    white_player = Player(root_node.get("PW"), WHITE_COLOR)
+    black_player = Player("Black", BLACK_COLOR)
+    white_player = Player("White", WHITE_COLOR)
     game_sequence = sgf_game.get_main_sequence()
     board = Board(board_size, black_player, white_player)
     game = Game(

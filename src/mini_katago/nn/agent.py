@@ -19,7 +19,7 @@ root = utils.get_project_root()
 
 @torch.no_grad()
 def load_model(
-    path: Path = root / "models/checkpoint.pt",
+    path: Path = root / "models/checkpoint_19x19.pt",
     map_location: str = "cpu",
 ) -> nn.Module:
     """

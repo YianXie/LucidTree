@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from sgfmill import sgf
 
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
                                    PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR)
@@ -62,7 +63,7 @@ def encode_board(board: Board) -> torch.Tensor:
     Returns:
         torch.Tensor: the resulting tensor
     """
-    x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.uint8)
+    x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.int16)
 
     # Direct access to board state instead of repeated function calls
     for i in range(board.size):
@@ -259,3 +260,76 @@ def load_npz_dataset(path: Path | str) -> dict[str, Any]:
         "y_policy": data["y_policy"],
         "y_value": data["y_value"],
     }
+
+
+def load_games_from_text(txt_path: Path, target_path: Path, start_cnt: int = 0) -> None:
+    """
+    Load .sgf games from a .txt file containing many games
+
+    Args:
+        txt_path (Path): the path to the .txt file
+        target_path (Path): the path to the target directory to store the .sgf files
+        start_cnt (int, optional): the start count of the file. Defaults to 0.
+    """
+    target_path.mkdir(exist_ok=True)
+    cnt = start_cnt
+    with txt_path.open(mode="r", encoding="utf-8") as file:
+        for line in file:
+            txt = line.strip()
+            target = target_path / f"{cnt:0{5}d}.sgf"
+            target.write_text(txt)
+            cnt += 1
+
+
+def filter_games(path: Path) -> None:
+    """
+    Filter out valid SGF games, and delete invalid ones
+
+    Args:
+        path (Path): the path to the SGF directory
+
+    Raises:
+        FileNotFoundError: if the directory does not exist
+        RuntimeError: if the given path is not a directory
+    """
+    if not path.exists():
+        raise FileNotFoundError("Given path does not exist.")
+    if not path.is_dir():
+        raise RuntimeError("Given path must be a directory")
+
+    for file in path.glob("*.sgf"):
+        with open(file, "rb") as f:
+            try:
+                sgf_game = sgf.Sgf_game.from_bytes(f.read())
+            except ValueError:
+                file.unlink()
+                continue
+
+        winner = sgf_game.get_winner()
+        if winner is None:
+            file.unlink()
+            continue
+
+
+def rename_games(path: Path) -> None:
+    """
+    Rename all SGF games in a directory in numerical order
+
+    Args:
+        path (Path): the path to the directory containing all the SGF games
+
+    Raises:
+        FileNotFoundError: if the directory does not exist
+        RuntimeError: if the given path is not a directory
+    """
+    if not path.exists():
+        raise FileNotFoundError("Given path does not exist.")
+    if not path.is_dir():
+        raise RuntimeError("Given path must be a directory")
+
+    cnt = 0
+    for file in path.glob("*.sgf"):
+        parent = file.parent
+        new_f = parent / f"{cnt:0{5}d}.sgf"
+        file.rename(new_f)
+        cnt += 1

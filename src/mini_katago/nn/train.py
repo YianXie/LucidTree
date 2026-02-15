@@ -117,9 +117,9 @@ if __name__ == "__main__":
     logger.info("Batch size = %d", batch_size)
 
     processed_dir = root / "data/processed"
-    train_dataset = NPZPolicyValueDataset(processed_dir / "train")
-    val_dataset = NPZPolicyValueDataset(processed_dir / "val")
-    test_dataset = NPZPolicyValueDataset(processed_dir / "test")
+    train_dataset = NPZPolicyValueDataset(processed_dir / "train/19x19")
+    val_dataset = NPZPolicyValueDataset(processed_dir / "val/19x19")
+    test_dataset = NPZPolicyValueDataset(processed_dir / "test/19x19")
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     epoch = 0
 
     try:
-        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         best_val_loss = checkpoint["best_val_loss"]

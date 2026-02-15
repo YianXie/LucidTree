@@ -7,13 +7,12 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urljoin, urlparse, unquote
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests  # type: ignore
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter  # type:ignore
 from urllib3.util.retry import Retry
-
 
 BASE_URL = "http://gokifu.com/index.php"
 DEFAULT_UA = (
