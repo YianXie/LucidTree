@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
         if idx % 1000 == 0:
             logger.info("%d sgf files parsed", idx)
-        if idx == MAX_GAMES:
+        if idx + 1 >= MAX_GAMES:
             logger.info(
                 "Attempted to parse %d games. Parsed %d games.", MAX_GAMES, games_parsed
             )

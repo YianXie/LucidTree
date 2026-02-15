@@ -26,7 +26,7 @@ def load_model(
     Load the Neural Network model
 
     Args:
-        path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint.pt".
+        path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint_19x19.pt".
         map_location (str, optional): the map_location for checkpoint. Defaults to "cpu".
 
     Returns:

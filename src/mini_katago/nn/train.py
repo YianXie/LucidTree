@@ -95,7 +95,7 @@ def save_best_model(state: dict[str, Any] | None) -> None:
         state (dict[str, Any] | None): the best model state
     """
     if state is not None:
-        torch.save(state, root / "models/checkpoint.pt")
+        torch.save(state, root / "models/checkpoint_19x19.pt")
 
 
 if __name__ == "__main__":
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     save_best_model(best_state)
     if best_state is not None:
         # Load it and use it for testing
-        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
 
     test_loss, test_acc1, test_acc5 = evaluate(model, test_loader, device=device)
