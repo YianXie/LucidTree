@@ -12,15 +12,6 @@ board = Board(BOARD_SIZE, black_player, white_player)
 color = BLACK_COLOR
 
 try:
-    while not board.is_terminate():
-        row, col = map(int, input("Enter the position to play: ").split())
-        if row == -1 or col == -1:
-            board.pass_move()
-        elif row == -2 or col == -2:
-            board.undo()
-        else:
-            board.place_move((row, col), color)
-        color *= -1
-        board.print_ascii_board()
+    board.show_interactive_board()
 except Exception as e:
     print("Error:", e)
