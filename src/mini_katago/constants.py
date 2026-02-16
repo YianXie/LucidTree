@@ -1,6 +1,6 @@
 import math
 
-BOARD_SIZE = 9
+BOARD_SIZE = 19
 """
 The default board size
 """
@@ -68,4 +68,9 @@ The channel size for the encoded board in encode_position
 PASS_INDEX = BOARD_SIZE * BOARD_SIZE
 """
 The index of a pass for the CNN Tensor
+"""
+
+SHARD_SIZE = 50_000
+"""
+The shard size for .npz datasets
 """

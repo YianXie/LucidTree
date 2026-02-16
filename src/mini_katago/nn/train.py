@@ -47,7 +47,8 @@ def train_one_epoch(
     """
     model.train()
     total = 0.0
-    for batch_idx, batch in enumerate(loader):
+    batch_idx = 0
+    for batch in loader:
         optim.zero_grad()
 
         x, y_policy, y_value = batch
@@ -83,6 +84,7 @@ def train_one_epoch(
                 loss,
                 total,
             )
+        batch_idx += 1
 
     return total / max(1, len(loader))
 
@@ -95,7 +97,7 @@ def save_best_model(state: dict[str, Any] | None) -> None:
         state (dict[str, Any] | None): the best model state
     """
     if state is not None:
-        torch.save(state, root / "models/checkpoint.pt")
+        torch.save(state, root / "models/checkpoint_19x19.pt")
 
 
 if __name__ == "__main__":
@@ -117,9 +119,9 @@ if __name__ == "__main__":
     logger.info("Batch size = %d", batch_size)
 
     processed_dir = root / "data/processed"
-    train_dataset = NPZPolicyValueDataset(processed_dir / "train")
-    val_dataset = NPZPolicyValueDataset(processed_dir / "val")
-    test_dataset = NPZPolicyValueDataset(processed_dir / "test")
+    train_dataset = NPZPolicyValueDataset(processed_dir / "train/19x19")
+    val_dataset = NPZPolicyValueDataset(processed_dir / "val/19x19")
+    test_dataset = NPZPolicyValueDataset(processed_dir / "test/19x19")
 
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
@@ -144,7 +146,7 @@ if __name__ == "__main__":
     epoch = 0
 
     try:
-        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         best_val_loss = checkpoint["best_val_loss"]
@@ -154,12 +156,10 @@ if __name__ == "__main__":
         val_losses = checkpoint["val_losses"]
         val_acc1s = checkpoint["val_acc1s"]
         val_acc5s = checkpoint["val_acc5s"]
-
     except FileNotFoundError:
         logger.warning(
             "Checkpoint file does not exist. Starting with no checkpoint file."
         )
-
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
@@ -206,9 +206,7 @@ if __name__ == "__main__":
                 val_acc1,
                 val_acc5,
             )
-
             epoch += 1
-
         except KeyboardInterrupt:
             logger.info("Training stopped by user at epoch %d", epoch)
             break
@@ -216,7 +214,7 @@ if __name__ == "__main__":
     save_best_model(best_state)
     if best_state is not None:
         # Load it and use it for testing
-        checkpoint = torch.load(root / "models/checkpoint.pt", map_location="cpu")
+        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
         model.load_state_dict(checkpoint["model_state_dict"])
 
     test_loss, test_acc1, test_acc5 = evaluate(model, test_loader, device=device)
@@ -229,7 +227,12 @@ if __name__ == "__main__":
 
     # Log performance
     end_time = time.perf_counter()
-    logger.info("Total training time: %.4f seconds", end_time - start_time)
+    duration = end_time - start_time
+    logger.info(
+        "Total training time: %d seconds, or %s",
+        duration,
+        str(datetime.timedelta(seconds=duration)),
+    )
 
     if epoch > 0:
         # Plot the training overview

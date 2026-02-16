@@ -22,8 +22,8 @@ class SmallPVNet(nn.Module):
             board_size (int, optional): the board size. Defaults to BOARD_SIZE.
         """
         super().__init__()
-        self.board_size = board_size
         self.action_size = board_size * board_size + 1  # + pass
+        self.board_size = board_size
 
         hidden = 64
         self.trunk = nn.Sequential(
@@ -74,11 +74,11 @@ class SmallPVNet(nn.Module):
         Returns:
             tuple[torch.Tensor, torch.Tensor]: the policy logits, followed by the value
         """
-        # x: (B, C, 9, 9)
+        # x: (B, C, BOARD_SIZE, BOARD_SIZE)
         h = self.trunk(x)
 
         # Policy logits
-        policy_logits = self.policy_head(h)  # (B, 82)
+        policy_logits = self.policy_head(h)  # (B, BOARD_SIZE * BOARD_SIZE + 1)
 
         # Value
         value = self.value_head(h).squeeze(1)  # (B,)

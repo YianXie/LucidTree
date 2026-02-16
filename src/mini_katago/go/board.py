@@ -49,6 +49,8 @@ class Board:
         self._consecutive_passes: int = 0
         self._is_terminate: bool = False
         self._move_history: list[dict[str, Any]] = []
+        self._running = False
+        self._thread = None
 
     def get_current_player(self) -> Player:
         """
