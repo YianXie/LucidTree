@@ -12,7 +12,7 @@ For the .pt model, please checkout this url on [Google Drive](https://drive.goog
 
 NN training graph:
 
-![Training Graph](./assets/training.png)
+![Training Graph](./figures/training.png)
 
 Sample training log:
 
