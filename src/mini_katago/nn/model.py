@@ -23,6 +23,7 @@ class SmallPVNet(nn.Module):
         """
         super().__init__()
         self.action_size = board_size * board_size + 1  # + pass
+        self.board_size = board_size
 
         hidden = 64
         self.trunk = nn.Sequential(
