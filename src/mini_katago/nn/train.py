@@ -47,7 +47,8 @@ def train_one_epoch(
     """
     model.train()
     total = 0.0
-    for batch_idx, batch in enumerate(loader):
+    batch_idx = 0
+    for batch in loader:
         optim.zero_grad()
 
         x, y_policy, y_value = batch
@@ -83,6 +84,7 @@ def train_one_epoch(
                 loss,
                 total,
             )
+        batch_idx += 1
 
     return total / max(1, len(loader))
 
@@ -154,12 +156,10 @@ if __name__ == "__main__":
         val_losses = checkpoint["val_losses"]
         val_acc1s = checkpoint["val_acc1s"]
         val_acc5s = checkpoint["val_acc5s"]
-
     except FileNotFoundError:
         logger.warning(
             "Checkpoint file does not exist. Starting with no checkpoint file."
         )
-
     except PermissionError:
         logger.error("Permission denied when accessing the checkpoint file.")
 
@@ -206,9 +206,7 @@ if __name__ == "__main__":
                 val_acc1,
                 val_acc5,
             )
-
             epoch += 1
-
         except KeyboardInterrupt:
             logger.info("Training stopped by user at epoch %d", epoch)
             break
@@ -229,7 +227,12 @@ if __name__ == "__main__":
 
     # Log performance
     end_time = time.perf_counter()
-    logger.info("Total training time: %.4f seconds", end_time - start_time)
+    duration = end_time - start_time
+    logger.info(
+        "Total training time: %d seconds, or %s",
+        duration,
+        str(datetime.timedelta(seconds=duration)),
+    )
 
     if epoch > 0:
         # Plot the training overview
