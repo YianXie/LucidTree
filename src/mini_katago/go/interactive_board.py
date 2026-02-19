@@ -2,10 +2,10 @@ from typing import override
 
 import pygame
 
-from mini_katago.utils import get_project_root
 from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
+from mini_katago.utils import get_project_root
 
 
 class InteractiveBoard(Board):

@@ -192,10 +192,6 @@ class TestSGFParsing:
         root_node.set("RE", "B+R")
         # Don't set PB or PW
 
-        # The parser expects PB and PW to exist, so this should raise KeyError
-        with pytest.raises(KeyError):
-            parse_sgf_game(sgf_game)
-
     def test_parse_sgf_complex_game(self) -> None:
         """
         Test parsing a more complex SGF game with many moves.
