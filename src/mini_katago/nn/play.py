@@ -6,7 +6,7 @@ import torch
 
 from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, PASS_MOVE_POSITION,
                                    WHITE_COLOR)
-from mini_katago.go.board import Board
+from mini_katago.go.interactive_board import InteractiveBoard
 from mini_katago.go.player import Player
 from mini_katago.nn.agent import load_model, pick_move, pick_move_mcts
 
@@ -17,7 +17,7 @@ def human_vs_nn() -> None:
     """
     Initialize a human v.s. nn game
     """
-    board = Board(
+    board = InteractiveBoard(
         BOARD_SIZE,
         Player("Black player", BLACK_COLOR),
         Player("White player", WHITE_COLOR),
@@ -25,123 +25,68 @@ def human_vs_nn() -> None:
 
     model = load_model()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    board.start_display()
 
     while not board.is_terminate():
-        row, col = map(int, input("Enter your move: ").split())
-        if row == -1 and col == -1:
-            board.show_board()
+        # Process pygame events (handles user input)
+        board.process_events()
+
+        # Check if user closed the window
+        if not board._is_displayed:
             break
-        board.place_move((row, col), BLACK_COLOR)
-        board.print_ascii_board()
 
-        best, prob, value = pick_move(model=model, board=board, device=device)
-        print(f"Move probability: {prob}")
-        print(f"Value: {value}")
+        # Small delay to prevent excessive CPU usage
+        time.sleep(0.1)
 
-        if best is not None:
-            board.place_move(best, WHITE_COLOR)
-        else:
-            board.pass_move()
-        board.print_ascii_board()
+        # AI's turn (White)
+        if board.current_player.get_color() == WHITE_COLOR:
+            best, prob, value = pick_move(model=model, board=board, device=device)
+            print(f"Move probability: {prob}")
+            print(f"Value: {value}")
+
+            if best is not None:
+                board.place_move(best, WHITE_COLOR)
+            else:
+                board.pass_move()
+
+    board.stop_display()
 
 
 def human_vs_mcts_nn() -> None:
     black_player = Player("Black player", BLACK_COLOR)
     white_player = Player("White player", WHITE_COLOR)
     black_player.opponent, white_player.opponent = white_player, black_player
-    board = Board(
+    board = InteractiveBoard(
         BOARD_SIZE,
         black_player,
         white_player,
     )
+    board.start_display()
 
     while not board.is_terminate():
-        row, col = map(int, input("Enter your move: ").split())
-        if row == -1 and col == -1:
-            board.show_board()
+        # Process pygame events (handles user input)
+        board.process_events()
+
+        # Check if user closed the window
+        if not board._is_displayed:
             break
-        board.place_move((row, col), BLACK_COLOR)
-        board.print_ascii_board()
 
-        pos = pick_move_mcts(board=board, to_play=white_player)
-        if pos == PASS_MOVE_POSITION:
-            print("AI passed")
-            board.pass_move()
-        else:
-            board.place_move(pos, WHITE_COLOR)
-        board.print_ascii_board()
+        # Small delay to prevent excessive CPU usage
+        time.sleep(0.1)
 
+        # AI's turn (White)
+        if board.current_player.get_color() == WHITE_COLOR:
+            # Pass a plain Board copy - MCTS deepcopies boards and InteractiveBoard
+            # contains pygame.Surface objects that cannot be deepcopied
+            pos = pick_move_mcts(board=board.copy_game_state(), to_play=white_player)
+            if pos == PASS_MOVE_POSITION:
+                print("AI passed")
+                board.pass_move()
+            else:
+                board.place_move(pos, WHITE_COLOR)
 
-def mcts_nn_vs_mcts_nn() -> None:
-    black_player = Player("Black player", BLACK_COLOR)
-    white_player = Player("White player", WHITE_COLOR)
-    black_player.opponent, white_player.opponent = white_player, black_player
-    board = Board(
-        BOARD_SIZE,
-        black_player,
-        white_player,
-    )
-
-    while not board.is_terminate():
-        pos = pick_move_mcts(board=board, to_play=white_player)
-        if pos == PASS_MOVE_POSITION:
-            print("Black passed")
-            board.pass_move()
-        else:
-            board.place_move(pos, BLACK_COLOR)
-        board.print_ascii_board()
-
-        pos = pick_move_mcts(board=board, to_play=white_player)
-        if pos == PASS_MOVE_POSITION:
-            print("White passed")
-            board.pass_move()
-        else:
-            board.place_move(pos, WHITE_COLOR)
-        board.print_ascii_board()
-
-
-def nn_vs_nn() -> None:
-    """
-    Initialize a nn v.s. nn game
-    """
-    board = Board(
-        BOARD_SIZE,
-        Player("Black player", BLACK_COLOR),
-        Player("White player", WHITE_COLOR),
-    )
-
-    model = load_model()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    while not board.is_terminate():
-        best, prob, value = pick_move(
-            model=model, board=board, device=device, temperature=0.0
-        )
-        print(f"Move probability: {prob}")
-        print(f"Value: {value}")
-
-        if best is not None:
-            board.place_move(best, BLACK_COLOR)
-        else:
-            board.pass_move()
-        board.print_ascii_board()
-
-        time.sleep(2.5)
-
-        best, prob, value = pick_move(
-            model=model, board=board, device=device, temperature=0.5
-        )
-        print(f"Move probability: {prob}")
-        print(f"Value: {value}")
-
-        if best is not None:
-            board.place_move(best, WHITE_COLOR)
-        else:
-            board.pass_move()
-        board.print_ascii_board()
-
-        time.sleep(2.5)
+    board.stop_display()
 
 
 if __name__ == "__main__":
-    human_vs_nn()
+    human_vs_mcts_nn()
