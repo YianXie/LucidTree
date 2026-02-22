@@ -1,5 +1,7 @@
+import logging
 import warnings
 from pathlib import Path
+from typing import Any
 
 from sgfmill import sgf
 
@@ -63,14 +65,92 @@ def parse_sgf_file(path: Path) -> Game:
 
     Raises:
         FileNotFoundError: if the file path is invalid
+        RuntimeError: if the file path does not point to a file
+        RuntimeError: if the file has an incorrect extension name
 
     Returns:
         Game: the parsed game
     """
     if not path.exists():
         raise FileNotFoundError("Invalid file path")
+    if not path.is_file():
+        raise RuntimeError("Invalid path. Expects a file.")
+    if not path.suffix == ".sgf":
+        raise RuntimeError("Incorrect extension name. Expects a .sgf file.")
 
     with open(path, "rb") as f:
         sgf_game = sgf.Sgf_game.from_bytes(f.read())
 
     return parse_sgf_game(sgf_game)
+
+
+def parse_sgf_files(
+    path: Path,
+    *,
+    graceful: bool = True,
+    start: int = 0,
+    amount: int | None = None,
+    **kwargs: Any,
+) -> list[Game]:
+    """
+    Parse sgf files from a given directory
+
+    Args:
+        path (Path): the path to the directory
+        graceful (bool, optional): if the function should handle ValueError gracefully. Defaults to True.
+        start (int, optional): the starting sgf file. Defaults to 0.
+        amount (int | None, optional): the amount ot parse. Defaults to None.
+
+    Raises:
+        FileNotFoundError: if the directory is not found
+        NotADirectoryError: if the given path is not a directory
+        RuntimeError: if the logger is not given but log is True
+        e: value error when parsing games
+        e: runtime error when parsing games
+
+    Returns:
+        list[Game]: the parsed games
+    """
+    if not path.exists():
+        raise FileNotFoundError("Target directory not found.")
+    if not path.is_dir():
+        raise NotADirectoryError("Expects a directory, not a file.")
+
+    log: bool = kwargs.get("log", False)
+    logger: logging.Logger | None = kwargs.get("logger", None)
+    gap: int = kwargs.get("gap", 1000)
+
+    if logger is None and log is True:
+        raise RuntimeError("Logger must be specified if log is True.")
+
+    sgf_files = path.glob("*.sgf")
+    games: list[Game] = []
+
+    game_parsed = 0
+    for idx, sgf_file in enumerate(sgf_files):
+        if idx < start:
+            continue
+
+        try:
+            games.append(parse_sgf_file(sgf_file))
+            game_parsed += 1
+        except ValueError as e:
+            if log:
+                logger.warning("Skipped file: %s. ValueError: %s.", sgf_file, e)  # type: ignore
+            if not graceful:
+                raise e
+        except RuntimeError as e:
+            if log:
+                logger.warning("Skipped file: %s. RuntimeError: %s.", sgf_file, e)  # type: ignore
+            if not graceful:
+                raise e
+
+        if log and idx + 1 % gap == 0:
+            logger.info(  # type: ignore
+                "Attempted to parse %d games. %d games parsed successfully.",
+                game_parsed,
+            )
+        if amount is not None and idx + 1 >= start + amount:
+            break
+
+    return games

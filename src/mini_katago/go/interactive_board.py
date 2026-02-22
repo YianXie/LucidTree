@@ -1,5 +1,7 @@
+import os
 from typing import override
 
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # hide Pygame message
 import pygame
 
 from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
@@ -26,24 +28,28 @@ class InteractiveBoard(Board):
         self.WHITE_HOVER_COLOR = (200, 200, 200, 180)  # Semi-transparent light gray
         self.COORD_COLOR = (0, 0, 0)
 
-        self.screen: pygame.Surface
+        self.screen: pygame.Surface | None = None
         self.hover_pos: tuple[int, int] | None = None
+        self._is_displayed = False  # Track if board is currently displayed
 
-    @override
-    def show_board(self) -> None:
+    def start_display(self) -> None:
         """
-        Display a realistic and interactive game board with Pygame
+        Initialize the display in a non-blocking way.
+        After calling this, you must periodically call process_events()
+        in your game loop to handle user input and keep the display responsive.
 
-        Features:
-        - Responsive board size based on current board dimensions
-        - Wood texture background
-        - Grid lines and coordinate labels
-        - Hover preview showing where the move will be placed
-        - Hover color changes based on current player
-        - No hover shown for invalid moves
-        - Click to place moves automatically
+        This is useful when you want to use InteractiveBoard with AI,
+        similar to how Board is used in play.py.
+
+        Example:
+            board.start_display()
+            while not board.is_terminate():
+                board.process_events()  # Process pygame events
+                # Your game logic here (AI moves, etc.)
+                if ai_move:
+                    board.place_move(ai_move, color)
         """
-        # Initialize Pygame
+        # Initialize display (same as show_board but don't start blocking loop)
         pygame.init()
 
         # Calculate responsive window size
@@ -60,7 +66,6 @@ class InteractiveBoard(Board):
         pygame.display.set_caption("Go Board - Interactive")
 
         # Load background image
-        # Get the project root directory (assuming board.py is in src/mini_katago/go/)
         root = get_project_root()
         bg_path = root / "assets" / "board-bg.png"
 
@@ -75,17 +80,80 @@ class InteractiveBoard(Board):
         # Font for coordinates
         self.font = pygame.font.Font(None, self.COORD_FONT_SIZE)
 
-        # Main game loop
+        # Mark board as displayed
         self._running = True
+        self._is_displayed = True
 
         # Initial draw
         self.draw_board()
 
-        # Start the game loop
-        self.main_loop()
+    def process_events(self) -> None:
+        """
+        Process pygame events (non-blocking). Call this periodically in your game loop.
+        This handles user input like mouse clicks and keyboard presses.
+        Returns immediately after processing available events.
+        """
+        if not self._is_displayed or self.screen is None:
+            return
+
+        # Process all available events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self._running = False
+                self._is_displayed = False
+                pygame.quit()
+                return
+
+            elif event.type == pygame.MOUSEMOTION:
+                # Update hover position
+                mouse_pos = pygame.mouse.get_pos()
+                board_pos = self.screen_to_board(mouse_pos)
+                if board_pos != self.hover_pos:
+                    self.hover_pos = board_pos
+                    self.draw_board()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    mouse_pos = pygame.mouse.get_pos()
+                    board_pos = self.screen_to_board(mouse_pos)
+
+                    if board_pos is not None:
+                        row, col = board_pos
+                        move = self.get_move_at_position((row, col))
+
+                        # Only place if position is empty
+                        if move.is_empty():
+                            try:
+                                # Place the move with current player's color
+                                # place_move() will automatically redraw the board
+                                self.place_move(
+                                    (row, col), self.current_player.get_color()
+                                )
+                            except ValueError:
+                                # Invalid move, ignore
+                                pass
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self._running = False
+                    self._is_displayed = False
+                    pygame.quit()
+                    return
+
+    def stop_display(self) -> None:
+        """
+        Stop the display and close the window.
+        Call this when you're done with the board to clean up resources.
+        """
+        if self._is_displayed:
+            self._running = False
+            self._is_displayed = False
+            pygame.quit()
 
     def main_loop(self) -> None:
+        clock = pygame.time.Clock()
         while self._running:
+            # Process events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._running = False
@@ -111,12 +179,10 @@ class InteractiveBoard(Board):
                             if move.is_empty():
                                 try:
                                     # Place the move with current player's color
+                                    # place_move() will automatically redraw the board
                                     self.place_move(
                                         (row, col), self.current_player.get_color()
                                     )
-                                    # Redraw board without hover
-                                    self.hover_pos = None
-                                    self.draw_board()
                                 except ValueError:
                                     # Invalid move, ignore
                                     pass
@@ -125,6 +191,10 @@ class InteractiveBoard(Board):
                     if event.key == pygame.K_ESCAPE:
                         self._running = False
 
+            # Limit frame rate to 60 FPS to prevent excessive CPU usage
+            clock.tick(60)
+
+        self._is_displayed = False  # Mark board as no longer displayed
         pygame.quit()
 
     def get_column_label(self, col: int) -> str:
@@ -173,9 +243,33 @@ class InteractiveBoard(Board):
         y = self.MARGIN + row * self.cell_size
         return (x, y)
 
+    @override
+    def place_move(self, position: tuple[int, int], color: int) -> None:
+        """
+        Place a move on the board and redraw if displayed.
+        """
+        super().place_move(position, color)
+        # Redraw board if it's currently displayed
+        if self._is_displayed and self.screen is not None:
+            self.hover_pos = None  # Clear hover when move is placed
+            self.draw_board()
+
+    @override
+    def pass_move(self) -> None:
+        """
+        Make a player pass and redraw if displayed.
+        """
+        super().pass_move()
+        # Redraw board if it's currently displayed
+        if self._is_displayed and self.screen is not None:
+            self.hover_pos = None  # Clear hover when move is passed
+            self.draw_board()
+
     # Draw the board
     def draw_board(self) -> None:
         """Draw the entire board"""
+        if self.screen is None:
+            return
         # Draw background
         self.screen.blit(self.bg_image, (0, 0))
 

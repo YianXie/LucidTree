@@ -1,4 +1,6 @@
 # fmt: off
+from __future__ import annotations
+
 from collections import deque
 from typing import Any
 
@@ -87,6 +89,28 @@ class Board:
             int: the board size
         """
         return self.size
+
+    def copy_game_state(self) -> Board:
+        """
+        Create a plain Board copy with the same game state.
+
+        Use this when passing the board to algorithms that need to deepcopy
+        (e.g. MCTS), since InteractiveBoard contains pygame objects that
+        cannot be deepcopied.
+
+        Returns:
+            Board: a plain Board with the same game state
+        """
+        new_board = Board(self.size, self.black_player, self.white_player)
+        new_board.current_player = self.current_player
+        new_board._ko_positions = self._ko_positions
+        new_board._consecutive_passes = self._consecutive_passes
+        new_board._is_terminate = self._is_terminate
+        new_board._move_history = [dict(m) for m in self._move_history]
+        for row in range(self.size):
+            for col in range(self.size):
+                new_board.state[row][col].set_color(self.state[row][col].get_color())
+        return new_board
 
     def get_nth_move(self, index: int) -> Move | None:
         """
