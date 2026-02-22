@@ -20,7 +20,8 @@ class MCTS:
         """
         Initialize a Monte Carlo Tree Search program
         """
-        self.model = load_model()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = load_model(device=self.device)
         self.model.eval()
 
     @torch.no_grad()
@@ -40,7 +41,7 @@ class MCTS:
             raise RuntimeError("Player argument missing `opponent` attribute")
 
         root = Node(board=board, to_play=to_play)
-        root.expand(self.model)
+        root.expand(self.model, self.device)
 
         for _ in range(num_simulations):
             node = root
@@ -73,7 +74,7 @@ class MCTS:
                     break
 
             # Expansion + "Simulation" (nn value)
-            value = node.expand(self.model)
+            value = node.expand(self.model, self.device)
 
             # Backup
             self._backup(path, value)

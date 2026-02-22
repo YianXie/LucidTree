@@ -23,8 +23,8 @@ def human_vs_nn() -> None:
         Player("White player", WHITE_COLOR),
     )
 
-    model = load_model()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(device=device)
     board.start_display()
 
     while not board.is_terminate():

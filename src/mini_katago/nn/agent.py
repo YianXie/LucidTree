@@ -20,22 +20,25 @@ root = utils.get_project_root()
 @torch.no_grad()
 def load_model(
     path: Path = root / "models/checkpoint_19x19.pt",
-    map_location: str = "cpu",
+    device: torch.device | None = None,
 ) -> nn.Module:
     """
     Load the Neural Network model
 
     Args:
         path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint_19x19.pt".
-        map_location (str, optional): the map_location for checkpoint. Defaults to "cpu".
+        device (torch.device | None, optional): the device to load the model onto.
+            If None, loads to CPU. Use CUDA when available for GPU inference.
 
     Returns:
         nn.Module: the loaded model
     """
-    checkpoint = torch.load(path, map_location=map_location)
+    if device is None:
+        device = torch.device("cpu")
+    checkpoint = torch.load(path, map_location="cpu")
     model = SmallPVNet()
     model.load_state_dict(checkpoint["model_state_dict"])
-
+    model = model.to(device)
     return model
 
 
@@ -56,6 +59,7 @@ def pick_move(
         tuple[tuple[int, int] | None, float, float]: the move, probability, and value
     """
     model.eval()
+    model = model.to(device)
 
     x = utils.encode_board(board)
     x = x.unsqueeze(0).to(device)
