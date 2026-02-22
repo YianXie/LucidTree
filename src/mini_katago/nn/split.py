@@ -5,6 +5,7 @@ from mini_katago.go.game import Game
 
 def split_game(
     games: list[Game],
+    *,
     seed: int | None = 0,
     train: float = 0.8,
     val: float = 0.1,

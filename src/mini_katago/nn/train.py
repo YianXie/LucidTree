@@ -114,6 +114,7 @@ if __name__ == "__main__":
     batch_size = 256
 
     logger.info("Starting training")
+    logger.info("Using device: %s", device)
     logger.info("Total epoch = %d", NUM_EPOCH)
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
@@ -127,9 +128,28 @@ if __name__ == "__main__":
     logger.info("val_dataset length: %d", len(val_dataset))
     logger.info("test_dataset length: %d", len(test_dataset))
 
-    train_loader = DataLoader[Any](train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader[Any](val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader[Any](test_dataset, batch_size=batch_size, shuffle=False)
+    use_cuda = device.type == "cuda"
+    train_loader = DataLoader[Any](
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4 if use_cuda else 0,
+        pin_memory=use_cuda,
+    )
+    val_loader = DataLoader[Any](
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4 if use_cuda else 0,
+        pin_memory=use_cuda,
+    )
+    test_loader = DataLoader[Any](
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4 if use_cuda else 0,
+        pin_memory=use_cuda,
+    )
 
     model = SmallPVNet()
     model = model.to(device)

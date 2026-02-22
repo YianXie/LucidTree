@@ -43,12 +43,13 @@ class Node:
         self.P = np.zeros(self.total_actions, dtype=np.float32)
         self.is_expanded = False
 
-    def expand(self, model: nn.Module) -> float:
+    def expand(self, model: nn.Module, device: torch.device | None = None) -> float:
         """
         Expand the node by computing legal moves
 
         Args:
             model (nn.Module): the policy/value policy network model
+            device (torch.device | None, optional): the device for inference. Uses model's device if None.
         """
         if self.is_expanded:
             raise RuntimeError("expanded() called on already expanded node")
@@ -78,7 +79,10 @@ class Node:
             idx = move_to_index(move.get_position())
             self.legal_mask[idx] = True
 
-        policy_logits, value = model(encode_board(self.board).unsqueeze(0).float())
+        x = encode_board(self.board).unsqueeze(0).float()
+        if device is not None:
+            x = x.to(device)
+        policy_logits, value = model(x)
         probs = (
             torch.softmax(policy_logits[0], dim=0)
             .detach()

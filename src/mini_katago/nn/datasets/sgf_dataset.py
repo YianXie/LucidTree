@@ -1,4 +1,6 @@
+import datetime
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -10,11 +12,12 @@ from mini_katago import utils
 from mini_katago.constants import SHARD_SIZE
 from mini_katago.go.board import Board
 from mini_katago.go.game import Game
-from mini_katago.nn.datasets.sgf_parser import parse_sgf_file
+from mini_katago.nn.datasets.sgf_parser import parse_sgf_files
 from mini_katago.nn.split import split_game
 
 logger = utils.setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
-MAX_GAMES = 10_000
+AMOUNT_TO_PARSE = None
+START_GAME = 0
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
@@ -119,58 +122,49 @@ def _save_dataset_as_shards(
     n_positions = len(dataset)
     logger.info("n_positions: %d", n_positions)
 
-    saved_count = 0
+    saved_shard_count = 0
+    shard_idx = 0
     for start in range(0, n_positions, SHARD_SIZE):
         end = min(start + SHARD_SIZE, n_positions)
         x_np = dataset.X[start:end].cpu().numpy()
         y_policy_np = dataset.y_policy[start:end].cpu().numpy()
         y_value_np = dataset.y_value[start:end].cpu().numpy()
 
-        shard_path = output_dir / f"{saved_count:03d}.npz"
+        shard_path = output_dir / f"{shard_idx:03d}.npz"
+        while shard_path.exists():
+            shard_idx += 1
+            shard_path = output_dir / f"{shard_idx:03d}.npz"
+
         np.savez_compressed(
             shard_path, X=x_np, y_policy=y_policy_np, y_value=y_value_np
         )
-        saved_count += 1
+        saved_shard_count += 1
+        shard_idx += 1
+        logger.info("Saved shard %d successfully.", saved_shard_count)
 
-        logger.info("Saved shard %d successfully.", saved_count)
-
-    return saved_count
+    return saved_shard_count
 
 
 if __name__ == "__main__":
-    games: list[Game] = []
     root = utils.get_project_root()
     path = root / "data/raw/sgf/19x19"
 
-    logger.info("Start parsing %d games.", MAX_GAMES)
+    if AMOUNT_TO_PARSE is None:
+        logger.info("Start parsing all games.")
+    else:
+        logger.info("Start parsing %d games.", AMOUNT_TO_PARSE)
+    logger.info("Starting from game %d", START_GAME)
+    start_time = time.perf_counter()
 
-    games_parsed = 0
-    for idx, sgf_file in enumerate(path.glob("*.sgf")):
-        try:
-            game = parse_sgf_file(sgf_file)
-            games.append(game)
-            games_parsed += 1
-        except ValueError as e:
-            logger.warning("Skipped file: %s. ValueError: %s", sgf_file, e)
-        except Exception as e:
-            logger.warning("Skipped file: %s. Exception: %s", sgf_file, e)
-
-        if idx % 1000 == 0:
-            logger.info("%d sgf files parsed", idx)
-        if idx + 1 >= MAX_GAMES:
-            logger.info(
-                "Attempted to parse %d games. Parsed %d games.", MAX_GAMES, games_parsed
-            )
-            break
-
-    if games_parsed < MAX_GAMES:
-        logger.warning(
-            "Some games may not be successfully parsed. Expecting %d | Received %d.",
-            MAX_GAMES,
-            games_parsed,
-        )
-
-    train_games, val_games, test_games = split_game(games)
+    games = parse_sgf_files(
+        path,
+        start=START_GAME,
+        amount=AMOUNT_TO_PARSE,
+        log=True,
+        logger=logger,
+        gap=1000,
+    )
+    train_games, val_games, test_games = split_game(games, seed=0)
     train_dataset = SgfPolicyValueDataset(train_games)
     val_dataset = SgfPolicyValueDataset(val_games)
     test_dataset = SgfPolicyValueDataset(test_games)
@@ -198,3 +192,11 @@ if __name__ == "__main__":
     )
     if train_saved < total_train or val_saved < total_val or test_saved < total_test:
         logger.warning("Some shards failed to save.")
+
+    end_time = time.perf_counter()
+    duration = end_time - start_time
+    logger.info(
+        "Total training time: %d seconds, or %s",
+        duration,
+        datetime.timedelta(seconds=duration),
+    )
