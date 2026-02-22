@@ -145,7 +145,7 @@ def parse_sgf_files(
             if not graceful:
                 raise e
 
-        if log and idx + 1 % gap == 0:
+        if log and (idx + 1) % gap == 0:
             logger.info(  # type: ignore
                 "Attempted to parse %d games. %d games parsed successfully.",
                 game_parsed,
