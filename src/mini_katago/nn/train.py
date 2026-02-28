@@ -134,7 +134,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=True,
         num_workers=1 if use_cuda else 0,
-        prefetch_factor=1 if use_cuda else 0,
         persistent_workers=False,
         pin_memory=use_cuda,
     )
@@ -143,7 +142,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=1 if use_cuda else 0,
-        prefetch_factor=1 if use_cuda else 0,
         persistent_workers=False,
         pin_memory=use_cuda,
     )
@@ -152,7 +150,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=1 if use_cuda else 0,
-        prefetch_factor=1 if use_cuda else 0,
         persistent_workers=False,
         pin_memory=use_cuda,
     )
