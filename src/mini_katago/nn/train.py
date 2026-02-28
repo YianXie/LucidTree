@@ -176,10 +176,10 @@ if __name__ == "__main__":
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=2 if use_cuda else 0,
+        num_workers=1 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers=False,
     )
     logger.info("Finished loading train_loader.")
 
@@ -187,10 +187,10 @@ if __name__ == "__main__":
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2 if use_cuda else 0,
+        num_workers=1 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers=False,
     )
     logger.info("Finished loading val_loader.")
 
@@ -198,10 +198,10 @@ if __name__ == "__main__":
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2 if use_cuda else 0,
+        num_workers=1 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers=False,
     )
     logger.info("Finished loading test_loader.")
 
