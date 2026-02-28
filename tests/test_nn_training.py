@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from mini_katago.constants import BOARD_SIZE
 from mini_katago.nn.evaluate import evaluate
-from mini_katago.nn.model import SmallPVNet
+from mini_katago.nn.model import PolicyValueNetwork
 from mini_katago.nn.train import train_one_epoch
 
 # fmt: on
@@ -21,14 +21,14 @@ class TestModelArchitecture:
 
     def test_model_initialization(self) -> None:
         """Test that model initializes correctly."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         assert isinstance(model, nn.Module)
         assert model.board_size == BOARD_SIZE
         assert model.action_size == BOARD_SIZE * BOARD_SIZE + 1
 
     def test_model_forward_pass_policy_only(self) -> None:
         """Test model forward pass with policy head."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         batch_size = 4
         in_channels = 6
 
@@ -40,7 +40,7 @@ class TestModelArchitecture:
 
     def test_model_forward_pass_output_ranges(self) -> None:
         """Test that model outputs are in expected ranges."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         batch_size = 2
         x = torch.randn(batch_size, 6, BOARD_SIZE, BOARD_SIZE)
 
@@ -56,7 +56,7 @@ class TestModelArchitecture:
 
     def test_model_different_batch_sizes(self) -> None:
         """Test model with different batch sizes."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
 
         for batch_size in [1, 4, 16, 32]:
             x = torch.randn(batch_size, 6, BOARD_SIZE, BOARD_SIZE)
@@ -70,7 +70,7 @@ class TestModelArchitecture:
         in_channels = 8
         board_size = 13
 
-        model = SmallPVNet(in_channels=in_channels, board_size=board_size)
+        model = PolicyValueNetwork(in_channels=in_channels, board_size=board_size)
 
         x = torch.randn(2, in_channels, board_size, board_size)
         policy_logits, value = model(x)
@@ -84,7 +84,7 @@ class TestTrainingLoop:
 
     def test_train_one_epoch(self) -> None:
         """Test training one epoch with both policy and value networks."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         # Create dummy dataset with value
@@ -115,7 +115,7 @@ class TestTrainingLoop:
 
     def test_train_one_epoch_label_smoothing(self) -> None:
         """Test training with label smoothing."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         batch_size = 4
@@ -145,7 +145,7 @@ class TestTrainingLoop:
 
     def test_train_one_epoch_lambda_value(self) -> None:
         """Test training with different lambda_value for value loss."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         batch_size = 4
@@ -171,7 +171,7 @@ class TestTrainingLoop:
         )
 
         # Reset model and optimizer for fair comparison
-        model2 = SmallPVNet()
+        model2 = PolicyValueNetwork()
         optimizer2 = torch.optim.AdamW(model2.parameters(), lr=1e-3)
 
         loss2 = train_one_epoch(
@@ -192,7 +192,7 @@ class TestTrainingLoop:
 
     def test_train_one_epoch_empty_loader(self) -> None:
         """Test training with empty data loader."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         # Create empty dataset
@@ -223,7 +223,7 @@ class TestEvaluation:
 
     def test_evaluate_both(self) -> None:
         """Test evaluation of both policy and value networks."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         model.eval()
 
         batch_size = 4
@@ -246,7 +246,7 @@ class TestEvaluation:
 
     def test_evaluate_empty_loader(self) -> None:
         """Test evaluation with empty data loader."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         model.eval()
 
         x = torch.empty(0, 6, BOARD_SIZE, BOARD_SIZE)
@@ -268,7 +268,7 @@ class TestTrainingEdgeCases:
 
     def test_nan_loss_detection(self) -> None:
         """Test that NaN loss is detected and logged."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         # Create data that might cause NaN (very large values)
@@ -299,7 +299,7 @@ class TestTrainingEdgeCases:
 
     def test_model_gradient_flow(self) -> None:
         """Test that gradients flow through the model during training."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         batch_size = 4
@@ -340,7 +340,7 @@ class TestTrainingEdgeCases:
     def test_model_device_placement(self) -> None:
         """Test that model works on CPU device."""
         device = torch.device("cpu")
-        model = SmallPVNet().to(device)
+        model = PolicyValueNetwork().to(device)
 
         batch_size = 2
         x = torch.randn(batch_size, 6, BOARD_SIZE, BOARD_SIZE).to(device)
@@ -352,7 +352,7 @@ class TestTrainingEdgeCases:
 
     def test_training_with_different_batch_sizes(self) -> None:
         """Test training with various batch sizes."""
-        model = SmallPVNet()
+        model = PolicyValueNetwork()
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
         logger = logging.getLogger("test")

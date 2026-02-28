@@ -120,7 +120,7 @@ mini-katago/
 │   │   │   │   ├── sgf_parser.py           # An util file that parses SGF files and convert it to a Game object
 │   │   │   ├── agent.py                    # The agent that loads the model and pick a move
 │   │   │   ├── evaluate.py                 # A function that evaluate the training result based on the validation dataset
-│   │   │   ├── model.py                    # The SmallPVNet CNN model
+│   │   │   ├── model.py                    # The PolicyValueNetwork CNN model
 │   │   │   ├── play.py                     # A file that is mainly used for testing (e.g., nn v.s. nn and human v.s. nn)
 │   │   │   ├── split.py                    # Splits the game into training, validation, and testing set
 │   │   │   ├── train.py                    # Runs the actual training with 30 epochs

@@ -10,7 +10,7 @@ from mini_katago.constants import PASS_INDEX
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
-from mini_katago.nn.model import SmallPVNet
+from mini_katago.nn.model import PolicyValueNetwork
 
 # fmt: on
 
@@ -36,7 +36,7 @@ def load_model(
     if device is None:
         device = torch.device("cpu")
     checkpoint = torch.load(path, map_location="cpu")
-    model = SmallPVNet()
+    model = PolicyValueNetwork()
     model.load_state_dict(checkpoint["model_state_dict"])
     model = model.to(device)
     return model

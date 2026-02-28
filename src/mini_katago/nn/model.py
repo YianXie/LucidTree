@@ -4,7 +4,7 @@ import torch.nn as nn
 from mini_katago.constants import BOARD_SIZE
 
 
-class SmallPVNet(nn.Module):
+class PolicyValueNetwork(nn.Module):
     """
     A small policy-value network for Go
     """

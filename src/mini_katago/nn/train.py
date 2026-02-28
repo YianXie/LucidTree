@@ -13,7 +13,7 @@ from mini_katago import utils
 from mini_katago.constants import BOARD_SIZE, INFINITY
 from mini_katago.nn.datasets.precomputed_dataset import NPZPolicyValueDataset
 from mini_katago.nn.evaluate import evaluate
-from mini_katago.nn.model import SmallPVNet
+from mini_katago.nn.model import PolicyValueNetwork
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         pin_memory=use_cuda,
     )
 
-    model = SmallPVNet()
+    model = PolicyValueNetwork()
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
 
