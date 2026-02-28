@@ -57,7 +57,7 @@ def train_one_epoch(
         y_policy = y_policy.to(device, non_blocking=True)
         y_value = y_value.to(device, non_blocking=True)
 
-        with torch.amp.autocast(device, enabled=(device.type == "cuda")):  # type: ignore
+        with torch.amp.autocast(device.type, enabled=(device.type == "cuda")):  # type: ignore
             policy_logits, value = model(x)
             policy_loss = F.cross_entropy(
                 policy_logits, y_policy, label_smoothing=label_smoothing
