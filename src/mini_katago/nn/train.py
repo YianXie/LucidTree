@@ -48,20 +48,22 @@ def train_one_epoch(
     model.train()
     total = 0.0
     batch_idx = 0
-    for batch in loader:
-        optim.zero_grad()
+    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
 
+    for batch in loader:
+        optim.zero_grad(set_to_none=True)
         x, y_policy, y_value = batch
         x = x.to(device)
         y_policy = y_policy.to(device)
         y_value = y_value.to(device)
 
-        policy_logits, value = model(x)
-        policy_loss = F.cross_entropy(
-            policy_logits, y_policy, label_smoothing=label_smoothing
-        )
-        value_loss = F.mse_loss(value, y_value)
-        loss = policy_loss + lambda_value * value_loss
+        with torch.cuda.amp.autocast(enabled=(device.type == "cuda")):
+            policy_logits, value = model(x)
+            policy_loss = F.cross_entropy(
+                policy_logits, y_policy, label_smoothing=label_smoothing
+            )
+            value_loss = F.mse_loss(value, y_value)
+            loss = policy_loss + lambda_value * value_loss
 
         if torch.isnan(loss):
             logger.error("NaN loss detected at epoch %d", epoch)
@@ -71,8 +73,9 @@ def train_one_epoch(
             logger.error("NaN in policy logits at epoch %d", epoch)
             break
 
-        loss.backward()  # type: ignore
-        optim.step()
+        scaler.scale(loss).backward()
+        scaler.step(optim)
+        scaler.update()
 
         total += float(loss.item())
 
@@ -110,7 +113,7 @@ if __name__ == "__main__":
 
     torch.manual_seed(0)
     NUM_EPOCH = 10
-    batch_size = 32
+    batch_size = 64
 
     logger.info("Starting training")
     logger.info("Using device: %s", device)
@@ -121,7 +124,7 @@ if __name__ == "__main__":
     use_cuda = device.type == "cuda"
     model = PolicyValueNetwork()
     model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4, weight_decay=2e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=2.8e-4, weight_decay=2e-4)
 
     # Run the training and save the losses
     train_losses: list[float] = []
@@ -167,28 +170,37 @@ if __name__ == "__main__":
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=1 if use_cuda else 0,
+        prefetch_factor=1,
+        pin_memory=True,
+        persistent_workers=True,
     )
+    logger.info("Finished loading train_loader.")
+
     val_loader = DataLoader[Any](
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=1 if use_cuda else 0,
+        prefetch_factor=1,
+        pin_memory=True,
+        persistent_workers=True,
     )
+    logger.info("Finished loading val_loader.")
+
     test_loader = DataLoader[Any](
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=1 if use_cuda else 0,
+        prefetch_factor=1,
+        pin_memory=True,
+        persistent_workers=True,
     )
+    logger.info("Finished loading test_loader.")
 
     # Training loop
+    logger.info("Start training loop.")
     for _ in range(NUM_EPOCH):
         try:
             train_loss = train_one_epoch(
