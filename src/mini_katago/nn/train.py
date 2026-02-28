@@ -167,25 +167,25 @@ if __name__ == "__main__":
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=1 if use_cuda else 0,
+        num_workers=0,
+        pin_memory=False,
         persistent_workers=False,
-        pin_memory=use_cuda,
     )
     val_loader = DataLoader[Any](
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=1 if use_cuda else 0,
+        num_workers=0,
+        pin_memory=False,
         persistent_workers=False,
-        pin_memory=use_cuda,
     )
     test_loader = DataLoader[Any](
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=1 if use_cuda else 0,
+        num_workers=0,
+        pin_memory=False,
         persistent_workers=False,
-        pin_memory=use_cuda,
     )
 
     # Training loop

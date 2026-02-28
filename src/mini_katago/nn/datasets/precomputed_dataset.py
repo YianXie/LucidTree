@@ -1,30 +1,35 @@
-import random
+from __future__ import annotations
 from pathlib import Path
 from typing import Any
+import random
+from collections import OrderedDict
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset
-
-from mini_katago import utils
 
 
 class NPZPolicyValueDataset(Dataset[Any]):
     """
-    A class representing a `.npz` policy-value dataset
+    A class representing a `.npz` dataset
     """
 
-    def __init__(self, path: Path, percentage: float = 1.0) -> None:
+    def __init__(
+        self, path: Path, percentage: float = 1.0, shard_cache_size: int = 2
+    ) -> None:
         """
-        Initialize a `.npz` policy-value dataset
+        Initialize a dataset from a given directory containing `.npz` files
 
         Args:
-            path (Path): the path to a directory of shard .npz files
-            amount (float | None, optional): the amount of shards to retrieve, defaults to 1.0
-        """
-        assert percentage > 0.0 and percentage <= 1.0, (
-            f"percentage must be within (0, 1], got {percentage}"
-        )
+            path (Path): the path to the directory containing all the NPZ datasets
+            percentage (float, optional): what percent of NPZ datasets should be loaded. Defaults to 1.0.
+            shard_cache_size (int, optional): Shard cache size. Defaults to 2.
 
+        Raises:
+            ValueError: if directory path is invalid
+            FileNotFoundError: if no .npz shards are found
+        """
+        assert 0.0 < percentage <= 1.0
         if not path.is_dir():
             raise ValueError("Invalid path. Expecting a directory.")
 
@@ -32,45 +37,55 @@ class NPZPolicyValueDataset(Dataset[Any]):
         if not shard_paths:
             raise FileNotFoundError(f"No .npz shards found in {path}")
 
-        xs: list[torch.Tensor] = []
-        ys_policy: list[torch.Tensor] = []
-        ys_value: list[torch.Tensor] = []
         random.shuffle(shard_paths)
+        max_shards = max(1, int(len(shard_paths) * percentage))
+        self.shard_paths = shard_paths[:max_shards]
 
-        max_shards = int(len(shard_paths) * percentage)
-        for shard_path in shard_paths[:max_shards]:
-            data = utils.load_npz_dataset(shard_path)
-            xs_np = data["X"]
-            ys_policy_np = data["y_policy"]
-            ys_value_np = data["y_value"]
+        # Build global index: for each sample idx -> (shard_id, local_idx)
+        self._index: list[tuple[int, int]] = []
+        self._shard_lengths: list[int] = []
 
-            xs.append(torch.from_numpy(xs_np).float())
-            ys_policy.append(torch.tensor(ys_policy_np, dtype=torch.long))
-            ys_value.append(torch.tensor(ys_value_np, dtype=torch.float32))
+        for sid, sp in enumerate(self.shard_paths):
+            with np.load(sp) as data:
+                n = int(data["X"].shape[0])
+            self._shard_lengths.append(n)
+            self._index.extend((sid, i) for i in range(n))
 
-        self.X = torch.cat(xs, dim=0)
-        self.y_policy = torch.cat(ys_policy, dim=0)
-        self.y_value = torch.cat(ys_value, dim=0)
+        # Small cache so repeated access doesn't re-decompress constantly
+        self._cache_size = max(1, shard_cache_size)
+        self._cache: OrderedDict[
+            int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        ] = OrderedDict()
 
     def __len__(self) -> int:
-        """
-        Get the length of the dataset
+        return len(self._index)
 
-        Returns:
-            int: the length of the dataset
-        """
-        return self.X.size(0)
+    def _load_shard(
+        self, shard_id: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        # LRU cache hit
+        if shard_id in self._cache:
+            self._cache.move_to_end(shard_id)
+            return self._cache[shard_id]
+
+        sp = self.shard_paths[shard_id]
+        with np.load(sp) as data:
+            # Convert to torch once per shard load
+            X = torch.from_numpy(data["X"]).to(torch.float32)
+            y_policy = torch.from_numpy(data["y_policy"]).to(torch.int64)
+            y_value = torch.from_numpy(data["y_value"]).to(torch.float32)
+
+        # Add to cache
+        self._cache[shard_id] = (X, y_policy, y_value)
+        self._cache.move_to_end(shard_id)
+        while len(self._cache) > self._cache_size:
+            self._cache.popitem(last=False)
+
+        return X, y_policy, y_value
 
     def __getitem__(
         self, index: int
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Get the data at index
-
-        Args:
-            index (int): the index of the data
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        """
-        return (self.X[index], self.y_policy[index], self.y_value[index])
+        shard_id, local_idx = self._index[index]
+        X, y_policy, y_value = self._load_shard(shard_id)
+        return X[local_idx], y_policy[local_idx], y_value[local_idx]
