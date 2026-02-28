@@ -98,7 +98,7 @@ class PolicyValueNetwork(nn.Module):
         value_out = 8
         self.value_head = nn.Sequential(
             nn.Conv2d(in_channels=hidden, out_channels=value_out, kernel_size=1),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.BatchNorm2d(num_features=value_out),
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(
