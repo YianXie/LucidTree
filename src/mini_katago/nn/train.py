@@ -110,8 +110,7 @@ if __name__ == "__main__":
 
     torch.manual_seed(0)
     NUM_EPOCH = 10
-
-    batch_size = 256
+    batch_size = 32
 
     logger.info("Starting training")
     logger.info("Using device: %s", device)
@@ -119,16 +118,51 @@ if __name__ == "__main__":
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
 
+    use_cuda = device.type == "cuda"
+    model = PolicyValueNetwork()
+    model = model.to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4, weight_decay=2e-4)
+
+    # Run the training and save the losses
+    train_losses: list[float] = []
+    val_losses: list[float] = []
+    val_acc1s: list[float] = []
+    val_acc5s: list[float] = []
+
+    best_val_loss = INFINITY
+    best_state = None
+    epoch = 0
+
+    try:
+        checkpoint = torch.load(
+            root / "models/checkpoint_19x19.pt", map_location=device
+        )
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        best_val_loss = checkpoint["best_val_loss"]
+        epoch = checkpoint["epoch"] + 1
+        batch_size = checkpoint["batch_size"]
+        train_losses = checkpoint["train_losses"]
+        val_losses = checkpoint["val_losses"]
+        val_acc1s = checkpoint["val_acc1s"]
+        val_acc5s = checkpoint["val_acc5s"]
+    except FileNotFoundError:
+        logger.warning(
+            "Checkpoint file does not exist. Starting with no checkpoint file."
+        )
+    except PermissionError:
+        logger.error("Permission denied when accessing the checkpoint file.")
+
+    # Retrieve the datasets
     processed_dir = root / "data/processed"
     train_dataset = NPZPolicyValueDataset(processed_dir / "train/19x19")
     val_dataset = NPZPolicyValueDataset(processed_dir / "val/19x19")
     test_dataset = NPZPolicyValueDataset(processed_dir / "test/19x19")
-
     logger.info("train_dataset length: %d", len(train_dataset))
     logger.info("val_dataset length: %d", len(val_dataset))
     logger.info("test_dataset length: %d", len(test_dataset))
 
-    use_cuda = device.type == "cuda"
+    # Load the datasets
     train_loader = DataLoader[Any](
         train_dataset,
         batch_size=batch_size,
@@ -154,38 +188,7 @@ if __name__ == "__main__":
         pin_memory=use_cuda,
     )
 
-    model = PolicyValueNetwork()
-    model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-
-    # Run the training and save the losses
-    train_losses: list[float] = []
-    val_losses: list[float] = []
-    val_acc1s: list[float] = []
-    val_acc5s: list[float] = []
-
-    best_val_loss = INFINITY
-    best_state = None
-    epoch = 0
-
-    try:
-        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        best_val_loss = checkpoint["best_val_loss"]
-        epoch = checkpoint["epoch"] + 1
-        batch_size = checkpoint["batch_size"]
-        train_losses = checkpoint["train_losses"]
-        val_losses = checkpoint["val_losses"]
-        val_acc1s = checkpoint["val_acc1s"]
-        val_acc5s = checkpoint["val_acc5s"]
-    except FileNotFoundError:
-        logger.warning(
-            "Checkpoint file does not exist. Starting with no checkpoint file."
-        )
-    except PermissionError:
-        logger.error("Permission denied when accessing the checkpoint file.")
-
+    # Training loop
     for _ in range(NUM_EPOCH):
         try:
             train_loss = train_one_epoch(
@@ -237,7 +240,9 @@ if __name__ == "__main__":
     save_best_model(best_state)
     if best_state is not None:
         # Load it and use it for testing
-        checkpoint = torch.load(root / "models/checkpoint_19x19.pt", map_location="cpu")
+        checkpoint = torch.load(
+            root / "models/checkpoint_19x19.pt", map_location=device
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
 
     test_loss, test_acc1, test_acc5 = evaluate(model, test_loader, device=device)
