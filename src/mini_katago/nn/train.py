@@ -38,7 +38,7 @@ def train_one_epoch(
         optim (torch.optim.Optimizer): the optimizer
         epoch (int): the current epoch count
         logger (logging.Logger): the logger to log outputs
-        device (str, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
+        device (torch.device, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
         label_smoothing (float, optional): the label smoothing value for cross_entropy loss. Defaults to 0.05.
 
@@ -48,16 +48,16 @@ def train_one_epoch(
     model.train()
     total = 0.0
     batch_idx = 0
-    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
+    scaler = torch.amp.GradScaler(device, enabled=(device.type == "cuda"))  # type: ignore
 
     for batch in loader:
         optim.zero_grad(set_to_none=True)
         x, y_policy, y_value = batch
-        x = x.to(device)
-        y_policy = y_policy.to(device)
-        y_value = y_value.to(device)
+        x = x.to(device, non_blocking=True)
+        y_policy = y_policy.to(device, non_blocking=True)
+        y_value = y_value.to(device, non_blocking=True)
 
-        with torch.cuda.amp.autocast(enabled=(device.type == "cuda")):
+        with torch.amp.autocast(device, enabled=(device.type == "cuda")):  # type: ignore
             policy_logits, value = model(x)
             policy_loss = F.cross_entropy(
                 policy_logits, y_policy, label_smoothing=label_smoothing
@@ -73,9 +73,12 @@ def train_one_epoch(
             logger.error("NaN in policy logits at epoch %d", epoch)
             break
 
-        scaler.scale(loss).backward()
+        scaler.scale(loss).backward()  # type: ignore
         scaler.step(optim)
         scaler.update()
+
+        # loss.backward()  # type: ignore
+        # optim.step()
 
         total += float(loss.item())
 
@@ -112,6 +115,9 @@ if __name__ == "__main__":
     start_time = time.perf_counter()
 
     torch.manual_seed(0)
+    torch.backends.cudnn.benchmark = True
+    torch.set_float32_matmul_precision("high")
+
     NUM_EPOCH = 10
     batch_size = 64
 
@@ -170,7 +176,7 @@ if __name__ == "__main__":
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=1 if use_cuda else 0,
+        num_workers=2 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
         persistent_workers=True,
@@ -181,7 +187,7 @@ if __name__ == "__main__":
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=1 if use_cuda else 0,
+        num_workers=2 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
         persistent_workers=True,
@@ -192,7 +198,7 @@ if __name__ == "__main__":
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=1 if use_cuda else 0,
+        num_workers=2 if use_cuda else 0,
         prefetch_factor=1 if use_cuda else 2,
         pin_memory=True,
         persistent_workers=True,
@@ -306,6 +312,6 @@ if __name__ == "__main__":
         t = datetime.datetime.now()
         plt.savefig(root / f"figures/{t}.png", dpi=300)
 
-        plt.show()
+        # plt.show()
 
     logger.info("Training end")

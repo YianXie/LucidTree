@@ -31,68 +31,64 @@ class PolicyValueNetwork(nn.Module):
             nn.Conv2d(
                 in_channels=in_channels, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden, out_channels=hidden, kernel_size=3, padding=1
             ),
-            nn.BatchNorm2d(num_features=hidden),
+            nn.GroupNorm(num_groups=8, num_channels=hidden),
             nn.ReLU(inplace=True),
         )
 
         # Policy head
         policy_out = 16
         self.policy_head = nn.Sequential(
-            nn.Conv2d(in_channels=hidden, out_channels=policy_out, kernel_size=1),
-            nn.BatchNorm2d(num_features=policy_out),
-            nn.ReLU(),
-            nn.Flatten(),
-            nn.Dropout(p=0.1),
-            nn.Linear(
-                in_features=policy_out * board_size * board_size,
-                out_features=self.action_size,
-            ),
+            nn.Conv2d(hidden, policy_out, kernel_size=1, bias=False),
+            nn.BatchNorm2d(policy_out),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(policy_out, 1, kernel_size=1, bias=True),
         )
+        self.policy_pass = nn.Linear(hidden, 1)
 
         # Value head
         value_out = 8
@@ -124,7 +120,14 @@ class PolicyValueNetwork(nn.Module):
         h = self.trunk(x)
 
         # Policy logits
-        policy_logits = self.policy_head(h)  # (B, BOARD_SIZE * BOARD_SIZE + 1)
+        p_map = self.policy_head(h)  # (B, 1, 19, 19)
+        p_board = p_map.flatten(1)  # (B, 361)
+
+        # pass logit (simple global average pooling)
+        pooled = h.mean(dim=(2, 3))  # (B, hidden)
+        p_pass = self.policy_pass(pooled)  # (B, 1)
+
+        policy_logits = torch.cat([p_board, p_pass], dim=1)  # (B, 362)
 
         # Value
         value = self.value_head(h).squeeze(1)  # (B,)
