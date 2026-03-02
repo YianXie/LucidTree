@@ -12,11 +12,12 @@ from torch.utils.data import Dataset
 
 class NPZPolicyValueDataset(Dataset[Any]):
     """
-    A class representing a `.npz` dataset
+    A class representing a `.npz` dataset. Uses memory-mapped files so that
+    only the requested sample(s) are brought into RAM, avoiding OOM on large shards.
     """
 
     def __init__(
-        self, path: Path, percentage: float = 1.0, shard_cache_size: int = 2
+        self, path: Path, percentage: float = 1.0, shard_cache_size: int = 4
     ) -> None:
         """
         Initialize a dataset from a given directory containing `.npz` files
@@ -24,7 +25,8 @@ class NPZPolicyValueDataset(Dataset[Any]):
         Args:
             path (Path): the path to the directory containing all the NPZ datasets
             percentage (float, optional): what percent of NPZ datasets should be loaded. Defaults to 1.0.
-            shard_cache_size (int, optional): Shard cache size. Defaults to 2.
+            shard_cache_size (int, optional): Max number of open memory-mapped NPZ files to cache.
+                Only file handles are cached, not array data, so this can be larger than before. Defaults to 4.
 
         Raises:
             ValueError: if directory path is invalid
@@ -47,46 +49,44 @@ class NPZPolicyValueDataset(Dataset[Any]):
         self._shard_lengths: list[int] = []
 
         for sid, sp in enumerate(self.shard_paths):
-            with np.load(sp) as data:
+            with np.load(sp, mmap_mode="r") as data:
                 n = int(data["X"].shape[0])
             self._shard_lengths.append(n)
             self._index.extend((sid, i) for i in range(n))
 
-        # Small cache so repeated access doesn't re-decompress constantly
+        # Cache open NpzFile handles (memory-mapped); no array data is loaded into RAM.
         self._cache_size = max(1, shard_cache_size)
-        self._cache: OrderedDict[
-            int, tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        ] = OrderedDict()
+        self._cache: OrderedDict[int, Any] = OrderedDict()
 
     def __len__(self) -> int:
         return len(self._index)
 
-    def _load_shard(
-        self, shard_id: int
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        # LRU cache hit
+    def _get_shard(self, shard_id: int) -> Any:
+        """Return an open memory-mapped NpzFile for the shard (LRU cache)."""
         if shard_id in self._cache:
             self._cache.move_to_end(shard_id)
             return self._cache[shard_id]
 
+        while len(self._cache) >= self._cache_size:
+            _, old_file = self._cache.popitem(last=False)
+            old_file.close()
+
         sp = self.shard_paths[shard_id]
-        with np.load(sp) as data:
-            # Convert to torch once per shard load
-            X = torch.from_numpy(data["X"]).to(torch.float32)
-            y_policy = torch.from_numpy(data["y_policy"]).to(torch.int64)
-            y_value = torch.from_numpy(data["y_value"]).to(torch.float32)
-
-        # Add to cache
-        self._cache[shard_id] = (X, y_policy, y_value)
-        self._cache.move_to_end(shard_id)
-        while len(self._cache) > self._cache_size:
-            self._cache.popitem(last=False)
-
-        return X, y_policy, y_value
+        f = np.load(sp, mmap_mode="r")
+        self._cache[shard_id] = f
+        return f
 
     def __getitem__(
         self, index: int
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         shard_id, local_idx = self._index[index]
-        X, y_policy, y_value = self._load_shard(shard_id)
-        return X[local_idx], y_policy[local_idx], y_value[local_idx]
+        data = self._get_shard(shard_id)
+
+        x = np.asarray(data["X"][local_idx].copy(), dtype=np.float32)
+        y_p = int(data["y_policy"][local_idx])
+        y_v = float(data["y_value"][local_idx])
+        return (
+            torch.from_numpy(x),
+            torch.tensor(y_p, dtype=torch.int64),
+            torch.tensor(y_v, dtype=torch.float32),
+        )

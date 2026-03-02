@@ -30,9 +30,10 @@ def evaluate(
     for batch in loader:
         x, y_policy, y_value = batch
 
-        x = x.to(device)
-        y_policy = y_policy.to(device)
-        y_value = y_value.to(device)
+        non_blocking = device.type == "cuda"
+        x = x.to(device, non_blocking=non_blocking)
+        y_policy = y_policy.to(device, non_blocking=non_blocking)
+        y_value = y_value.to(device, non_blocking=non_blocking)
 
         policy_logits, value = model(x)
         probs = torch.softmax(policy_logits, dim=1)

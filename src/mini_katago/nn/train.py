@@ -15,7 +15,17 @@ from mini_katago.nn.datasets.precomputed_dataset import NPZPolicyValueDataset
 from mini_katago.nn.evaluate import evaluate
 from mini_katago.nn.model import PolicyValueNetwork
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def _get_device() -> torch.device:
+    """
+    Select CUDA if available, else CPU. Used at startup so training uses GPU on EC2 etc.
+    """
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
+device = _get_device()
 
 
 def train_one_epoch(
@@ -28,6 +38,7 @@ def train_one_epoch(
     device: torch.device = device,
     lambda_value: float = 0.5,
     label_smoothing: float = 0.05,
+    gradient_accumulation_steps: int = 1,
 ) -> float:
     """
     Train the model for one epoch
@@ -41,29 +52,40 @@ def train_one_epoch(
         device (torch.device, optional): the device type (e.g, cuda or cpu). Defaults to default_device.
         lambda_value (float, optional): the lambda value to be multiplied to the value loss. Defaults to 0.5.
         label_smoothing (float, optional): the label smoothing value for cross_entropy loss. Defaults to 0.05.
+        gradient_accumulation_steps (int, optional): accumulate gradients over this many batches before stepping.
+            Use > 1 to reduce peak GPU memory (smaller effective batch per step). Defaults to 1.
 
     Returns:
         float: the average loss
     """
     model.train()
     total = 0.0
-    scaler = torch.amp.GradScaler(device, enabled=(device.type == "cuda"))  # type: ignore
+    optim.zero_grad(set_to_none=True)
+    scaler = torch.amp.GradScaler(device.type, enabled=(device.type == "cuda"))  # type: ignore
 
-    logger.info("Epoch %d started. Total batches: %d.", epoch, len(loader))
+    logger.info(
+        "Epoch %d started. Total batches: %d (grad accum steps: %d).",
+        epoch,
+        len(loader),
+        gradient_accumulation_steps,
+    )
     for idx, batch in enumerate(loader):
-        optim.zero_grad(set_to_none=True)
         x, y_policy, y_value = batch
         x = x.to(device, non_blocking=True)
         y_policy = y_policy.to(device, non_blocking=True)
         y_value = y_value.to(device, non_blocking=True)
 
-        with torch.amp.autocast(device.type, enabled=(device.type == "cuda")):  # type: ignore
+        with torch.amp.autocast(  # type: ignore
+            device.type, enabled=(device.type == "cuda"), dtype=torch.float16
+        ):
             policy_logits, value = model(x)
             policy_loss = F.cross_entropy(
                 policy_logits, y_policy, label_smoothing=label_smoothing
             )
             value_loss = F.mse_loss(value, y_value)
-            loss = policy_loss + lambda_value * value_loss
+            loss = (
+                policy_loss + lambda_value * value_loss
+            ) / gradient_accumulation_steps
 
         if torch.isnan(loss):
             logger.error("NaN loss detected at epoch %d", epoch)
@@ -74,19 +96,26 @@ def train_one_epoch(
             break
 
         scaler.scale(loss).backward()  # type: ignore
-        scaler.step(optim)
-        scaler.update()
 
-        total += float(loss.item())
+        if (idx + 1) % gradient_accumulation_steps == 0:
+            scaler.step(optim)
+            scaler.update()
+            optim.zero_grad(set_to_none=True)
+
+        total += float(loss.item()) * gradient_accumulation_steps
 
         if idx % 1000 == 0:
             logger.info(
                 "Epoch %d | Batch %d | loss = %.4f | total_loss = %.4f",
                 epoch,
                 idx,
-                loss.item(),
+                loss.item() * gradient_accumulation_steps,
                 total,
             )
+
+    if (idx + 1) % gradient_accumulation_steps != 0:
+        optim.step()
+        optim.zero_grad(set_to_none=True)
 
     return total / max(1, len(loader))
 
@@ -115,15 +144,26 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
 
     NUM_EPOCH = 10
-    batch_size = 64
+    batch_size = 256
+    gradient_accumulation_steps = 1
 
     logger.info("Starting training")
     logger.info("Using device: %s", device)
+    if device.type == "cuda":
+        logger.info(
+            "CUDA enabled: %s (device %s)",
+            torch.cuda.get_device_name(0),
+            device,
+        )
+    else:
+        logger.info("CUDA not available; training on CPU")
     logger.info("Total epoch = %d", NUM_EPOCH)
     logger.info("Board size = %d", BOARD_SIZE)
     logger.info("Batch size = %d", batch_size)
+    logger.info("Gradient accumulation steps = %d", gradient_accumulation_steps)
 
     use_cuda = device.type == "cuda"
+    pin_memory = use_cuda  # Faster CPU->GPU transfer when using CUDA
     model = PolicyValueNetwork()
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=2.8e-4, weight_decay=2e-4)
@@ -135,7 +175,7 @@ if __name__ == "__main__":
     val_acc5s: list[float] = []
 
     best_val_loss = INFINITY
-    best_state = None
+    best_state = None  # Not kept in memory after save; reload from disk when needed
     epoch = 0
 
     try:
@@ -167,14 +207,15 @@ if __name__ == "__main__":
     logger.info("val_dataset length: %d", len(val_dataset))
     logger.info("test_dataset length: %d", len(test_dataset))
 
-    # Load the datasets
+    # Load the datasets. num_workers=0 avoids extra process memory; pin_memory=False saves host RAM.
     train_loader = DataLoader[Any](
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=4 if use_cuda else 0,
+        prefetch_factor=4,
+        pin_memory=pin_memory,
+        persistent_workers=True,
     )
     logger.info("Finished loading train_loader.")
 
@@ -182,9 +223,10 @@ if __name__ == "__main__":
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=4 if use_cuda else 0,
+        prefetch_factor=4,
+        pin_memory=pin_memory,
+        persistent_workers=True,
     )
     logger.info("Finished loading val_loader.")
 
@@ -192,9 +234,10 @@ if __name__ == "__main__":
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=False,
-        persistent_workers=False,
+        num_workers=4 if use_cuda else 0,
+        prefetch_factor=4,
+        pin_memory=pin_memory,
+        persistent_workers=True,
     )
     logger.info("Finished loading test_loader.")
 
@@ -209,10 +252,13 @@ if __name__ == "__main__":
                 device=device,
                 epoch=epoch,
                 logger=logger,
+                gradient_accumulation_steps=gradient_accumulation_steps,
             )
             train_losses.append(train_loss)
 
             val_loss, val_acc1, val_acc5 = evaluate(model, val_loader, device=device)
+            if use_cuda:
+                torch.cuda.empty_cache()
             val_losses.append(val_loss)
             val_acc1s.append(val_acc1)
             val_acc5s.append(val_acc5)
@@ -231,9 +277,8 @@ if __name__ == "__main__":
                     "val_acc1s": val_acc1s,
                     "val_acc5s": val_acc5s,
                 }
-                save_best_model(
-                    best_state
-                )  # auto-save our best model so we don't lose our progress
+                save_best_model(best_state)
+                best_state = None  # Free memory; best checkpoint is on disk
 
             logger.info(
                 "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
@@ -248,13 +293,16 @@ if __name__ == "__main__":
             logger.info("Training stopped by user at epoch %d", epoch)
             break
 
-    save_best_model(best_state)
     if best_state is not None:
-        # Load it and use it for testing
+        save_best_model(best_state)
+
+    try:
         checkpoint = torch.load(
             root / "models/checkpoint_19x19.pt", map_location=device
         )
         model.load_state_dict(checkpoint["model_state_dict"])
+    except FileNotFoundError:
+        logger.warning("No checkpoint found; running test with last epoch model.")
 
     test_loss, test_acc1, test_acc5 = evaluate(model, test_loader, device=device)
     logger.info(
@@ -304,7 +352,5 @@ if __name__ == "__main__":
 
         t = datetime.datetime.now()
         plt.savefig(root / f"figures/{t}.png", dpi=300)
-
-        # plt.show()
 
     logger.info("Training end")
