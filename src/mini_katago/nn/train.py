@@ -47,10 +47,10 @@ def train_one_epoch(
     """
     model.train()
     total = 0.0
-    batch_idx = 0
     scaler = torch.amp.GradScaler(device, enabled=(device.type == "cuda"))  # type: ignore
 
-    for batch in loader:
+    logger.info("Epoch %d started. Total batches: %d.", epoch, len(loader))
+    for idx, batch in enumerate(loader):
         optim.zero_grad(set_to_none=True)
         x, y_policy, y_value = batch
         x = x.to(device, non_blocking=True)
@@ -77,20 +77,16 @@ def train_one_epoch(
         scaler.step(optim)
         scaler.update()
 
-        # loss.backward()  # type: ignore
-        # optim.step()
-
         total += float(loss.item())
 
-        if batch_idx % 100 == 0:
-            logger.debug(
+        if idx % 1000 == 0:
+            logger.info(
                 "Epoch %d | Batch %d | loss = %.4f | total_loss = %.4f",
                 epoch,
-                batch_idx,
-                loss,
+                idx,
+                loss.item(),
                 total,
             )
-        batch_idx += 1
 
     return total / max(1, len(loader))
 
@@ -177,7 +173,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=True,
         num_workers=0,
-        # prefetch_factor=1 if use_cuda else 2,
         pin_memory=False,
         persistent_workers=False,
     )
@@ -188,7 +183,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=0,
-        # prefetch_factor=1 if use_cuda else 2,
         pin_memory=False,
         persistent_workers=False,
     )
@@ -199,7 +193,6 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=0,
-        # prefetch_factor=1 if use_cuda else 2,
         pin_memory=False,
         persistent_workers=False,
     )
