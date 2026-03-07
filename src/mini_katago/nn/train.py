@@ -26,6 +26,7 @@ def _get_device() -> torch.device:
 
 
 device = _get_device()
+scaler = torch.amp.GradScaler(device.type, enabled=(device.type == "cuda"))  # type: ignore
 
 
 def train_one_epoch(
@@ -61,7 +62,6 @@ def train_one_epoch(
     model.train()
     total = 0.0
     optim.zero_grad(set_to_none=True)
-    scaler = torch.amp.GradScaler(device.type, enabled=(device.type == "cuda"))  # type: ignore
 
     logger.info(
         "Epoch %d started. Total batches: %d (grad accum steps: %d).",
@@ -113,8 +113,10 @@ def train_one_epoch(
                 total,
             )
 
-    optim.step()
-    optim.zero_grad(set_to_none=True)
+    if (idx + 1) % gradient_accumulation_steps != 0:
+        scaler.step(optim)
+        scaler.update()
+        optim.zero_grad(set_to_none=True)
 
     return total / max(1, len(loader))
 
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     val_acc5s: list[float] = []
 
     best_val_loss = INFINITY
-    best_state = None  # Not kept in memory after save; reload from disk when needed
+    best_state = None
     epoch = 0
 
     try:
@@ -207,7 +209,6 @@ if __name__ == "__main__":
     logger.info("val_dataset length: %d", len(val_dataset))
     logger.info("test_dataset length: %d", len(test_dataset))
 
-    # Load the datasets. num_workers=0 avoids extra process memory; pin_memory=False saves host RAM.
     train_loader = DataLoader[Any](
         train_dataset,
         batch_size=batch_size,
@@ -257,8 +258,6 @@ if __name__ == "__main__":
             train_losses.append(train_loss)
 
             val_loss, val_acc1, val_acc5 = evaluate(model, val_loader, device=device)
-            if use_cuda:
-                torch.cuda.empty_cache()
             val_losses.append(val_loss)
             val_acc1s.append(val_acc1)
             val_acc5s.append(val_acc5)
@@ -278,7 +277,7 @@ if __name__ == "__main__":
                     "val_acc5s": val_acc5s,
                 }
                 save_best_model(best_state)
-                best_state = None  # Free memory; best checkpoint is on disk
+                best_state = None
 
             logger.info(
                 "Epoch %d finished | train_loss = %.4f | val_loss = %.4f | val_acc1 = %.4f | val_acc5 = %.4f",
