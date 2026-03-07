@@ -96,6 +96,15 @@ New features include:
 - Stronger NN with more datasets
 - Minor bug fixes for board.py
 
+### Week 9 + 10 + 11
+
+Improved Monte Carlo Tree Search to ensure that there is no logical errors. Moved training process to AWS EC2 for better efficiency and memory.
+
+New features include:
+
+- Optimized Monte Carlo Tree Search
+- Better training settings for CUDA GPU
+
 ## Src File structure
 
 ```yaml
@@ -115,6 +124,7 @@ mini-katago/
 │   │   │   ├── minimax.py                  # A depth-limited MiniMax algorithm for Go with alpha-beta pruning
 │   │   │── nn                              # All neural network related files
 │   │   │   ├── datasets/
+│   │   │   │   ├── gokifu_download.py      # A Python program that automatically downloads professional games from Gokifu website
 │   │   │   │   ├── precomputed_dataset.py  # A class that represents a pre-computed dataset
 │   │   │   │   ├── sgf_dataset.py          # A one-time running file that generates all the datasets
 │   │   │   │   ├── sgf_parser.py           # An util file that parses SGF files and convert it to a Game object
@@ -151,6 +161,7 @@ git clone https://github.com/YianXie/Mini-KataGo  # Clone this repository
 cd Mini-KataGo
 uv init  # initialize the virtual environment
 uv sync --dev  # install the dependencies
+source .venv/bin/activate  # activate the virtual environment
 ```
 
 Now you are ready to start developing. To see a quick demo, you may go the `main.py` and try a few different .sgf files or play your own.
