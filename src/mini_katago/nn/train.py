@@ -162,7 +162,8 @@ if __name__ == "__main__":
     logger.info("Gradient accumulation steps = %d", gradient_accumulation_steps)
 
     use_cuda = device.type == "cuda"
-    pin_memory = use_cuda  # Faster CPU->GPU transfer when using CUDA
+    pin_memory = use_cuda
+    persistent_workers = use_cuda
     model = PolicyValueNetwork()
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=2.8e-4, weight_decay=2e-4)
@@ -212,9 +213,9 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=True,
         num_workers=4 if use_cuda else 0,
-        prefetch_factor=4,
+        prefetch_factor=4 if use_cuda else None,
         pin_memory=pin_memory,
-        persistent_workers=True,
+        persistent_workers=persistent_workers,
     )
     logger.info("Finished loading train_loader.")
 
@@ -223,9 +224,9 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=4 if use_cuda else 0,
-        prefetch_factor=4,
+        prefetch_factor=4 if use_cuda else None,
         pin_memory=pin_memory,
-        persistent_workers=True,
+        persistent_workers=persistent_workers,
     )
     logger.info("Finished loading val_loader.")
 
@@ -234,9 +235,9 @@ if __name__ == "__main__":
         batch_size=batch_size,
         shuffle=False,
         num_workers=4 if use_cuda else 0,
-        prefetch_factor=4,
+        prefetch_factor=4 if use_cuda else None,
         pin_memory=pin_memory,
-        persistent_workers=True,
+        persistent_workers=persistent_workers,
     )
     logger.info("Finished loading test_loader.")
 
