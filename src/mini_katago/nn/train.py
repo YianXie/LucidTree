@@ -62,6 +62,7 @@ def train_one_epoch(
     model.train()
     total = 0.0
     optim.zero_grad(set_to_none=True)
+    pending_step = False
 
     logger.info(
         "Epoch %d started. Total batches: %d (grad accum steps: %d).",
@@ -96,11 +97,13 @@ def train_one_epoch(
             break
 
         scaler.scale(loss).backward()  # type: ignore
+        pending_step = True
 
         if (idx + 1) % gradient_accumulation_steps == 0:
             scaler.step(optim)
             scaler.update()
             optim.zero_grad(set_to_none=True)
+            pending_step = False
 
         total += float(loss.item()) * gradient_accumulation_steps
 
@@ -113,9 +116,10 @@ def train_one_epoch(
                 total,
             )
 
-    scaler.step(optim)
-    scaler.update()
-    optim.zero_grad(set_to_none=True)
+    if pending_step:
+        scaler.step(optim)
+        scaler.update()
+        optim.zero_grad(set_to_none=True)
 
     return total / max(1, len(loader))
 
