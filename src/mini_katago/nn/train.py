@@ -113,10 +113,9 @@ def train_one_epoch(
                 total,
             )
 
-    if (idx + 1) % gradient_accumulation_steps != 0:
-        scaler.step(optim)
-        scaler.update()
-        optim.zero_grad(set_to_none=True)
+    scaler.step(optim)
+    scaler.update()
+    optim.zero_grad(set_to_none=True)
 
     return total / max(1, len(loader))
 
