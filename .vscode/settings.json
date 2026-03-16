@@ -1,0 +1,20 @@
+{
+    "cSpell.words": [
+        "excinfo",
+        "facecolor",
+        "figsize",
+        "goban",
+        "isort",
+        "katago",
+        "mcts",
+        "popleft",
+        "puct",
+        "Pytest",
+        "savez",
+        "sgfmill",
+        "xlabel",
+        "ylabel",
+        "zorder"
+    ],
+    "git.ignoreLimitWarning": true
+}
