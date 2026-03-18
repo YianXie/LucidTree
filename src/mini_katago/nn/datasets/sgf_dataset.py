@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 import time
 from pathlib import Path
 from typing import Any
@@ -8,17 +9,103 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from mini_katago import utils
-from mini_katago.constants import SHARD_SIZE
+from mini_katago.common.logging import setup_logger
+from mini_katago.common.paths import get_project_root
+from mini_katago.constants import BLACK_COLOR, SHARD_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.coordinates import move_to_index
 from mini_katago.go.game import Game
+from mini_katago.go.player import Player
 from mini_katago.nn.datasets.sgf_parser import parse_sgf_files
+from mini_katago.nn.features import encode_board
 from mini_katago.nn.split import split_game
 
-logger = utils.setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
+logger = setup_logger(name="dataset", log_file="dataset.log", level=logging.INFO)
 AMOUNT_TO_PARSE = None
 START_GAME = 0
+
+
+def transform_board(board: Board, amount: int = 2) -> list[Board]:
+    """
+    Transform the board with rotation and reflection
+
+    Args:
+        board (Board): the board to transform
+        amount (int, optional): the amount of boards to return. Defaults to 2.
+
+    Returns:
+        tuple[Board, ...]: the resulting boards
+    """
+    rotated_clockwise_board_90 = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+    rotated_counterclockwise_board_90 = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+    rotated_board_180 = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+    reflected_x_board = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+    reflected_y_board = Board(
+        board.get_size(),
+        Player(board.get_black_player().get_name(), BLACK_COLOR),
+        Player(board.get_white_player().get_name(), WHITE_COLOR),
+    )
+
+    n = board.get_size()
+    for move in board.get_all_moves():
+        if move.is_passed():
+            rotated_clockwise_board_90.pass_move()
+            rotated_counterclockwise_board_90.pass_move()
+            rotated_board_180.pass_move()
+            reflected_x_board.pass_move()
+            reflected_y_board.pass_move()
+        else:
+            # This is a place move
+            row, col = move.get_position()
+            color = move.get_color()
+
+            # Transform coordinates for each transformation
+            # Rotate 90 degrees clockwise: (row, col) -> (col, n - row - 1)
+            new_row, new_col = col, n - row - 1
+            rotated_clockwise_board_90.place_move((new_row, new_col), color)
+
+            # Rotate 90 degrees counterclockwise: (row, col) -> (n - col - 1, row)
+            new_row, new_col = n - col - 1, row
+            rotated_counterclockwise_board_90.place_move((new_row, new_col), color)
+
+            # Rotate 180 degrees: (row, col) -> (n - row - 1, n - col - 1)
+            new_row, new_col = n - row - 1, n - col - 1
+            rotated_board_180.place_move((new_row, new_col), color)
+
+            # Reflect across x-axis (horizontal): (row, col) -> (n - row - 1, col)
+            new_row, new_col = n - row - 1, col
+            reflected_x_board.place_move((new_row, new_col), color)
+
+            # Reflect across y-axis (vertical): (row, col) -> (row, n - col - 1)
+            new_row, new_col = row, n - col - 1
+            reflected_y_board.place_move((new_row, new_col), color)
+
+    boards = [
+        rotated_clockwise_board_90,
+        rotated_counterclockwise_board_90,
+        rotated_board_180,
+        reflected_x_board,
+        reflected_y_board,
+    ]
+    random.shuffle(boards)
+
+    return boards[: min(amount, len(boards))]
 
 
 class SgfPolicyValueDataset(Dataset[Any]):
@@ -44,7 +131,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
             winner = game.winner
 
             # Iterate over augmented version of the game
-            for transformed_board in (game.board, *utils.transform_board(game.board)):
+            for transformed_board in (game.board, *transform_board(game.board)):
                 board = Board(
                     game.board.get_size(),
                     game.black_player,
@@ -55,7 +142,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
                 for move in moves[: min(self.MAX_MOVES, len(moves))]:
                     to_play = board.get_current_player()
 
-                    x = utils.encode_board(board)
+                    x = encode_board(board)
                     move_position = move.get_position()
                     y_policy = move_to_index(move_position)
 
@@ -147,7 +234,7 @@ def _save_dataset_as_shards(
 
 
 if __name__ == "__main__":
-    root = utils.get_project_root()
+    root = get_project_root()
     path = root / "data/raw/sgf/19x19"
 
     if AMOUNT_TO_PARSE is None:
