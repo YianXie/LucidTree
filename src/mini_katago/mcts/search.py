@@ -5,10 +5,10 @@ import torch
 
 from mini_katago.constants import BLACK_COLOR, KOMI, PASS_INDEX
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import index_to_row_col
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
 from mini_katago.nn.agent import load_model
-from mini_katago.utils import index_to_row_col
 
 
 class MCTS:

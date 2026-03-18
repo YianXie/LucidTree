@@ -8,8 +8,9 @@ import torch.nn as nn
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, INFINITY, KOMI
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import move_to_index
 from mini_katago.go.player import Player
-from mini_katago.utils import encode_board, move_to_index
+from mini_katago.utils import encode_board
 
 
 class Node:

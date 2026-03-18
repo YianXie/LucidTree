@@ -8,6 +8,7 @@ import torch.nn as nn
 from mini_katago import utils
 from mini_katago.constants import PASS_INDEX
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import index_to_row_col
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 from mini_katago.nn.model import PolicyValueNetwork
@@ -81,7 +82,7 @@ def pick_move(
             return None, probs[idx].item(), value
 
         else:
-            move_pos = utils.index_to_row_col(idx)
+            move_pos = index_to_row_col(idx)
             if (
                 board.move_is_valid(
                     Move(

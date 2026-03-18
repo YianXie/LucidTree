@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from mini_katago import utils
 from mini_katago.constants import SHARD_SIZE
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import move_to_index
 from mini_katago.go.game import Game
 from mini_katago.nn.datasets.sgf_parser import parse_sgf_files
 from mini_katago.nn.split import split_game
@@ -56,7 +57,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
 
                     x = utils.encode_board(board)
                     move_position = move.get_position()
-                    y_policy = utils.move_to_index(move_position)
+                    y_policy = move_to_index(move_position)
 
                     xs.append(x)
                     ys_policy.append(y_policy)

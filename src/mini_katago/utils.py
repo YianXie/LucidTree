@@ -10,8 +10,7 @@ import numpy as np
 import torch
 from sgfmill import sgf
 
-from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
-                                   PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR)
+from mini_katago.constants import BLACK_COLOR, CHANNEL_SIZE, WHITE_COLOR
 from mini_katago.go.board import Board
 from mini_katago.go.player import Player
 
@@ -92,36 +91,6 @@ def encode_board(board: Board) -> torch.Tensor:
         x[5, ko_position] = 1
 
     return x
-
-
-def move_to_index(move_position: tuple[int, int] | None, /) -> int:
-    """
-    Calculate the index of a move within the encoded tensor
-
-    Args:
-        move_position (tuple[int, int] | None): the move's position
-
-    Returns:
-        int: the index within the tensor
-    """
-    if move_position == PASS_MOVE_POSITION or move_position is None:
-        return PASS_INDEX
-
-    row, col = move_position
-    return row * BOARD_SIZE + col
-
-
-def index_to_row_col(index: int, /) -> tuple[int, int]:
-    """
-    Convert a board index to a move position
-
-    Args:
-        index (int): the move index
-    """
-    if index == PASS_INDEX:
-        return (-1, -1)
-
-    return divmod(index, BOARD_SIZE)
 
 
 def transform_board(board: Board) -> list[Board]:
