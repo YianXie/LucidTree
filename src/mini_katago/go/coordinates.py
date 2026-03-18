@@ -28,7 +28,7 @@ def index_to_row_col(index: int, /) -> tuple[int, int]:
     if index == PASS_INDEX:
         return (-1, -1)
 
-    return divmod(index, 19)
+    return divmod(index, BOARD_SIZE)
 
 
 def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
