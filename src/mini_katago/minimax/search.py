@@ -1,13 +1,3 @@
-"""
-A simple MiniMax algorithm for Go (fixed for pass + terminal conditions)
-
-Fixes:
-- Go ends by TWO consecutive passes (not "no legal moves")
-- PASS is always legal and is searched like any other move
-- Pass moves are undoable in the tree (assumes board.pass_move() is undoable via board.undo())
-- Evaluation uses board.calculate_score() if available + captures (still simple)
-"""
-
 import math
 
 from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
