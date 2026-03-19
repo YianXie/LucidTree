@@ -1,14 +1,15 @@
 import copy
+from typing import Any
 
 import numpy as np
 import torch
 
 from mini_katago.constants import BLACK_COLOR, KOMI, PASS_INDEX
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import index_to_row_col
 from mini_katago.go.player import Player
 from mini_katago.mcts.node import Node
 from mini_katago.nn.agent import load_model
-from mini_katago.utils import index_to_row_col
 
 
 class MCTS:
@@ -25,18 +26,18 @@ class MCTS:
         self.model.eval()
 
     @torch.no_grad()
-    def run(self, board: Board, to_play: Player, num_simulations: int = 1000) -> Node:
+    def run(self, board: Board, to_play: Player, **kwargs: Any) -> Node:
         """
         Run the MCTS on the current board
 
         Args:
             board (Board): the current board
             to_play (Player): the current player to play
-            num_simulations (int, optional): the amount of simulations to run. Defaults to 1000.
-
-        Returns:
-            Node: the searched root
+            **kwargs: additional keyword arguments
         """
+        num_simulations = kwargs.get("num_simulations", 1000)
+        c_puct = kwargs.get("c_puct", 1.5)
+
         if to_play.opponent is None or to_play.opponent.opponent is None:
             raise RuntimeError("Player argument missing `opponent` attribute")
 
@@ -49,7 +50,7 @@ class MCTS:
 
             # Selection
             while node.is_expanded and not node.board.is_terminate():
-                child_action = node.select_action()
+                child_action = node.select_action(c_puct=c_puct)
                 path.append((node, child_action))
 
                 child = node.children[child_action]
@@ -110,7 +111,7 @@ class MCTS:
             parent.W[action] += value
 
     @staticmethod
-    def pick_move(root: Node) -> tuple[int, int]:
+    def pick_best_move_position(root: Node) -> tuple[int, int]:
         """
         Pick a move position based on the highest visit count
 

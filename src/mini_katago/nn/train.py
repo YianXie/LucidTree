@@ -9,7 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from mini_katago import utils
+from mini_katago.common.logging import setup_logger
+from mini_katago.common.paths import get_project_root
 from mini_katago.constants import BOARD_SIZE, INFINITY
 from mini_katago.nn.datasets.precomputed_dataset import NPZPolicyValueDataset
 from mini_katago.nn.evaluate import evaluate
@@ -136,10 +137,8 @@ def save_best_model(state: dict[str, Any] | None) -> None:
 
 
 if __name__ == "__main__":
-    root = utils.get_project_root()
-    logger = utils.setup_logger(
-        name="training", log_file="training.log", level=logging.INFO
-    )
+    root = get_project_root()
+    logger = setup_logger(name="training", log_file="training.log", level=logging.INFO)
 
     start_time = time.perf_counter()
 

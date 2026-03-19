@@ -1,40 +1,50 @@
 # fmt: off
 
-from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
 
-from mini_katago import utils
-from mini_katago.constants import PASS_INDEX
+from mini_katago.common.paths import get_project_root
+from mini_katago.constants import PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import index_to_row_col
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
+from mini_katago.minimax.search import next_best_move
+from mini_katago.nn.features import encode_board
 from mini_katago.nn.model import PolicyValueNetwork
 
 # fmt: on
 
-root = utils.get_project_root()
+root = get_project_root()
 
 
 @torch.no_grad()
 def load_model(
-    path: Path = root / "models/checkpoint_19x19.pt",
+    model_name: str | None = None,
     device: torch.device | None = None,
 ) -> nn.Module:
     """
     Load the Neural Network model
 
     Args:
-        path (Path, optional): the path to the checkpoint file. Defaults to root/"models/checkpoint_19x19.pt".
+        model_name (str | None, optional): the name of the model to load. Defaults to None.
+            If None, loads the default model from the models directory.
         device (torch.device | None, optional): the device to load the model onto.
             If None, loads to CPU. Use CUDA when available for GPU inference.
 
     Returns:
         nn.Module: the loaded model
     """
+    if model_name is None:
+        path = root / "models/checkpoint_19x19.pt"
+    else:
+        path = root / "models" / f"{model_name}.pt"
+
     if device is None:
         device = torch.device("cpu")
+
     checkpoint = torch.load(path, map_location=device)
     model = PolicyValueNetwork()
     model.load_state_dict(checkpoint["model_state_dict"])
@@ -43,9 +53,9 @@ def load_model(
 
 
 @torch.no_grad()
-def pick_move(
+def pick_move_nn(
     model: nn.Module, board: Board, device: torch.device, temperature: float = 0.0
-) -> tuple[tuple[int, int] | None, float, float]:
+) -> tuple[tuple[int, int], float, float]:
     """
     Pick the next best move given the board, model, device, and temperature
 
@@ -56,12 +66,12 @@ def pick_move(
         temperature (float, optional): the temperature. Defaults to 0.0.
 
     Returns:
-        tuple[tuple[int, int] | None, float, float]: the move, probability, and value
+        tuple[tuple[int, int], float, float]: the move, probability, and value
     """
     model.eval()
     model = model.to(device)
 
-    x = utils.encode_board(board)
+    x = encode_board(board)
     x = x.unsqueeze(0).to(device)
     x = x.float()
 
@@ -78,10 +88,10 @@ def pick_move(
 
     for idx in order:
         if idx == PASS_INDEX:
-            return None, probs[idx].item(), value
+            return PASS_MOVE_POSITION, probs[idx].item(), value
 
         else:
-            move_pos = utils.index_to_row_col(idx)
+            move_pos = index_to_row_col(idx)
             if (
                 board.move_is_valid(
                     Move(
@@ -92,15 +102,42 @@ def pick_move(
             ):
                 return move_pos, probs[idx].item(), value
 
-    return None, probs[idx].item(), value
+    return PASS_MOVE_POSITION, probs[idx].item(), value
 
 
 @torch.no_grad()
-def pick_move_mcts(board: Board, to_play: Player) -> tuple[int, int]:
+def pick_move_mcts(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
+    """
+    Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
+
+    Args:
+        board (Board): the current board state
+        to_play (Player): the player to play
+        **kwargs: additional keyword arguments
+
+    Returns:
+        tuple[int, int]: the move
+    """
     from mini_katago.mcts.search import MCTS
 
     mcts = MCTS()
-    root = mcts.run(board=board, to_play=to_play)
+    root = mcts.run(board=board, to_play=to_play, **kwargs)
 
-    pos = MCTS.pick_move(root)
+    pos = MCTS.pick_best_move_position(root)
     return pos
+
+
+def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
+    """Pick the next best move given the board, model, device, and temperature using the Minimax algorithm
+
+    Args:
+        board (Board): the current board state
+        to_play (Player): the player to play
+        **kwargs: additional keyword arguments
+
+    Returns:
+        tuple[int, int]: the move
+    """
+    depth = kwargs.get("depth", 2)
+    best_move = next_best_move(board, to_play.get_color() == WHITE_COLOR, depth=depth)
+    return best_move

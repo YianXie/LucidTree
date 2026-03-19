@@ -8,7 +8,7 @@ from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, PASS_MOVE_POSITION,
                                    WHITE_COLOR)
 from mini_katago.go.interactive_board import InteractiveBoard
 from mini_katago.go.player import Player
-from mini_katago.nn.agent import load_model, pick_move, pick_move_mcts
+from mini_katago.nn.agent import load_model, pick_move_mcts, pick_move_nn
 
 # fmt: on
 
@@ -40,7 +40,7 @@ def human_vs_nn() -> None:
 
         # AI's turn (White)
         if board.current_player.get_color() == WHITE_COLOR:
-            best, prob, value = pick_move(model=model, board=board, device=device)
+            best, prob, value = pick_move_nn(model=model, board=board, device=device)
             print(f"Move probability: {prob}")
             print(f"Value: {value}")
 
