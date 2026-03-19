@@ -26,12 +26,18 @@ jobs:
               run: |
                   uv run ruff check
 
-            - name: Run Mypy
-              run: |
-                  uv run mypy --show-error-codes
             - name: Run isort
               run: |
                   uv run isort --check-only --diff .
+
+            - name: Run Mypy
+              run: |
+                  uv run mypy --show-error-codes
+
             - name: Run pip-audit
               run: |
                   uv run pip-audit
+
+            - name: Run bandit
+              run: |
+                  uv run bandit -c pyproject.toml -r .
