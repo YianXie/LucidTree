@@ -139,6 +139,15 @@ LucidTree/
 │   │   │── utils.py                        # Some utility functions
 ```
 
+## Django Rest Framework API
+
+LucidTree uses Django Rest Framework (DRF) as its backend framework. All related files are located in the `/api` directory. To start the server, first follow the [development setup](#development) tutorial, then type the following command to start a local development server:
+
+```bash
+python manage.py makemigrations && python manage.py migrate
+python manage.py runserver
+```
+
 ## Development
 
 To start developing this project locally. Run the following command:
