@@ -77,7 +77,7 @@ def analyze_position(
 
     return {
         "best_move": str(best_move),
-        "algothrithm": algo,
+        "algorithm": algo,
         "stats": {
             **stats,
             "elapsed_ms": elapsed_ms,

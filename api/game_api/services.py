@@ -76,6 +76,8 @@ def _build_board_from_request(
         except Exception as e:
             raise BadRequestError(f"Invalid move: {e}")
 
+    return board
+
 
 def analyze(validated_data: dict[str, Any]) -> dict[str, Any]:
     """

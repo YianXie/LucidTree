@@ -40,6 +40,6 @@ def encode_board(board: Board) -> torch.Tensor:
     # Ko point
     ko_position = board.get_ko_point()
     if ko_position is not None:
-        x[5, ko_position] = 1
+        x[5, ko_position[0], ko_position[1]] = 1
 
     return x

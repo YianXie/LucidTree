@@ -45,8 +45,9 @@ def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
     if gtp_move[0] not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
         raise ValueError(f"Invalid GTP move: {gtp_move}")
 
-    if gtp_move[1:] not in "1234567890":
-        raise ValueError(f"Invalid GTP move: {gtp_move}")
+    for char in gtp_move[1:]:
+        if char not in "1234567890":
+            raise ValueError(f"Invalid GTP move: {gtp_move}")
 
     # Assuming the letter is the column and the number is the row
     column = ord(gtp_move[0]) - ord("A")
