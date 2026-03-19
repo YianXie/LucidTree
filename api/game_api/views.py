@@ -2,13 +2,13 @@
 
 from typing import Any
 
+from common.exceptions import BadRequestError
+from game_api.serializers import (AnalyzeRequestSerializer,
+                                  AnalyzeResponseSerializer)
+from game_api.services import analyze
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView, Request
-
-from common.exceptions import BadRequestError
-from game_api.serializers import AnalyzeRequestSerializer, AnalyzeResponseSerializer
-from game_api.services import analyze
 
 # fmt: on
 

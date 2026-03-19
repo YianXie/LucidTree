@@ -55,6 +55,7 @@ testpaths = ["tests"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src"]
+files = ["src/**/*.py", "api/**/*.py"]
 strict = true
 ignore_missing_imports = true
+mypy_path = ["src", "api"]

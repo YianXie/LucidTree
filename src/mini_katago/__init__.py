@@ -1,2 +1,1 @@
 """mini_katago package."""
-

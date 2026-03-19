@@ -1,6 +1,7 @@
 from typing import Any
 
 from common.exceptions import BadRequestError
+
 from mini_katago.constants import PASS_MOVE_POSITION
 from mini_katago.engine.analysis import analyze_position
 from mini_katago.go.board import Board
@@ -8,7 +9,7 @@ from mini_katago.go.coordinates import gtp_to_row_col
 from mini_katago.go.player import Player
 
 
-def _parse_player(value: str) -> Player:
+def _parse_player(value: str, /) -> Player:
     """
     Parse a player from a string
 
@@ -30,7 +31,7 @@ def _parse_player(value: str) -> Player:
         raise BadRequestError(f"Invalid player: expecting 'B' or 'W', got '{value}'")
 
 
-def _parse_move(value: str) -> tuple[int, int]:
+def _parse_move(value: str, /) -> tuple[int, int]:
     """
     Parse a move from a string
 
@@ -79,7 +80,7 @@ def _build_board_from_request(
     return board
 
 
-def analyze(validated_data: dict[str, Any]) -> dict[str, Any]:
+def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     """
     Analyze a position from a request
 
