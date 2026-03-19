@@ -73,6 +73,8 @@ def row_col_to_gtp(row: int, col: int, /) -> str:
         row (int): the row
         col (int): the column
     """
+    if (row, col) == PASS_MOVE_POSITION:
+        return "PASS"
     letter = chr(ord("A") + col)
     number = str(row + 1)
     return f"{letter}{number}"

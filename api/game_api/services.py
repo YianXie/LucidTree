@@ -98,9 +98,8 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
 
     board = _build_board_from_request(board_size=board_size, moves=moves)
     to_play = _parse_player(to_play_text)
-    if to_play.get_color() == BLACK_COLOR:
-        to_play.opponent = Player.white()
-    else:
-        to_play.opponent = Player.black()
+    opponent = Player.white() if to_play.get_color() == BLACK_COLOR else Player.black()
+    to_play.opponent = opponent
+    opponent.opponent = to_play
 
     return analyze_position(board=board, to_play=to_play, algo=algo, params=params)
