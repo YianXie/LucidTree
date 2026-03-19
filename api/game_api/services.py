@@ -2,7 +2,7 @@ from typing import Any
 
 from common.exceptions import BadRequestError
 
-from mini_katago.constants import PASS_MOVE_POSITION
+from mini_katago.constants import BLACK_COLOR, PASS_MOVE_POSITION
 from mini_katago.engine.analysis import analyze_position
 from mini_katago.go.board import Board
 from mini_katago.go.coordinates import gtp_to_row_col
@@ -98,5 +98,9 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
 
     board = _build_board_from_request(board_size=board_size, moves=moves)
     to_play = _parse_player(to_play_text)
+    if to_play.get_color() == BLACK_COLOR:
+        to_play.opponent = Player.white()
+    else:
+        to_play.opponent = Player.black()
 
     return analyze_position(board=board, to_play=to_play, algo=algo, params=params)

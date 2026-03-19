@@ -44,10 +44,10 @@ def human_vs_nn() -> None:
             print(f"Move probability: {prob}")
             print(f"Value: {value}")
 
-            if best is not None:
-                board.place_move(best, WHITE_COLOR)
-            else:
+            if best == PASS_MOVE_POSITION:
                 board.pass_move()
+            else:
+                board.place_move(best, WHITE_COLOR)
 
     board.stop_display()
 

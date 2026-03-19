@@ -63,3 +63,26 @@ def gtp_to_index(gtp_move: str, /) -> int:
         gtp_move (str): the GTP move
     """
     return move_to_index(gtp_to_row_col(gtp_move))
+
+
+def row_col_to_gtp(row: int, col: int, /) -> str:
+    """
+    Convert a row and column to a GTP move
+
+    Args:
+        row (int): the row
+        col (int): the column
+    """
+    letter = chr(ord("A") + col)
+    number = str(row + 1)
+    return f"{letter}{number}"
+
+
+def index_to_gtp(index: int, /) -> str:
+    """
+    Convert a board index to a GTP move
+
+    Args:
+        index (int): the board index
+    """
+    return row_col_to_gtp(*index_to_row_col(index))

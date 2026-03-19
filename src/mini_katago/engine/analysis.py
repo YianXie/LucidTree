@@ -6,6 +6,7 @@ from typing import Any
 import torch
 
 from mini_katago.go.board import Board
+from mini_katago.go.coordinates import row_col_to_gtp
 from mini_katago.go.player import Player
 from mini_katago.nn.agent import (load_model, pick_move_mcts,
                                   pick_move_minimax, pick_move_nn)
@@ -16,7 +17,8 @@ from mini_katago.nn.agent import (load_model, pick_move_mcts,
 def analyze_position(
     board: Board, to_play: Player, algo: str, params: dict[str, Any]
 ) -> dict[str, Any]:
-    """Analyze a position
+    """
+    Analyze a position
 
     Args:
         board (Board): the board
@@ -76,7 +78,7 @@ def analyze_position(
     elapsed_ms = round((end - start) * 1000, 2)
 
     return {
-        "best_move": str(best_move),
+        "best_move": row_col_to_gtp(*best_move),
         "algorithm": algo,
         "stats": {
             **stats,
