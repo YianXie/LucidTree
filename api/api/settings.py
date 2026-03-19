@@ -20,6 +20,8 @@ else:
 ALLOWED_HOSTS: list[str] = [
     "localhost",
     "127.0.0.1",
+    "lucidtree.onrender.com",
+    "api.lucidgo.org",
 ]
 
 
@@ -124,6 +126,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://lucidtree.onrender.com",
+    "https://api.lucidgo.org",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
