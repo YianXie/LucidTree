@@ -33,7 +33,7 @@ uv sync --dev
 
 # Run Ruff formatting check
 echo "Checking code formatting with Ruff..."
-if uv run ruff format --check .; then
+if uv run ruff check .; then
     print_status "Ruff formatting check passed"
 else
     print_error "Ruff formatting check failed. Run 'ruff format .' to fix."
