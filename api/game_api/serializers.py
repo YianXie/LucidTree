@@ -9,6 +9,16 @@ RULE_CHOICES = ("japanese", "chinese")
 
 
 class MoveSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the move
+
+    Raises:
+        serializers.ValidationError: If the point is not valid
+
+    Returns:
+        tuple[str, str]: The validated color and point
+    """
+
     color = serializers.ChoiceField(choices=PLAYER_CHOICES)
     point = serializers.CharField(max_length=10)
 
@@ -20,6 +30,13 @@ class MoveSerializer(serializers.Serializer):  # type: ignore
 
 
 class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the analyze parameters
+
+    Returns:
+        dict[str, Any]: The validated parameters, will be used to pass to the analyze function
+    """
+
     # MCTS params
     num_simulations = serializers.IntegerField(
         required=False, min_value=1, max_value=5000
@@ -40,6 +57,19 @@ class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
 
 
 class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the analyze requests
+
+    Raises:
+        serializers.ValidationError:
+        serializers.ValidationError: If the moves are not valid
+        serializers.ValidationError: If the color is not valid
+        serializers.ValidationError: If the point is not valid
+
+    Returns:
+        list[tuple[str, str]]: The validated moves
+    """
+
     board_size = serializers.ChoiceField(choices=BOARD_SIZE_CHOICES)
     rules = serializers.ChoiceField(choices=RULE_CHOICES, default="japanese")
     komi = serializers.FloatField(required=False, default=6.5)
@@ -85,3 +115,16 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
             validated.append((color, point))
 
         return validated
+
+
+class AnalyzeResponseSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the analyze responses
+
+    Returns:
+        AnalyzeResponseSerializer: The serializer instance
+    """
+
+    best_move = serializers.CharField(required=True)
+    algorithm = serializers.CharField(required=True)
+    stats = serializers.DictField(required=True)

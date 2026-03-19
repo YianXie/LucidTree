@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from mini_katago.constants import BLACK_COLOR, WHITE_COLOR
+
 from .rules import Rules
 
 
@@ -88,6 +92,26 @@ class Player:
             int: the capture count
         """
         return self.capture_count
+
+    @staticmethod
+    def black() -> Player:
+        """
+        Return a black player
+
+        Returns:
+            Player: a black player
+        """
+        return Player("Black", BLACK_COLOR)
+
+    @staticmethod
+    def white() -> Player:
+        """
+        Return a white player
+
+        Returns:
+            Player: a white player
+        """
+        return Player("White", WHITE_COLOR)
 
     def __repr__(self) -> str:
         return f"player name: {self.name}, player color: {self.color}"

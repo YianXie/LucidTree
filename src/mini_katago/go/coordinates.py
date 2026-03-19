@@ -38,11 +38,18 @@ def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
     Args:
         gtp_move (str): the GTP move
     """
-    if gtp_move == "pass":
-        return (-1, -1)
+    gtp_move = gtp_move.strip().upper()
+    if gtp_move == "PASS":
+        return PASS_MOVE_POSITION
+
+    if gtp_move[0] not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        raise ValueError(f"Invalid GTP move: {gtp_move}")
+
+    if gtp_move[1:] not in "1234567890":
+        raise ValueError(f"Invalid GTP move: {gtp_move}")
 
     # Assuming the letter is the column and the number is the row
-    column = ord(gtp_move[0]) - ord("a")
+    column = ord(gtp_move[0]) - ord("A")
     row = int(gtp_move[1:]) - 1
     return row, column
 

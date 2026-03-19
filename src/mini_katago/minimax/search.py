@@ -1,11 +1,12 @@
-import math
+# fmt: off
 
-from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
+from mini_katago.constants import (BLACK_COLOR, BOARD_SIZE, INFINITY,
+                                   PASS_MOVE_POSITION, WHITE_COLOR)
 from mini_katago.go.board import Board
 from mini_katago.go.move import Move
 from mini_katago.go.player import Player
 
-INFINITY = math.inf
+# fmt: on
 
 # Here, the min player is black, and the max player is white (MiniMax)
 min_player, max_player = (
@@ -120,9 +121,17 @@ def minimax(
         return best
 
 
-def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Move | None:
+def next_best_move(board: Board, isMax: bool, depth: int = 2) -> tuple[int, int]:
     """
-    Returns the best placement Move, or None to indicate PASS.
+    Returns the best placement position
+
+    Args:
+        board (Board): the board
+        isMax (bool): if the player is maximizing
+        depth (int, optional): the depth of the search. Defaults to 2.
+
+    Returns:
+        tuple[int, int]: the best placement position
     """
     best_score = -INFINITY if isMax else INFINITY
     best_move: Move | None = None  # None means PASS
@@ -146,32 +155,4 @@ def next_best_move(board: Board, isMax: bool, depth: int = 2) -> Move | None:
             best_score = score
             best_move = move
 
-    return best_move
-
-
-if __name__ == "__main__":
-    DEPTH = 2  # raise to 3 only if it remains fast enough
-
-    while True:
-        row, col = map(
-            int, input("Enter a position (row col), or -1 -1 to pass/quit: ").split()
-        )
-        if row == -1 and col == -1:
-            break
-
-        # Human is black
-        board.place_move((row, col), min_player.get_color())
-        board.print_ascii_board()
-
-        # AI is white
-        move = next_best_move(board, isMax=True, depth=DEPTH)
-        if move is None or move.is_passed():
-            board.pass_move()
-            print("AI plays: PASS")
-        else:
-            board.place_move(move.get_position(), max_player.get_color())
-            print(f"AI plays: {move.get_position()}")
-
-        board.print_ascii_board()
-
-    board.show_board()
+    return PASS_MOVE_POSITION if best_move is None else best_move.get_position()
