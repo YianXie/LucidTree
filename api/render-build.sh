@@ -14,12 +14,9 @@ export PATH="$PWD/.uvbin:$PATH"
 echo "Syncing dependencies and creating venv..."
 uv sync  # this will create .venv if needed and install everything
 
-echo "Activating venv..."
-source .venv/bin/activate
-
 echo "Collecting static files..."
-python manage.py collectstatic --no-input
+uv run python manage.py collectstatic --no-input
 
 echo "Migrating database..."
-python manage.py makemigrations --no-input || true
-python manage.py migrate --no-input
+uv run python manage.py makemigrations --no-input || true
+uv run python manage.py migrate --no-input
