@@ -14,6 +14,7 @@ dependencies = [
     "django-cors-headers>=4.9.0",
     "djangorestframework>=3.16.1",
     "fonttools==4.61.1",
+    "gunicorn>=25.1.0",
     "iniconfig==2.3.0",
     "isort>=7.0.0",
     "kiwisolver==1.4.9",
