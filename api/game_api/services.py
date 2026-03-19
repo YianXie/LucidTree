@@ -1,6 +1,6 @@
 from typing import Any
 
-from api.common.exceptions import BadRequestError
+from common.exceptions import BadRequestError
 from mini_katago.constants import PASS_MOVE_POSITION
 from mini_katago.engine.analysis import analyze_position
 from mini_katago.go.board import Board
