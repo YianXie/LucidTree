@@ -29,10 +29,12 @@ class NPZPolicyValueDataset(Dataset[Any]):
                 Only file handles are cached, not array data, so this can be larger than before. Defaults to 4.
 
         Raises:
+            ValueError: if percentage is not between 0.0 and 1.0
             ValueError: if directory path is invalid
             FileNotFoundError: if no .npz shards are found
         """
-        assert 0.0 < percentage <= 1.0
+        if not 0.0 < percentage <= 1.0:
+            raise ValueError("Percentage must be between 0.0 and 1.0")
         if not path.is_dir():
             raise ValueError("Invalid path. Expecting a directory.")
 

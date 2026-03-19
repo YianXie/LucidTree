@@ -45,7 +45,7 @@ def load_model(
     if device is None:
         device = torch.device("cpu")
 
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location=device, weights_only=True)
     model = PolicyValueNetwork()
     model.load_state_dict(checkpoint["model_state_dict"])
     model = model.to(device)

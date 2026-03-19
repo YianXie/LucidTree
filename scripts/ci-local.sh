@@ -40,15 +40,6 @@ else
     exit 1
 fi
 
-# Run Ruff formatting check
-echo "Static type checking with mypy"
-if uv run mypy --show-error-codes; then
-    print_status "mypy type checking passed"
-else
-    print_error "mypy type checking failed."
-    exit 1
-fi
-
 # Run isort import sorting check
 echo "Checking import sorting with isort..."
 if uv run isort --check-only --diff .; then
@@ -58,12 +49,30 @@ else
     exit 1
 fi
 
+# Run Ruff formatting check
+echo "Static type checking with mypy"
+if uv run mypy --show-error-codes; then
+    print_status "mypy type checking passed"
+else
+    print_error "mypy type checking failed."
+    exit 1
+fi
+
 # Run pip audit (security checks)
 echo "Running pip audit..."
 if uv run pip-audit; then
     print_status "pip audit passed"
 else
     print_error "pip audit found issues."
+    exit 1
+fi
+
+# Run bandit
+echo "Running bandit..."
+if uv run bandit -c pyproject.toml -r .; then
+    print_status "bandit security check passed"
+else
+    print_error "bandit security check found issues."
     exit 1
 fi
 

@@ -23,10 +23,14 @@ def split_game(
 
     Returns:
         tuple[list[Game], list[Game], list[Game]]: the splitted games
+
+    Raises:
+        ValueError: if the split ratios do not sum to 1.0
     """
-    assert abs(train + val + test - 1.0) < 1e-6, (
-        f"Split ratios must sum to 1.0 (within 1e-6), got {train + val + test}"
-    )
+    if abs(train + val + test - 1.0) >= 1e-6:
+        raise ValueError(
+            f"Split ratios must sum to 1.0 (within 1e-6), got {train + val + test}"
+        )
 
     rng = random.Random(seed)
     games = games[:]

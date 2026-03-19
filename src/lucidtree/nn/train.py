@@ -184,7 +184,7 @@ if __name__ == "__main__":
 
     try:
         checkpoint = torch.load(
-            root / "models/checkpoint_19x19.pt", map_location=device
+            root / "models/checkpoint_19x19.pt", map_location=device, weights_only=True
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -299,7 +299,7 @@ if __name__ == "__main__":
 
     try:
         checkpoint = torch.load(
-            root / "models/checkpoint_19x19.pt", map_location=device
+            root / "models/checkpoint_19x19.pt", map_location=device, weights_only=True
         )
         model.load_state_dict(checkpoint["model_state_dict"])
     except FileNotFoundError:
