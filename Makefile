@@ -1,4 +1,4 @@
-# Makefile for Mini-KataGo project
+# Makefile for LucidTree project
 
 .PHONY: help install test lint format security ci-local all clean
 

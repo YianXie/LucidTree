@@ -1,4 +1,4 @@
-# Mini-KataGo
+# LucidTree
 
 A basic implementation of Go AI, similar to [KataGo](https://github.com/lightvector/KataGo).
 
@@ -108,9 +108,9 @@ New features include:
 ## Src File structure
 
 ```yaml
-mini-katago/
+LucidTree/
 ├── src/                                    # All Python files
-│   ├── mini_katago/                        # Go related files
+│   ├── lucidtree/                          # Go related files
 │   │   │── go                              # All Python files related to Go, such as board.py and rules.py
 │   │   │   ├── board.py                    # Python class that represents a Go game board
 │   │   │   ├── game.py                     # Python class that represents a Go game, including board, players, and the winner
@@ -157,8 +157,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 Clone the repository and setup:
 
 ```bash
-git clone https://github.com/YianXie/Mini-KataGo  # Clone this repository
-cd Mini-KataGo
+git clone https://github.com/YianXie/LucidTree  # Clone this repository
+cd LucidTree
 uv init  # initialize the virtual environment
 uv sync --dev  # install the dependencies
 source .venv/bin/activate  # activate the virtual environment

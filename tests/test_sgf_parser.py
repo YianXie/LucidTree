@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from sgfmill import sgf
 
-from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
-from mini_katago.go.game import Game
-from mini_katago.nn.datasets.sgf_parser import parse_sgf_file, parse_sgf_game
+from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
+from lucidtree.go.game import Game
+from lucidtree.nn.datasets.sgf_parser import parse_sgf_file, parse_sgf_game
 
 # fmt: on
 

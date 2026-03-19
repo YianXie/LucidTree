@@ -1,8 +1,8 @@
 import pytest
 
-from mini_katago.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
-from mini_katago.go.board import Board
-from mini_katago.go.player import Player
+from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
+from lucidtree.go.board import Board
+from lucidtree.go.player import Player
 
 test_black_player = Player("Black Tester", BLACK_COLOR)
 test_white_player = Player("White Tester", WHITE_COLOR)

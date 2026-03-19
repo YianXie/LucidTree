@@ -21,7 +21,7 @@ class HealthView(APIView):  # type: ignore
         return Response(
             {
                 "status": "ok",
-                "service": "mini-katago-api",
+                "service": "lucidtree-api",
             },
             status=status.HTTP_200_OK,
         )

@@ -2,11 +2,11 @@ from typing import Any
 
 from common.exceptions import BadRequestError
 
-from mini_katago.constants import BLACK_COLOR, PASS_MOVE_POSITION
-from mini_katago.engine.analysis import analyze_position
-from mini_katago.go.board import Board
-from mini_katago.go.coordinates import gtp_to_row_col
-from mini_katago.go.player import Player
+from lucidtree.constants import BLACK_COLOR, PASS_MOVE_POSITION
+from lucidtree.engine.analysis import analyze_position
+from lucidtree.go.board import Board
+from lucidtree.go.coordinates import gtp_to_row_col
+from lucidtree.go.player import Player
 
 
 def _parse_player(value: str, /) -> Player:

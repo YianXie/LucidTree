@@ -8,10 +8,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from mini_katago.constants import BOARD_SIZE
-from mini_katago.nn.evaluate import evaluate
-from mini_katago.nn.model import PolicyValueNetwork
-from mini_katago.nn.train import train_one_epoch
+from lucidtree.constants import BOARD_SIZE
+from lucidtree.nn.evaluate import evaluate
+from lucidtree.nn.model import PolicyValueNetwork
+from lucidtree.nn.train import train_one_epoch
 
 # fmt: on
 
