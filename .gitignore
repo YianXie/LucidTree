@@ -336,6 +336,7 @@ pyrightconfig.json
 *.pt
 *.pth
 
+### Logs ###
 logs/
 
 ### Data ###
