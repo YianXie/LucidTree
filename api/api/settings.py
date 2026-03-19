@@ -116,6 +116,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 # CORS Settings
 
@@ -123,3 +125,5 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
