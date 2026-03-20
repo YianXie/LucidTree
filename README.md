@@ -1,6 +1,6 @@
 # LucidTree
 
-A basic implementation of Go AI, similar to [KataGo](https://github.com/lightvector/KataGo).
+An implementation of Go AI, similar to [KataGo](https://github.com/lightvector/KataGo).
 
 ## Data/Model Download
 
@@ -105,23 +105,34 @@ New features include:
 - Optimized Monte Carlo Tree Search
 - Better training settings for CUDA GPU
 
+### API Implementation
+
+Implemented a functional Django Rest Framework API in `/api` directory. It receives JSON input and send back a JSON output with the best move.
+
 ## Src File structure
 
 ```yaml
 LucidTree/
-├── src/                                    # All Python files
-│   ├── lucidtree/                          # Go related files
-│   │   │── go                              # All Python files related to Go, such as board.py and rules.py
+├── src/
+│   ├── lucidtree/
+│   │   │── cli
+│   │   │   ├── main.py                     # Python file for testing
+│   │   │── common
+│   │   │   ├── logging.py                  # Logger setup
+│   │   │   ├── paths.py                    # Paths-related functions, such as getting project root
+│   │   │── engine
+│   │   │   ├── analysis.py                 # Function that handles a validated JSON input analysis request
+│   │   │── go
 │   │   │   ├── board.py                    # Python class that represents a Go game board
 │   │   │   ├── game.py                     # Python class that represents a Go game, including board, players, and the winner
 │   │   │   ├── move.py                     # Python class that represents a move in a game of Go
 │   │   │   ├── player.py                   # Python class that represents a player in a game of Go
 │   │   │   ├── rules.py                    # Python class that contains various rules for Go
-│   │   │── mcts                            # All Python files related to Monte Carlo Tree Search, such as search.py
+│   │   │── mcts
 │   │   │   ├── node.py                     # A custom Node data structure class used for Monte Carlo Tree Search
 │   │   │   ├── search.py                   # A python program that searches for the most optimum move given the board and player
-│   │   │── misc                            # All Python files that are not absolutely essential to this project
-│   │   │   ├── minimax.py                  # A depth-limited MiniMax algorithm for Go with alpha-beta pruning
+│   │   │── minimax
+│   │   │   ├── search.py                   # A depth-limited MiniMax algorithm for Go with alpha-beta pruning
 │   │   │── nn                              # All neural network related files
 │   │   │   ├── datasets/
 │   │   │   │   ├── gokifu_download.py      # A Python program that automatically downloads professional games from Gokifu website
@@ -130,13 +141,12 @@ LucidTree/
 │   │   │   │   ├── sgf_parser.py           # An util file that parses SGF files and convert it to a Game object
 │   │   │   ├── agent.py                    # The agent that loads the model and pick a move
 │   │   │   ├── evaluate.py                 # A function that evaluate the training result based on the validation dataset
+│   │   │   ├── features.py                 # Some features that are related to nn
 │   │   │   ├── model.py                    # The PolicyValueNetwork CNN model
 │   │   │   ├── play.py                     # A file that is mainly used for testing (e.g., nn v.s. nn and human v.s. nn)
 │   │   │   ├── split.py                    # Splits the game into training, validation, and testing set
 │   │   │   ├── train.py                    # Runs the actual training with 30 epochs
 │   │   │── constants.py                    # A file containing all the essential constants used in the project
-│   │   │── main.py                         # A file for testing
-│   │   │── utils.py                        # Some utility functions
 ```
 
 ## Django Rest Framework API
@@ -189,7 +199,9 @@ uv sync --dev  # install all the dependencies
 ```
 
 ```bash
-pytest  # Run at root level. This would run all tests.
+make test  # Run at root level. This would run all tests.
+# or
+pytest  # Directly call the pytest command
 ```
 
 To add more tests, simply add a new Python file in the `tests/` directory. Note that it must start with `test_xxx` or `xxx_test`
@@ -197,3 +209,7 @@ To add more tests, simply add a new Python file in the `tests/` directory. Note 
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration. The `ci.yml` workflow runs on every push and pull request, performing code quality checks including Ruff linting, Mypy type checking, isort import sorting validation, and pip-audit security scanning. The `tests.yml` workflow runs pytest tests on pushes to the main branch and all pull requests targeting main, ensuring that all tests pass before code is merged.
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
