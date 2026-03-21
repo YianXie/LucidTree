@@ -51,7 +51,7 @@ fi
 
 # Run Ruff formatting check
 echo "Static type checking with mypy"
-if uv run mypy --show-error-codes; then
+if uv run mypy . --show-error-codes; then
     print_status "mypy type checking passed"
 else
     print_error "mypy type checking failed."

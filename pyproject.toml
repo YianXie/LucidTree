@@ -62,6 +62,7 @@ testpaths = ["tests"]
 [tool.mypy]
 python_version = "3.12"
 files = ["src/**/*.py", "api/**/*.py"]
+exclude = ["migrations"]
 strict = true
 ignore_missing_imports = true
 mypy_path = ["src", "api"]
