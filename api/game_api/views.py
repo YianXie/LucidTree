@@ -3,6 +3,7 @@
 from typing import Any
 
 from common.exceptions import BadRequestError
+from game_api.models import AnalyzeRequest
 from game_api.serializers import (AnalyzeRequestSerializer,
                                   AnalyzeResponseSerializer)
 from game_api.services import analyze
@@ -32,11 +33,14 @@ class AnalyzeView(APIView):  # type: ignore
     permission_classes: list[Any] = []
 
     def post(self, request: Request) -> Response:
-        serializer = AnalyzeRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        request_serializer = AnalyzeRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
+        request_model_instance = AnalyzeRequest(data=request_serializer.validated_data)
+        request_model_instance.save()
 
         try:
-            result = analyze(serializer.validated_data)
+            result = analyze(request_serializer.validated_data)
         except BadRequestError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
