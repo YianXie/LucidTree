@@ -109,6 +109,40 @@ New features include:
 
 Implemented a functional Django Rest Framework API in `/api` directory. It receives JSON input and send back a JSON output with the best move.
 
+Sample JSON request:
+
+```json
+{
+    "board_size": 9,
+    "rules": "japanese",
+    "komi": 6.5,
+    "to_play": "B",
+    "moves": [
+        ["B", "D4"],
+        ["W", "E4"]
+    ],
+    "algo": "mcts",
+    "params": {
+        "num_simulations": 300,
+        "c_puct": 1.25
+    }
+}
+```
+
+Sample JSON response:
+
+```json
+{
+    "best_move": "C5",
+    "algorithm": "mcts",
+    "stats": {
+        "num_simulations": 300,
+        "c_puct": 1.25,
+        "time_ms": 91.83
+    }
+}
+```
+
 ## Src File structure
 
 ```yaml
