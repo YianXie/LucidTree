@@ -16,4 +16,4 @@ class AnalyzeRequest(models.Model):  # type: ignore
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        return f"AnalyzeRequest {self.id}"
+        return f"{self.id}"
