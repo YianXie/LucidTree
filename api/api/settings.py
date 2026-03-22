@@ -10,7 +10,19 @@ dotenv.load_dotenv()
 
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT")
-SECRET_KEY = os.environ.get("SECRET_KEY")
+
+if ENVIRONMENT == "development":
+    # Allow a missing SECRET_KEY in development by using a local-only fallback.
+    # Never rely on this fallback in production.
+    SECRET_KEY = os.environ.get(
+        "SECRET_KEY", "django-insecure-dev-fallback-key-do-not-use-in-production"
+    )
+else:
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    if not SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY environment variable must be set in non-development environments."
+        )
 
 if ENVIRONMENT == "development":
     DEBUG = True

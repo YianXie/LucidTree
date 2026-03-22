@@ -8,27 +8,6 @@ BOARD_SIZE_CHOICES = (9, 13, 19)
 RULE_CHOICES = ("japanese", "chinese")
 
 
-class MoveSerializer(serializers.Serializer):  # type: ignore
-    """
-    Serializer for the move
-
-    Raises:
-        serializers.ValidationError: If the point is not valid
-
-    Returns:
-        tuple[str, str]: The validated color and point
-    """
-
-    color = serializers.ChoiceField(choices=PLAYER_CHOICES)
-    point = serializers.CharField(max_length=10)
-
-    def validate_point(self, value: str) -> str:
-        value = value.strip().upper()
-        if not value:
-            raise serializers.ValidationError("Point is required")
-        return value
-
-
 class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
     """
     Serializer for the analyze parameters
