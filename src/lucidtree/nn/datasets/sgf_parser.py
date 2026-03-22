@@ -135,7 +135,7 @@ def parse_sgf_files(
             game_parsed += 1
         except Exception as e:
             if log:
-                logger.warning("Skipped file: %s. ValueError: %s.", sgf_file, e)  # type: ignore
+                logger.warning("Skipped file: %s. Exception: %s.", sgf_file, e)  # type: ignore
             if not graceful:
                 raise e
 
