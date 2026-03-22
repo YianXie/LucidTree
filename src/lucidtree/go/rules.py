@@ -1,6 +1,6 @@
 # fmt: off
-from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, EMPTY_COLOR, PASS_MOVE_POSITION,
-                                 WHITE_COLOR)
+from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, EMPTY_COLOR,
+                                 PASS_MOVE_POSITION, WHITE_COLOR)
 
 # fmt: on
 

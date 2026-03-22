@@ -9,7 +9,8 @@ GTP notation skips the letter 'I' to avoid confusion with '1', so:
 import pytest
 
 from lucidtree.constants import PASS_INDEX, PASS_MOVE_POSITION
-from lucidtree.go.coordinates import gtp_to_row_col, row_col_to_gtp, row_col_to_index
+from lucidtree.go.coordinates import (gtp_to_row_col, row_col_to_gtp,
+                                      row_col_to_index)
 from lucidtree.go.exceptions import InvalidCoordinateError
 
 # ---------------------------------------------------------------------------

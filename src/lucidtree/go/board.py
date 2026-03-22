@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from lucidtree.constants import (BLACK_COLOR, EMPTY_COLOR, PASS_MOVE_POSITION,
                                  WHITE_COLOR)
 from lucidtree.go.exceptions import (GameOverError, IllegalMoveError,
-                                     InvalidColorError, InvalidCoordinateError,)
+                                     InvalidColorError, InvalidCoordinateError)
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
 from lucidtree.go.rules import Rules
