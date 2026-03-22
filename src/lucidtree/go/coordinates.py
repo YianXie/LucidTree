@@ -57,7 +57,9 @@ def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
     # Map letter to zero-based column index, skipping 'I'
     letter = gtp_move[0]
     letter_index = ord(letter) - ord("A")
-    column = letter_index if letter_index < 8 else letter_index - 1  # skip 'I' (index 8)
+    column = (
+        letter_index if letter_index < 8 else letter_index - 1
+    )  # skip 'I' (index 8)
     row = int(gtp_move[1:]) - 1
     return row, column
 

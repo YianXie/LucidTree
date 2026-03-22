@@ -8,8 +8,8 @@ GTP notation skips the letter 'I' to avoid confusion with '1', so:
 import pytest
 
 from lucidtree.constants import PASS_INDEX, PASS_MOVE_POSITION
-from lucidtree.go.coordinates import gtp_to_row_col, move_to_index, row_col_to_gtp
-
+from lucidtree.go.coordinates import (gtp_to_row_col, move_to_index,
+                                      row_col_to_gtp)
 
 # ---------------------------------------------------------------------------
 # move_to_index (board-index encoding used by MCTS/NN for 19×19 boards)
@@ -24,7 +24,6 @@ class TestMoveToIndex:
         assert move_to_index(None) == PASS_INDEX
 
     def test_origin_maps_to_index_0(self) -> None:
-        from lucidtree.constants import BOARD_SIZE
 
         assert move_to_index((0, 0)) == 0
 

@@ -13,13 +13,12 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from common.exceptions import BadRequestError
+from game_api.serializers import (AnalyzeParamsSerializer,
+                                  AnalyzeRequestSerializer)
+from game_api.services import _parse_move, _parse_player
 from rest_framework.response import Response
 from rest_framework.test import APIClient
-
-from common.exceptions import BadRequestError
-from game_api.serializers import AnalyzeParamsSerializer, AnalyzeRequestSerializer
-from game_api.services import _parse_move, _parse_player
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -234,9 +233,7 @@ class TestAnalyzeView:
             "stats": {"depth": 1, "elapsed_ms": 5.0},
         },
     )
-    def test_valid_request_returns_200(
-        self, _mock: Any, api_client: APIClient
-    ) -> None:
+    def test_valid_request_returns_200(self, _mock: Any, api_client: APIClient) -> None:
         response = self._post(api_client, _valid_payload())
         assert response.status_code == 200
         assert "best_move" in response.data  # type: ignore[operator]
@@ -250,4 +247,3 @@ class TestAnalyzeView:
         # The raw exception message must NOT be exposed to the client
         assert "internal secret" not in str(response.data)
         assert "detail" in response.data  # type: ignore[operator]
-

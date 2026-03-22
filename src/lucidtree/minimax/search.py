@@ -1,7 +1,7 @@
 # fmt: off
 
-from lucidtree.constants import (BLACK_COLOR, INFINITY,
-                                 PASS_MOVE_POSITION, WHITE_COLOR)
+from lucidtree.constants import (BLACK_COLOR, INFINITY, PASS_MOVE_POSITION,
+                                 WHITE_COLOR)
 from lucidtree.go.board import Board
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
