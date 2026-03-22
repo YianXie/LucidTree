@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, INFINITY, KOMI
 from lucidtree.go.board import Board
-from lucidtree.go.coordinates import move_to_index
+from lucidtree.go.coordinates import row_col_to_index
 from lucidtree.go.player import Player
 from lucidtree.nn.features import encode_board
 
@@ -77,7 +77,8 @@ class Node:
 
         legal_moves = self.board.get_legal_moves(self.to_play.get_color())
         for move in legal_moves:
-            idx = move_to_index(move.get_position())
+            row, col = move.get_position()
+            idx = row_col_to_index(row, col)
             self.legal_mask[idx] = True
 
         x = encode_board(self.board).unsqueeze(0).float()

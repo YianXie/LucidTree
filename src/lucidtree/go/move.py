@@ -1,4 +1,5 @@
 from lucidtree.constants import EMPTY_COLOR
+from lucidtree.go.exceptions import InvalidColorError
 
 from .rules import Rules
 
@@ -38,10 +39,10 @@ class Move:
             color (int): the color of the move
 
         Raises:
-            ValueError: if the color is invalid
+            InvalidColorError: if the color is invalid
         """
         if not Rules.color_is_valid(color):
-            raise ValueError(f"Invalid color: {color}")
+            raise InvalidColorError(f"Invalid color: {color}")
         self.color = color
 
     def get_position(self) -> tuple[int, int]:
@@ -69,7 +70,7 @@ class Move:
         Returns:
             bool: True if it is empty, False otherwise
         """
-        return self.color == 0
+        return self.color == EMPTY_COLOR
 
     def is_passed(self) -> bool:
         """

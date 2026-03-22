@@ -8,6 +8,7 @@ import torch
 from lucidtree.constants import BOARD_SIZE
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import row_col_to_gtp
+from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
 from lucidtree.nn.agent import (load_model, pick_move_mcts, pick_move_minimax,
                                 pick_move_nn)
@@ -36,7 +37,7 @@ def analyze_position(
         dict[str, Any]: the analyzed position
     """
     if algo in ("mcts", "nn") and board.size != _NN_REQUIRED_BOARD_SIZE:
-        raise ValueError(
+        raise BadRequestError(
             f"Algorithm '{algo}' only supports {_NN_REQUIRED_BOARD_SIZE}x{_NN_REQUIRED_BOARD_SIZE} boards, "
             f"but a {board.size}x{board.size} board was provided."
         )
@@ -81,7 +82,7 @@ def analyze_position(
             }
 
         case _:
-            raise ValueError(f"Invalid algorithm {algo}")
+            raise BadRequestError(f"Invalid algorithm {algo}")
 
     end = time.perf_counter()
     elapsed_ms = round((end - start) * 1000, 2)

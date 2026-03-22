@@ -2,6 +2,7 @@ import pytest
 
 from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
 from lucidtree.go.board import Board
+from lucidtree.go.exceptions import IllegalMoveError
 from lucidtree.go.player import Player
 
 test_black_player = Player("Black Tester", BLACK_COLOR)
@@ -61,11 +62,11 @@ def test_self_suicide_is_illegal() -> None:
     prev_board = board.state
 
     # White tries to place_move inside the "eye"
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(IllegalMoveError) as excinfo:
         board.place_move((2, 1), WHITE_COLOR)
 
     # Verify we got a ValueError
-    assert excinfo.type is ValueError
+    assert excinfo.type is IllegalMoveError
 
     # Confirm the board is unchanged
     assert prev_board == board.state
@@ -120,11 +121,11 @@ def test_simple_ko_prevents_immediate_recap() -> None:
     assert board.get_move_at_position((1, 1)).is_empty()
 
     # White attempts immediate recapture at (1,1) (should be illegal by simple ko)
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(IllegalMoveError) as excinfo:
         board.place_move((1, 1), WHITE_COLOR)
 
     # Verify we got a ValueError
-    assert excinfo.type is ValueError
+    assert excinfo.type is IllegalMoveError
 
     # Confirm the board is unchanged
     assert board.get_move_at_position((1, 1)).is_empty()

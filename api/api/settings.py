@@ -18,7 +18,7 @@ if ENVIRONMENT == "development":
         "SECRET_KEY", "django-insecure-dev-fallback-key-do-not-use-in-production"
     )
 else:
-    SECRET_KEY = os.environ.get("SECRET_KEY")
+    SECRET_KEY = os.environ.get("SECRET_KEY")  # type: ignore
     if not SECRET_KEY:
         raise RuntimeError(
             "SECRET_KEY environment variable must be set in non-development environments."

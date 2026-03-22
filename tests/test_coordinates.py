@@ -1,4 +1,5 @@
-"""Tests for GTP coordinate conversion correctness.
+"""
+Tests for GTP coordinate conversion correctness.
 
 These tests cover the GTP 'I'-skip fix and bounds-checking additions.
 GTP notation skips the letter 'I' to avoid confusion with '1', so:
@@ -8,8 +9,8 @@ GTP notation skips the letter 'I' to avoid confusion with '1', so:
 import pytest
 
 from lucidtree.constants import PASS_INDEX, PASS_MOVE_POSITION
-from lucidtree.go.coordinates import (gtp_to_row_col, move_to_index,
-                                      row_col_to_gtp)
+from lucidtree.go.coordinates import gtp_to_row_col, row_col_to_gtp, row_col_to_index
+from lucidtree.go.exceptions import InvalidCoordinateError
 
 # ---------------------------------------------------------------------------
 # move_to_index (board-index encoding used by MCTS/NN for 19×19 boards)
@@ -18,29 +19,26 @@ from lucidtree.go.coordinates import (gtp_to_row_col, move_to_index,
 
 class TestMoveToIndex:
     def test_pass_position_returns_pass_index(self) -> None:
-        assert move_to_index(PASS_MOVE_POSITION) == PASS_INDEX
-
-    def test_none_returns_pass_index(self) -> None:
-        assert move_to_index(None) == PASS_INDEX
+        row, col = PASS_MOVE_POSITION
+        assert row_col_to_index(row, col) == PASS_INDEX
 
     def test_origin_maps_to_index_0(self) -> None:
-
-        assert move_to_index((0, 0)) == 0
+        assert row_col_to_index(0, 0) == 0
 
     def test_row_column_encoding(self) -> None:
         from lucidtree.constants import BOARD_SIZE
 
         # (row, col) → row * BOARD_SIZE + col
-        assert move_to_index((1, 0)) == BOARD_SIZE
-        assert move_to_index((0, 1)) == 1
-        assert move_to_index((2, 3)) == 2 * BOARD_SIZE + 3
+        assert row_col_to_index(1, 0) == BOARD_SIZE
+        assert row_col_to_index(0, 1) == 1
+        assert row_col_to_index(2, 3) == 2 * BOARD_SIZE + 3
 
     def test_last_board_position(self) -> None:
         from lucidtree.constants import BOARD_SIZE
 
         last_row, last_col = BOARD_SIZE - 1, BOARD_SIZE - 1
         expected = last_row * BOARD_SIZE + last_col
-        assert move_to_index((last_row, last_col)) == expected
+        assert row_col_to_index(last_row, last_col) == expected
 
 
 # ---------------------------------------------------------------------------
@@ -79,15 +77,15 @@ class TestGtpToRowCol:
         assert gtp_to_row_col("A19")[0] == 18
 
     def test_letter_i_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="Invalid GTP move"):
+        with pytest.raises(InvalidCoordinateError, match="Invalid GTP move"):
             gtp_to_row_col("I5")
 
     def test_invalid_column_letter_rejected(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidCoordinateError):
             gtp_to_row_col("15")  # digit as column letter
 
     def test_invalid_row_digit_rejected(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidCoordinateError):
             gtp_to_row_col("AX")  # non-digit row
 
     def test_whitespace_stripped(self) -> None:

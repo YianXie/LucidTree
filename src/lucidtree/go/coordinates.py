@@ -1,20 +1,24 @@
 from lucidtree.constants import BOARD_SIZE, PASS_INDEX, PASS_MOVE_POSITION
+from lucidtree.go.exceptions import InvalidCoordinateError
+from lucidtree.go.rules import Rules
 
 
-def move_to_index(move_position: tuple[int, int] | None, /) -> int:
+def row_col_to_index(row: int, col: int, /) -> int:
     """
     Calculate the index of a move within the encoded tensor
 
     Args:
-        move_position (tuple[int, int] | None): the move's position
+        row (int): the row of the move
+        col (int): the column of the move
 
     Returns:
         int: the index within the tensor
     """
-    if move_position == PASS_MOVE_POSITION or move_position is None:
-        return PASS_INDEX
+    if not Rules.row_col_is_valid(row, col):
+        raise InvalidCoordinateError(f"Invalid position: {(row, col)}")
 
-    row, col = move_position
+    if (row, col) == PASS_MOVE_POSITION:
+        return PASS_INDEX
     return row * BOARD_SIZE + col
 
 
@@ -25,10 +29,14 @@ def index_to_row_col(index: int, /) -> tuple[int, int]:
     Args:
         index (int): the move index
     """
-    if index == PASS_INDEX:
-        return (-1, -1)
+    if not Rules.index_is_valid(index):
+        raise InvalidCoordinateError(f"Invalid index: {index}")
 
-    return divmod(index, BOARD_SIZE)
+    if index == PASS_INDEX:
+        return PASS_MOVE_POSITION
+
+    row, col = divmod(index, BOARD_SIZE)
+    return row, col
 
 
 def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
@@ -40,27 +48,26 @@ def gtp_to_row_col(gtp_move: str, /) -> tuple[int, int]:
 
     Args:
         gtp_move (str): the GTP move
+
+    Returns:
+        tuple[int, int]: the row and column
+
+    Raises:
+        InvalidCoordinateError: if the GTP move is invalid
     """
     gtp_move = gtp_move.strip().upper()
+    if not Rules.gtp_move_is_valid(gtp_move):
+        raise InvalidCoordinateError(f"Invalid GTP move: {gtp_move}")
+
     if gtp_move == "PASS":
         return PASS_MOVE_POSITION
 
-    # GTP skips 'I'; valid column letters are A-H and J-Z
-    valid_columns = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
-    if not gtp_move or gtp_move[0] not in valid_columns:
-        raise ValueError(f"Invalid GTP move: {gtp_move}")
-
-    for char in gtp_move[1:]:
-        if char not in "1234567890":
-            raise ValueError(f"Invalid GTP move: {gtp_move}")
-
     # Map letter to zero-based column index, skipping 'I'
-    letter = gtp_move[0]
-    letter_index = ord(letter) - ord("A")
+    letter_index = ord(gtp_move[0]) - ord("A")
+    row = int(gtp_move[1:]) - 1
     column = (
         letter_index if letter_index < 8 else letter_index - 1
     )  # skip 'I' (index 8)
-    row = int(gtp_move[1:]) - 1
     return row, column
 
 
@@ -70,8 +77,15 @@ def gtp_to_index(gtp_move: str, /) -> int:
 
     Args:
         gtp_move (str): the GTP move
+
+    Returns:
+        int: the board index
+
+    Raises:
+        InvalidCoordinateError: if the GTP move is invalid
     """
-    return move_to_index(gtp_to_row_col(gtp_move))
+    row, col = gtp_to_row_col(gtp_move)
+    return row_col_to_index(row, col)
 
 
 def row_col_to_gtp(row: int, col: int, /) -> str:
@@ -83,9 +97,19 @@ def row_col_to_gtp(row: int, col: int, /) -> str:
     Args:
         row (int): the row
         col (int): the column
+
+    Returns:
+        str: the GTP move
+
+    Raises:
+        InvalidCoordinateError: if the row or column is invalid
     """
+    if not Rules.row_col_is_valid(row, col, BOARD_SIZE):
+        raise InvalidCoordinateError(f"Invalid position: {(row, col)}")
+
     if (row, col) == PASS_MOVE_POSITION:
         return "PASS"
+
     # Skip 'I': columns 0-7 → A-H, columns 8+ → J-Z
     letter_index = col if col < 8 else col + 1
     letter = chr(ord("A") + letter_index)
@@ -99,5 +123,15 @@ def index_to_gtp(index: int, /) -> str:
 
     Args:
         index (int): the board index
+
+    Returns:
+        str: the GTP move
+
+    Raises:
+        InvalidCoordinateError: if the index is invalid
     """
-    return row_col_to_gtp(*index_to_row_col(index))
+    if not Rules.index_is_valid(index):
+        raise InvalidCoordinateError(f"Invalid index: {index}")
+
+    row, col = index_to_row_col(index)
+    return row_col_to_gtp(row, col)

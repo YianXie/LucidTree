@@ -13,7 +13,7 @@ from lucidtree.common.logging import setup_logger
 from lucidtree.common.paths import get_project_root
 from lucidtree.constants import BLACK_COLOR, SHARD_SIZE, WHITE_COLOR
 from lucidtree.go.board import Board
-from lucidtree.go.coordinates import move_to_index
+from lucidtree.go.coordinates import row_col_to_index
 from lucidtree.go.game import Game
 from lucidtree.go.player import Player
 from lucidtree.nn.datasets.sgf_parser import parse_sgf_files
@@ -143,8 +143,8 @@ class SgfPolicyValueDataset(Dataset[Any]):
                     to_play = board.get_current_player()
 
                     x = encode_board(board)
-                    move_position = move.get_position()
-                    y_policy = move_to_index(move_position)
+                    row, col = move.get_position()
+                    y_policy = row_col_to_index(row, col)
 
                     xs.append(x)
                     ys_policy.append(y_policy)
@@ -159,7 +159,7 @@ class SgfPolicyValueDataset(Dataset[Any]):
                     if move.is_passed():
                         board.pass_move()
                     else:
-                        board.place_move(move_position, to_play.get_color())
+                        board.place_move((row, col), to_play.get_color())
 
             if idx % 500 == 0:
                 logger.info("%d games parsed", idx)

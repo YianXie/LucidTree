@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 from lucidtree.constants import (BLACK_COLOR, EMPTY_COLOR, PASS_MOVE_POSITION,
                                  WHITE_COLOR)
+from lucidtree.go.exceptions import (GameOverError, IllegalMoveError,
+                                     InvalidColorError, InvalidCoordinateError,)
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
 from lucidtree.go.rules import Rules
@@ -175,9 +177,13 @@ class Board:
 
         Returns:
             Move: the move at the given position
+
+        Raises:
+            InvalidCoordinateError: if the position is invalid
         """
-        if not Rules.position_is_valid(position, self.size):
-            raise ValueError(f"Invalid position: {position}")
+        if not Rules.row_col_is_valid(position[0], position[1], self.size):
+            raise InvalidCoordinateError(f"Invalid position: {position}")
+
         return self.state[position[0]][position[1]]
 
     def get_neighbors(self, move: Move) -> list[Move] | None:
@@ -416,25 +422,27 @@ class Board:
             color (int): the color of the move
 
         Raises:
-            ValueError: if the position is invalid
-            ValueError: if the color is invalid
-            ValueError: if the position is already occupied
+            InvalidCoordinateError: if the position is invalid
+            InvalidColorError: if the color is invalid
+            IllegalMoveError: if the move is illegal
+            GameOverError: if the game is already over
+            IllegalMoveError: if the position is already occupied
         """
-        if not Rules.position_is_valid(position, self.size):
-            raise ValueError(f"Invalid position: {position}")
+        if not Rules.row_col_is_valid(position[0], position[1], self.size):
+            raise InvalidCoordinateError(f"Invalid position: {position}")
         if not Rules.color_is_valid(color):
-            raise ValueError(f"Invalid color: {color}")
+            raise InvalidColorError(f"Invalid color: {color}")
         if not self.get_move_at_position(position).is_empty():
-            raise ValueError(f"Position already occupied: {position}")
+            raise IllegalMoveError(f"Position already occupied: {position}")
         if self._is_terminate:
-            raise RuntimeError("Game is already over!")
+            raise GameOverError("Game is already over!")
 
         move: Move = self.state[position[0]][position[1]]
         prev_color = move.get_color()
         move.set_color(color)
         if not self.move_is_valid(move):
             move.set_color(prev_color)
-            raise ValueError("Illegal move")
+            raise IllegalMoveError(f"Move is illegal: {move}")
 
         # Calculate captures
         captures: list[Move] = self.check_captures(move)
@@ -489,7 +497,7 @@ class Board:
         """
         # Handle edge case — if the game is already over
         if self._is_terminate:
-            raise RuntimeError("Game is already over!")
+            raise GameOverError("Game is already over!")
 
         self._ko_positions = None
 

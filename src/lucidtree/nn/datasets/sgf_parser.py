@@ -97,7 +97,7 @@ def parse_sgf_files(
 
     Args:
         path (Path): the path to the directory
-        graceful (bool, optional): if the function should handle ValueError gracefully. Defaults to True.
+        graceful (bool, optional): if the function should handle exceptions gracefully. Defaults to True.
         start (int, optional): the starting sgf file. Defaults to 0.
         amount (int | None, optional): the amount ot parse. Defaults to None.
 
@@ -105,8 +105,7 @@ def parse_sgf_files(
         FileNotFoundError: if the directory is not found
         NotADirectoryError: if the given path is not a directory
         RuntimeError: if the logger is not given but log is True
-        e: value error when parsing games
-        e: runtime error when parsing games
+        e: exceptions when parsing games
 
     Returns:
         list[Game]: the parsed games
@@ -134,14 +133,9 @@ def parse_sgf_files(
         try:
             games.append(parse_sgf_file(sgf_file))
             game_parsed += 1
-        except ValueError as e:
+        except Exception as e:
             if log:
                 logger.warning("Skipped file: %s. ValueError: %s.", sgf_file, e)  # type: ignore
-            if not graceful:
-                raise e
-        except RuntimeError as e:
-            if log:
-                logger.warning("Skipped file: %s. RuntimeError: %s.", sgf_file, e)  # type: ignore
             if not graceful:
                 raise e
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from lucidtree.constants import BLACK_COLOR, WHITE_COLOR
+from lucidtree.go.exceptions import InvalidColorError, InvalidNameError
 
 from .rules import Rules
 
@@ -31,7 +32,7 @@ class Player:
             name (str): the new name
         """
         if not Rules.player_name_is_valid(name):
-            raise TypeError("Invalid name type: expecting a string")
+            raise InvalidNameError(f"Invalid name: {name}")
         self.name = name
 
     def set_color(self, color: int) -> None:
@@ -42,10 +43,10 @@ class Player:
             color (int): the color of the player, should be either -1 (black) or 1 (white)
 
         Raises:
-            ValueError: if the color is not valid
+            InvalidColorError: if the color is not valid
         """
         if not Rules.color_is_valid(color):
-            raise ValueError(f"Invalid color: {color}")
+            raise InvalidColorError(f"Invalid color: {color}")
         self.color = color
 
     def set_capture_count(self, amount: int) -> None:

@@ -209,12 +209,12 @@ class TestHealthView:
     def test_health_returns_200(self, api_client: APIClient) -> None:
         response = api_client.get("/api/health/")
         assert response.status_code == 200
-        assert response.data["status"] == "ok"  # type: ignore[index]
+        assert response.data["status"] == "ok"
 
 
 class TestAnalyzeView:
     def _post(self, api_client: APIClient, payload: dict[str, Any]) -> Response:
-        return api_client.post("/api/analyze/", payload, format="json")  # type: ignore[return-value]
+        return api_client.post("/api/analyze/", payload, format="json")
 
     def test_invalid_board_size_returns_400(self, api_client: APIClient) -> None:
         response = self._post(api_client, {**_valid_payload(), "board_size": 7})
@@ -236,7 +236,7 @@ class TestAnalyzeView:
     def test_valid_request_returns_200(self, _mock: Any, api_client: APIClient) -> None:
         response = self._post(api_client, _valid_payload())
         assert response.status_code == 200
-        assert "best_move" in response.data  # type: ignore[operator]
+        assert "best_move" in response.data
 
     @patch("game_api.services.analyze", side_effect=RuntimeError("internal secret"))
     def test_unexpected_exception_returns_generic_500(
@@ -246,4 +246,4 @@ class TestAnalyzeView:
         assert response.status_code == 500
         # The raw exception message must NOT be exposed to the client
         assert "internal secret" not in str(response.data)
-        assert "detail" in response.data  # type: ignore[operator]
+        assert "detail" in response.data
