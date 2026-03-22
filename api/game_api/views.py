@@ -1,5 +1,6 @@
 # fmt: off
 
+import logging
 from typing import Any
 
 from common.exceptions import BadRequestError
@@ -12,6 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, Request
 
 # fmt: on
+
+logger = logging.getLogger(__name__)
 
 
 class HealthView(APIView):  # type: ignore
@@ -43,9 +46,11 @@ class AnalyzeView(APIView):  # type: ignore
             result = analyze(request_serializer.validated_data)
         except BadRequestError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
+        except Exception:
+            logger.exception("Unexpected error during position analysis")
             return Response(
-                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"detail": "An internal server error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         response_serializer = AnalyzeResponseSerializer(data=result)

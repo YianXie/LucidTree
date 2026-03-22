@@ -31,12 +31,13 @@ def _parse_player(value: str, /) -> Player:
         raise BadRequestError(f"Invalid player: expecting 'B' or 'W', got '{value}'")
 
 
-def _parse_move(value: str, /) -> tuple[int, int]:
+def _parse_move(value: str, /, *, board_size: int) -> tuple[int, int]:
     """
-    Parse a move from a string
+    Parse a move from a string and validate it lies within the board.
 
     Args:
         value (str): the move string, should be in the format 'A1', 'B2', etc. or 'PASS'
+        board_size (int): the board size used to validate the coordinate bounds
 
     Raises:
         BadRequestError: if the move is not valid, expecting 'A1', 'B2', etc. or 'PASS'
@@ -45,9 +46,18 @@ def _parse_move(value: str, /) -> tuple[int, int]:
         tuple[int, int]: the move position
     """
     try:
-        return gtp_to_row_col(value)
+        position = gtp_to_row_col(value)
     except Exception as e:
         raise BadRequestError(f"Invalid move: {e}")
+
+    if position != PASS_MOVE_POSITION:
+        row, col = position
+        if not (0 <= row < board_size and 0 <= col < board_size):
+            raise BadRequestError(
+                f"Move '{value}' is out of bounds for a {board_size}x{board_size} board"
+            )
+
+    return position
 
 
 def _build_board_from_request(
@@ -67,7 +77,7 @@ def _build_board_from_request(
 
     for color_text, point_text in moves:
         player = _parse_player(color_text)
-        move_position = _parse_move(point_text)
+        move_position = _parse_move(point_text, board_size=board_size)
 
         try:
             if move_position == PASS_MOVE_POSITION:

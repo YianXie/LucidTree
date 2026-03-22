@@ -1,6 +1,6 @@
 # fmt: off
 
-from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, INFINITY,
+from lucidtree.constants import (BLACK_COLOR, INFINITY,
                                  PASS_MOVE_POSITION, WHITE_COLOR)
 from lucidtree.go.board import Board
 from lucidtree.go.move import Move
@@ -13,7 +13,6 @@ min_player, max_player = (
     Player("Black Player", BLACK_COLOR),
     Player("White Player", WHITE_COLOR),
 )
-board = Board(BOARD_SIZE, min_player, max_player)
 
 
 def _legal_moves_including_pass(board: Board, color: int) -> list[Move | None]:

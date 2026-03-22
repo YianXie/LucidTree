@@ -10,7 +10,7 @@ from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, INFINITY, KOMI
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import move_to_index
 from lucidtree.go.player import Player
-from lucidtree.utils import encode_board
+from lucidtree.nn.features import encode_board
 
 
 class Node:

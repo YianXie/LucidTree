@@ -5,6 +5,7 @@ from typing import Any
 
 import torch
 
+from lucidtree.constants import BOARD_SIZE
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import row_col_to_gtp
 from lucidtree.go.player import Player
@@ -12,6 +13,8 @@ from lucidtree.nn.agent import (load_model, pick_move_mcts, pick_move_minimax,
                                 pick_move_nn)
 
 # fmt: on
+
+_NN_REQUIRED_BOARD_SIZE = BOARD_SIZE
 
 
 def analyze_position(
@@ -26,9 +29,18 @@ def analyze_position(
         algo (str): the algorithm to use
         params (dict[str, Any]): the parameters for the algorithm
 
+    Raises:
+        ValueError: if algo is 'mcts' or 'nn' and board.size != 19
+
     Returns:
         dict[str, Any]: the analyzed position
     """
+    if algo in ("mcts", "nn") and board.size != _NN_REQUIRED_BOARD_SIZE:
+        raise ValueError(
+            f"Algorithm '{algo}' only supports {_NN_REQUIRED_BOARD_SIZE}x{_NN_REQUIRED_BOARD_SIZE} boards, "
+            f"but a {board.size}x{board.size} board was provided."
+        )
+
     start = time.perf_counter()
 
     match algo:
@@ -40,8 +52,7 @@ def analyze_position(
                 board, to_play, num_simulations=num_simulations, c_puct=c_puct
             )
 
-            stats = {
-                "best_move": best_move,
+            stats: dict[str, Any] = {
                 "num_simulations": num_simulations,
                 "c_puct": c_puct,
             }
@@ -57,7 +68,6 @@ def analyze_position(
             )
 
             stats = {
-                "best_move": best_move,
                 "model_name": model_name,
             }
 
@@ -67,7 +77,6 @@ def analyze_position(
             best_move = pick_move_minimax(board, to_play, depth=depth)
 
             stats = {
-                "best_move": best_move,
                 "depth": depth,
             }
 

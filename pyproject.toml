@@ -57,7 +57,7 @@ where = ["src"]
 
 [tool.pytest]
 minversion = "9.0"
-testpaths = ["tests"]
+testpaths = ["tests", "api"]
 
 [tool.mypy]
 python_version = "3.12"

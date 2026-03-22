@@ -31,8 +31,13 @@ def load_model(
     Args:
         model_name (str | None, optional): the name of the model to load. Defaults to None.
             If None, loads the default model from the models directory.
+            Must not contain path separators or '..' to prevent path traversal.
         device (torch.device | None, optional): the device to load the model onto.
             If None, loads to CPU. Use CUDA when available for GPU inference.
+
+    Raises:
+        ValueError: if model_name contains path-traversal characters
+        FileNotFoundError: if the model file does not exist
 
     Returns:
         nn.Module: the loaded model
@@ -40,7 +45,17 @@ def load_model(
     if model_name is None:
         path = root / "models/checkpoint_19x19.pt"
     else:
+        if ".." in model_name or "/" in model_name or "\\" in model_name:
+            raise ValueError(
+                f"Invalid model name '{model_name}': must not contain path separators or '..'"
+            )
         path = root / "models" / f"{model_name}.pt"
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Model file not found: '{path.name}'. "
+            "Ensure the model is present in the models/ directory."
+        )
 
     if device is None:
         device = torch.device("cpu")
