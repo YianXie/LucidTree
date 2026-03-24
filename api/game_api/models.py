@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 
-class AnalyzeRequest(models.Model):  # type: ignore
+class AnalyzeRequest(models.Model):
     """
     Analyze request model
 

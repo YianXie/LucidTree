@@ -14,6 +14,7 @@ dependencies = [
     "dj-database-url>=3.1.2",
     "django>=6.0.3",
     "django-cors-headers>=4.9.0",
+    "django-stubs[1-19]>=6.0.1",
     "djangorestframework>=3.16.1",
     "fonttools==4.61.1",
     "gunicorn>=25.1.0",
@@ -66,6 +67,10 @@ exclude = ["migrations"]
 strict = true
 ignore_missing_imports = true
 mypy_path = ["src", "api"]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "api.settings"
 
 [tool.bandit]
 exclude_dirs = [".venv", "tests"]

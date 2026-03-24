@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class GameApiConfig(AppConfig):  # type: ignore
+class GameApiConfig(AppConfig):
     name = "game_api"
