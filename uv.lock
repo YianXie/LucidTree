@@ -318,6 +318,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/43/be/e9280ae94339f49d17af63b2ec508c9f11031196426a04cbdec1b0878d4a/django_stubs-6.0.1-py3-none-any.whl", hash = "sha256:d885044bd0876610f3eb969d6b5ed22f386002a879fdcb369cd8efa0502dbbce", size = 535867, upload-time = "2026-03-18T08:10:16.192Z" },
 ]
 
+[package.optional-dependencies]
+compatible-mypy = [
+    { name = "mypy" },
+]
+
 [[package]]
 name = "django-stubs-ext"
 version = "6.0.1"
@@ -601,7 +606,7 @@ dependencies = [
     { name = "dj-database-url" },
     { name = "django" },
     { name = "django-cors-headers" },
-    { name = "django-stubs" },
+    { name = "django-stubs", extra = ["compatible-mypy"] },
     { name = "djangorestframework" },
     { name = "fonttools" },
     { name = "gunicorn" },
@@ -646,7 +651,7 @@ requires-dist = [
     { name = "dj-database-url", specifier = ">=3.1.2" },
     { name = "django", specifier = ">=6.0.3" },
     { name = "django-cors-headers", specifier = ">=4.9.0" },
-    { name = "django-stubs", extras = ["1-19"], specifier = ">=6.0.1" },
+    { name = "django-stubs", extras = ["compatible-mypy"], specifier = ">=6.0.1" },
     { name = "djangorestframework", specifier = ">=3.16.1" },
     { name = "fonttools", specifier = "==4.61.1" },
     { name = "gunicorn", specifier = ">=25.1.0" },
