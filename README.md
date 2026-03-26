@@ -255,7 +255,7 @@ source .venv/bin/activate  # activate the virtual environment
 
 Now you are ready to start developing. To see a quick demo, you may go the `main.py` and try a few different .sgf files or play your own.
 
-> ![Note]
+> [!NOTE]
 > Note: in some cases, the `main.py` file may not run correctly due to the `Module Not Found` error. In that case, try running the `make run` command at root level.
 
 If there are any issues while developing, feel free to create an issue under the `issues` tab in the GitHub repository page.
