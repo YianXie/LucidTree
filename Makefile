@@ -11,6 +11,7 @@ help:
 	@echo "  format       - Format code"
 	@echo "  security     - Run security checks"
 	@echo "  ci-local     - Run all CI checks locally"
+	@echo "  run          - Run the cli main.py file"
 	@echo "  all 		  - Run all checks (CI & Tests)"
 	@echo "  clean        - Clean up generated files"
 
@@ -44,6 +45,12 @@ security:
 # Run all CI checks locally
 ci-local:
 	@./scripts/ci-local.sh
+
+# Run the cli main.py file
+run:
+	@echo "Running the cli main.py file..."
+	uv pip install -e .
+	lucidtree
 
 all:
 	@echo "Running all checks..."

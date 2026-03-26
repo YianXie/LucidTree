@@ -51,18 +51,18 @@ class MCTS:
             # Selection
             while node.is_expanded and not node.board.is_terminate():
                 child_action = node.select_action(c_puct=c_puct)
-                path.append((node, child_action))
+                path.append((node, child_action.item()))
 
                 child = node.children[child_action]
                 if child is None:
                     move_color = node.to_play.get_color()
                     next_board = copy.deepcopy(node.board)
 
-                    if child_action == PASS_INDEX:
+                    if child_action.item() == PASS_INDEX:
                         next_board.pass_move()
                     else:
                         next_board.place_move(
-                            index_to_row_col(child_action), move_color
+                            index_to_row_col(child_action.item()), move_color
                         )
 
                     next_player = node.to_play.opponent

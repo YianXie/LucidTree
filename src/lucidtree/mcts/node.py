@@ -60,6 +60,7 @@ class Node:
             self.is_expanded = True
             # Calculate the game outcome from the current player's perspective
             black_score, white_score = self.board.calculate_score()
+
             # Determine winner from Black's perspective (with KOMI for white)
             black_final = black_score
             white_final = white_score + KOMI
@@ -136,7 +137,7 @@ class Node:
         action_visits = self.N[action]
         return float(c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
 
-    def select_action(self, c_puct: float = 1.5) -> int:
+    def select_action(self, c_puct: float = 1.5) -> np.int64:
         """
         Select the action with the highest mean value + PUCT score
 
@@ -144,7 +145,7 @@ class Node:
             int: the action index
         """
         best_score = -INFINITY
-        best_action = 0
+        best_action: np.int64
         legal_actions = np.where(self.legal_mask)[0]
         for action in legal_actions:
             score = self.Q(action) + self.U(action, c_puct)

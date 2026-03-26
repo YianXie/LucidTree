@@ -6,7 +6,7 @@ from lucidtree.go.game import Game
 def split_game(
     games: list[Game],
     *,
-    seed: int | None = 0,
+    seed: int | None = None,
     train: float = 0.8,
     val: float = 0.1,
     test: float = 0.1,

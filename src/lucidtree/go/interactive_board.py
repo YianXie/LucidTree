@@ -4,10 +4,10 @@ from typing import override
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"  # hide Pygame message
 import pygame
 
+from lucidtree.common.paths import get_project_root
 from lucidtree.constants import BLACK_COLOR, WHITE_COLOR
 from lucidtree.go.board import Board
 from lucidtree.go.player import Player
-from lucidtree.utils import get_project_root
 
 
 class InteractiveBoard(Board):
@@ -24,6 +24,7 @@ class InteractiveBoard(Board):
         self.GRID_COLOR = (0, 0, 0)
         self.BLACK_STONE_COLOR = (0, 0, 0)
         self.WHITE_STONE_COLOR = (255, 255, 255)
+        self.LAST_MOVE_COLOR = (255, 0, 0)
         self.BLACK_HOVER_COLOR = (50, 50, 50, 180)  # Semi-transparent dark gray
         self.WHITE_HOVER_COLOR = (200, 200, 200, 180)  # Semi-transparent light gray
         self.COORD_COLOR = (0, 0, 0)
@@ -31,6 +32,7 @@ class InteractiveBoard(Board):
         self.screen: pygame.Surface | None = None
         self.hover_pos: tuple[int, int] | None = None
         self._is_displayed = False  # Track if board is currently displayed
+        self._last_move: tuple[int, int] | None = None
 
     def start_display(self) -> None:
         """
@@ -249,6 +251,7 @@ class InteractiveBoard(Board):
         Place a move on the board and redraw if displayed.
         """
         super().place_move(position, color)
+        self._last_move = position
         # Redraw board if it's currently displayed
         if self._is_displayed and self.screen is not None:
             self.hover_pos = None  # Clear hover when move is placed
@@ -260,6 +263,7 @@ class InteractiveBoard(Board):
         Make a player pass and redraw if displayed.
         """
         super().pass_move()
+        self._last_move = None
         # Redraw board if it's currently displayed
         if self._is_displayed and self.screen is not None:
             self.hover_pos = None  # Clear hover when move is passed
@@ -357,6 +361,13 @@ class InteractiveBoard(Board):
                         pygame.draw.circle(
                             self.screen, self.GRID_COLOR, (x, y), radius, 1
                         )
+
+        # Draw last move
+        if self._last_move is not None:
+            row, col = self._last_move
+            x, y = self.board_to_screen(row, col)
+            radius = int(self.cell_size * 0.2)
+            pygame.draw.circle(self.screen, self.LAST_MOVE_COLOR, (x, y), radius)
 
         # Draw hover preview
         if self.hover_pos is not None:
