@@ -32,6 +32,7 @@ dependencies = [
     "pygments==2.19.2",
     "pyparsing==3.2.5",
     "pytest==9.0.2",
+    "pytest-django>=4.12.0",
     "python-dateutil==2.9.0.post0",
     "python-dotenv>=1.2.2",
     "requests==2.33.0",
@@ -58,22 +59,27 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["lucidtree*", "api*"]
 
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["tests", "api"]
+testpaths = ["tests", "src"]
+DJANGO_SETTINGS_MODULE = "api.api.settings"
+django_find_project = false
+pythonpath = ["src"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/**/*.py", "api/**/*.py"]
+files = ["src/**/*.py"]
 exclude = ["migrations"]
+mypy_path = ["src"]
 strict = true
 ignore_missing_imports = true
-mypy_path = ["src", "api"]
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
-django_settings_module = "api.settings"
+django_settings_module = "api.api.settings"
 
 [tool.bandit]
 exclude_dirs = [".venv", "tests"]

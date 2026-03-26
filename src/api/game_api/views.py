@@ -3,14 +3,15 @@
 import logging
 from typing import Any
 
-from common.exceptions import BadRequestError
-from game_api.models import AnalyzeRequest
-from game_api.serializers import (AnalyzeRequestSerializer,
-                                  AnalyzeResponseSerializer)
-from game_api.services import analyze
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView, Request
+
+from api.common.exceptions import BadRequestError
+from api.game_api import services
+from api.game_api.models import AnalyzeRequest
+from api.game_api.serializers import (AnalyzeRequestSerializer,
+                                      AnalyzeResponseSerializer)
 
 # fmt: on
 
@@ -43,7 +44,7 @@ class AnalyzeView(APIView):  # type: ignore
         request_model_instance.save()
 
         try:
-            result = analyze(request_serializer.validated_data)
+            result = services.analyze(request_serializer.validated_data)
         except BadRequestError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:

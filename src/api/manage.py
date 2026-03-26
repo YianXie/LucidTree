@@ -13,7 +13,7 @@ def main() -> None:
     if str(src_dir) not in sys.path:
         sys.path.insert(0, str(src_dir))
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "api.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "api.api.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

@@ -1,7 +1,6 @@
 from typing import Any
 
-from common.exceptions import BadRequestError
-
+from api.common.exceptions import BadRequestError
 from lucidtree.constants import BLACK_COLOR, PASS_MOVE_POSITION
 from lucidtree.engine.analysis import analyze_position
 from lucidtree.go.board import Board

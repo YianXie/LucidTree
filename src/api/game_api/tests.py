@@ -4,12 +4,13 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from common.exceptions import BadRequestError
-from game_api.serializers import (AnalyzeParamsSerializer,
-                                  AnalyzeRequestSerializer)
-from game_api.services import _parse_move, _parse_player
 from rest_framework.response import Response
 from rest_framework.test import APIClient
+
+from api.common.exceptions import BadRequestError
+from api.game_api.serializers import (AnalyzeParamsSerializer,
+                                      AnalyzeRequestSerializer)
+from api.game_api.services import _parse_move, _parse_player
 
 # fmt: on
 
@@ -155,7 +156,7 @@ class TestParseMove:
 class TestAnalyzeService:
     @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
     def test_minimax_returns_gtp_move(self, _mock: Any) -> None:
-        from game_api.services import analyze
+        from api.game_api.services import analyze
 
         result = analyze(_valid_payload())
         assert "best_move" in result
@@ -164,26 +165,26 @@ class TestAnalyzeService:
 
     @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
     def test_stats_does_not_contain_raw_tuple(self, _mock: Any) -> None:
-        from game_api.services import analyze
+        from api.game_api.services import analyze
 
         result = analyze(_valid_payload())
         for v in result["stats"].values():
             assert not isinstance(v, tuple), f"Raw tuple found in stats: {v}"
 
     def test_mcts_on_9x9_raises(self) -> None:
-        from game_api.services import analyze
+        from api.game_api.services import analyze
 
         with pytest.raises((BadRequestError, ValueError)):
             analyze(_valid_payload(board_size=9, algo="mcts"))
 
     def test_nn_on_13x13_raises(self) -> None:
-        from game_api.services import analyze
+        from api.game_api.services import analyze
 
         with pytest.raises((BadRequestError, ValueError)):
             analyze(_valid_payload(board_size=13, algo="nn"))
 
     def test_invalid_move_raises_bad_request(self) -> None:
-        from game_api.services import analyze
+        from api.game_api.services import analyze
 
         with pytest.raises(BadRequestError):
             analyze(_valid_payload(moves=[["B", "Z99"]]))
@@ -220,24 +221,25 @@ class TestAnalyzeView:
         assert response.status_code == 400
 
     @patch(
-        "game_api.services.analyze",
+        "api.game_api.services.analyze",
         return_value={
             "best_move": "D4",
             "algorithm": "minimax",
             "stats": {"depth": 1, "elapsed_ms": 5.0},
         },
     )
+    @pytest.mark.django_db
     def test_valid_request_returns_200(self, _mock: Any, api_client: APIClient) -> None:
         response = self._post(api_client, _valid_payload())
         assert response.status_code == 200
         assert "best_move" in response.data
 
-    @patch("game_api.services.analyze", side_effect=RuntimeError("internal secret"))
+    @patch("api.game_api.services.analyze", side_effect=RuntimeError("internal secret"))
+    @pytest.mark.django_db
     def test_unexpected_exception_returns_generic_500(
         self, _mock: Any, api_client: APIClient
     ) -> None:
         response = self._post(api_client, _valid_payload())
         assert response.status_code == 500
-        # The raw exception message must NOT be exposed to the client
         assert "internal secret" not in str(response.data)
         assert "detail" in response.data

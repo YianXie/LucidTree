@@ -25,7 +25,6 @@ test:
 	@echo "Running tests..."
 	uv pip install -e .
 	uv run pytest
-	uv run python api/manage.py test
 
 # Run linting
 lint:

@@ -6,14 +6,12 @@ import dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 
-ENVIRONMENT = os.environ.get("ENVIRONMENT")
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
 
 if ENVIRONMENT == "development":
-    # Allow a missing SECRET_KEY in development by using a local-only fallback.
-    # Never rely on this fallback in production.
     SECRET_KEY = os.environ.get(
         "SECRET_KEY", "django-insecure-dev-fallback-key-do-not-use-in-production"
     )
@@ -48,8 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
-    "game_api",
-    "common",
+    "api.game_api",
+    "api.common",
 ]
 
 MIDDLEWARE = [
@@ -73,7 +71,7 @@ STORAGES = {
     },
 }
 
-ROOT_URLCONF = "api.urls"
+ROOT_URLCONF = "api.api.urls"
 
 TEMPLATES = [
     {
@@ -90,7 +88,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "api.wsgi.application"
+WSGI_APPLICATION = "api.api.wsgi.application"
 
 
 # Database
