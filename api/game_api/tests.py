@@ -1,13 +1,4 @@
-"""
-API tests for game_api endpoints.
-
-These tests cover serializer validation, bounds checking, and view behaviour
-without invoking the actual Go algorithms (which require a trained model file
-and are tested elsewhere).
-
-Django is configured by api/conftest.py; do not import Django or call
-django.setup() here directly.
-"""
+# fmt: off
 
 from typing import Any
 from unittest.mock import patch
@@ -19,6 +10,9 @@ from game_api.serializers import (AnalyzeParamsSerializer,
 from game_api.services import _parse_move, _parse_player
 from rest_framework.response import Response
 from rest_framework.test import APIClient
+
+# fmt: on
+
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -1,5 +1,3 @@
-"""Comprehensive tests for neural network training functionality."""
-
 # fmt: off
 
 import logging

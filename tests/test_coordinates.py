@@ -1,10 +1,4 @@
-"""
-Tests for GTP coordinate conversion correctness.
-
-These tests cover the GTP 'I'-skip fix and bounds-checking additions.
-GTP notation skips the letter 'I' to avoid confusion with '1', so:
-  columns: A-H map to 0-7, J maps to 8, K to 9, …
-"""
+# fmt: off
 
 import pytest
 
@@ -13,9 +7,7 @@ from lucidtree.go.coordinates import (gtp_to_row_col, row_col_to_gtp,
                                       row_col_to_index)
 from lucidtree.go.exceptions import InvalidCoordinateError
 
-# ---------------------------------------------------------------------------
-# move_to_index (board-index encoding used by MCTS/NN for 19×19 boards)
-# ---------------------------------------------------------------------------
+# fmt: on
 
 
 class TestMoveToIndex:

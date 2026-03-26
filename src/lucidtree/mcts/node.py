@@ -145,7 +145,7 @@ class Node:
             int: the action index
         """
         best_score = -INFINITY
-        best_action: np.int64
+        best_action: np.int64 = np.int64(BOARD_SIZE * BOARD_SIZE)
         legal_actions = np.where(self.legal_mask)[0]
         for action in legal_actions:
             score = self.Q(action) + self.U(action, c_puct)

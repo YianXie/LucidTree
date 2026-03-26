@@ -1,5 +1,3 @@
-"""Performance tests for LucidTree."""
-
 import time
 
 from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR

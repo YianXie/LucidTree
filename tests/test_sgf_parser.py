@@ -1,5 +1,3 @@
-"""Comprehensive tests for SGF parsing functionality."""
-
 # fmt: off
 
 import tempfile
