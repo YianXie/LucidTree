@@ -20,3 +20,6 @@ uv run python -m api.manage collectstatic --no-input
 echo "Migrating database..."
 uv run python -m api.manage makemigrations --no-input || true
 uv run python -m api.manage migrate --no-input
+
+echo "Downloading checkpoint..."
+uv run python scripts/download_checkpoint.py
