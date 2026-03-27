@@ -8,6 +8,11 @@ on:
 permissions:
     contents: read
 
+env:
+    ENVIRONMENT: development
+    SECRET_KEY: dev-fallback-key-do-not-use-in-production
+    DATABASE_URL: sqlite:///db.sqlite3
+
 jobs:
     test:
         runs-on: ubuntu-latest
