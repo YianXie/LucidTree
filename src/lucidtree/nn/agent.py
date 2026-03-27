@@ -1,9 +1,9 @@
 # fmt: off
 
+from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn as nn
 
 from lucidtree.common.paths import get_project_root
 from lucidtree.constants import PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR
@@ -22,34 +22,32 @@ root = get_project_root()
 
 @torch.no_grad()
 def load_model(
-    model_name: str | None = None,
+    model: Path | str | None = None,
     device: torch.device | None = None,
-) -> nn.Module:
+) -> PolicyValueNetwork:
     """
     Load the Neural Network model
 
     Args:
-        model_name (str | None, optional): the name of the model to load. Defaults to None.
-            If None, loads the default model from the models directory.
-            Must not contain path separators or '..' to prevent path traversal.
+        model (Path | str | None, optional): the path to the model to load. Defaults to None.
+            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If a string, it is assumed to be the name of the model and is loaded from the models directory.
+            If a Path, it is assumed to be the path to the model and is loaded from the given path.
         device (torch.device | None, optional): the device to load the model onto.
             If None, loads to CPU. Use CUDA when available for GPU inference.
 
     Raises:
-        ValueError: if model_name contains path-traversal characters
         FileNotFoundError: if the model file does not exist
 
     Returns:
-        nn.Module: the loaded model
+        PolicyValueNetwork: the loaded model
     """
-    if model_name is None:
-        path = root / "models/checkpoint_19x19.pt"
+    if isinstance(model, Path):
+        path = model
+    elif isinstance(model, str):
+        path = root / "models" / f"{model}.pt"
     else:
-        if ".." in model_name or "/" in model_name or "\\" in model_name:
-            raise ValueError(
-                f"Invalid model name '{model_name}': must not contain path separators or '..'"
-            )
-        path = root / "models" / f"{model_name}.pt"
+        path = root / "models/checkpoint_19x19.pt"
 
     if not path.exists():
         raise FileNotFoundError(
@@ -61,21 +59,24 @@ def load_model(
         device = torch.device("cpu")
 
     checkpoint = torch.load(path, map_location=device, weights_only=True)
-    model = PolicyValueNetwork()
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model = model.to(device)
-    return model
+    checkpoint_model = PolicyValueNetwork()
+    checkpoint_model.load_state_dict(checkpoint["model_state_dict"])
+    checkpoint_model = checkpoint_model.to(device)
+    return checkpoint_model
 
 
 @torch.no_grad()
 def pick_move_nn(
-    model: nn.Module, board: Board, device: torch.device, temperature: float = 0.0
+    model: PolicyValueNetwork,
+    board: Board,
+    device: torch.device,
+    temperature: float = 0.0,
 ) -> tuple[tuple[int, int], float, float]:
     """
     Pick the next best move given the board, model, device, and temperature
 
     Args:
-        model (nn.Module): the model to use
+        model (PolicyValueNetwork): the model to use
         board (Board): the current board state
         device (torch.device): the PyTorch device
         temperature (float, optional): the temperature. Defaults to 0.0.
@@ -121,13 +122,19 @@ def pick_move_nn(
 
 
 @torch.no_grad()
-def pick_move_mcts(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
+def pick_move_mcts(
+    board: Board, to_play: Player, model: Path | str | None = None, **kwargs: Any
+) -> tuple[int, int]:
     """
     Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
 
     Args:
         board (Board): the current board state
         to_play (Player): the player to play
+        model (Path | str | None, optional): the path to the model to load. Defaults to None.
+            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If a string, it is assumed to be the name of the model and is loaded from the models directory.
+            If a Path, it is assumed to be the path to the model and is loaded from the given path.
         **kwargs: additional keyword arguments
 
     Returns:
@@ -135,7 +142,7 @@ def pick_move_mcts(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, i
     """
     from lucidtree.mcts.search import MCTS
 
-    mcts = MCTS()
+    mcts = MCTS(model=model, **kwargs)
     root = mcts.run(board=board, to_play=to_play, **kwargs)
 
     pos = MCTS.pick_best_move_position(root)
@@ -153,6 +160,6 @@ def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int
     Returns:
         tuple[int, int]: the move
     """
-    depth = kwargs.get("depth", 2)
+    depth = kwargs.get("depth", 3)
     best_move = next_best_move(board, to_play.get_color() == WHITE_COLOR, depth=depth)
     return best_move

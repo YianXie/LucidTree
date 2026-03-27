@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -17,12 +18,21 @@ class MCTS:
     A Monte Carlo Tree Search algorithm
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model: Path | str | None = None, **kwargs: Any) -> None:
         """
         Initialize a Monte Carlo Tree Search program
+
+        Args:
+            model (Path | str | None, optional): the path to the model to load. Defaults to None.
+                If None, loads the default model from the models directory.
+                If a string, it is assumed to be the name of the model and is loaded from the models directory.
+                If a Path, it is assumed to be the path to the model and is loaded from the given path.
+            **kwargs: additional keyword arguments
         """
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = load_model(device=self.device)
+        self.device = kwargs.get(
+            "device", torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
+        self.model = load_model(model=model, device=self.device)
         self.model.eval()
 
     @torch.no_grad()

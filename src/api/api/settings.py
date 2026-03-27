@@ -27,6 +27,11 @@ if ENVIRONMENT == "development":
 else:
     DEBUG = False
 
+if ENVIRONMENT == "development":
+    MODEL_PATH = None
+else:
+    MODEL_PATH = Path("/var/data/checkpoint_19x19.pt")
+
 ALLOWED_HOSTS: list[str] = [
     "localhost",
     "127.0.0.1",

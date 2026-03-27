@@ -1,5 +1,6 @@
 from typing import Any
 
+from api.api import settings
 from api.common.exceptions import BadRequestError
 from lucidtree.constants import BLACK_COLOR, PASS_MOVE_POSITION
 from lucidtree.engine.analysis import analyze_position
@@ -111,4 +112,10 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     to_play.opponent = opponent
     opponent.opponent = to_play
 
-    return analyze_position(board=board, to_play=to_play, algo=algo, params=params)
+    return analyze_position(
+        board=board,
+        to_play=to_play,
+        algo=algo,
+        params=params,
+        model=settings.MODEL_PATH,
+    )

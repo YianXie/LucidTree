@@ -1,6 +1,7 @@
 # fmt: off
 
 import time
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -19,7 +20,11 @@ _NN_REQUIRED_BOARD_SIZE = BOARD_SIZE
 
 
 def analyze_position(
-    board: Board, to_play: Player, algo: str, params: dict[str, Any]
+    board: Board,
+    to_play: Player,
+    algo: str,
+    params: dict[str, Any],
+    model: Path | str | None = None,
 ) -> dict[str, Any]:
     """
     Analyze a position
@@ -29,6 +34,10 @@ def analyze_position(
         to_play (Player): the player to play
         algo (str): the algorithm to use
         params (dict[str, Any]): the parameters for the algorithm
+        model (Path | str | None, optional): the path to the model to load. Defaults to None.
+            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If a string, it is assumed to be the name of the model and is loaded from the models directory.
+            If a Path, it is assumed to be the path to the model and is loaded from the given path.
 
     Raises:
         ValueError: if algo is 'mcts' or 'nn' and board.size != 19
@@ -50,7 +59,11 @@ def analyze_position(
             c_puct = params.get("c_puct", 1.5)
 
             best_move = pick_move_mcts(
-                board, to_play, num_simulations=num_simulations, c_puct=c_puct
+                board,
+                to_play,
+                model=model,
+                num_simulations=num_simulations,
+                c_puct=c_puct,
             )
 
             stats: dict[str, Any] = {
@@ -59,18 +72,17 @@ def analyze_position(
             }
 
         case "nn":
-            model_name = params.get("model_name", None)
-
-            model = load_model(model_name=model_name)
+            checkpoint_model = load_model(
+                model=model,
+                device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+            )
             best_move, _, _ = pick_move_nn(
-                model,
+                checkpoint_model,
                 board,
                 device=(torch.device("cuda" if torch.cuda.is_available() else "cpu")),
             )
 
-            stats = {
-                "model_name": model_name,
-            }
+            stats = {}
 
         case "minimax":
             depth = params.get("depth", 3)

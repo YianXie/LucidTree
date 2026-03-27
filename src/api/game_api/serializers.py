@@ -25,9 +25,6 @@ class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
     # MiniMax params
     depth = serializers.IntegerField(required=False, min_value=1, max_value=6)
 
-    # NN params
-    model_name = serializers.CharField(required=False, max_length=100)
-
     # Shared optional params
     seed = serializers.IntegerField(required=False)
 
