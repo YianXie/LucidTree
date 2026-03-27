@@ -6,7 +6,7 @@ import dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-dotenv.load_dotenv(dotenv_path=BASE_DIR / ".env")
+dotenv.load_dotenv()
 
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
