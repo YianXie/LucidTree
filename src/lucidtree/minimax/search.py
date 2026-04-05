@@ -71,6 +71,7 @@ def minimax(
     alpha: float,
     beta: float,
     consecutive_passes: int,
+    use_alpha_beta: bool = True,
 ) -> float:
     """
     Depth-limited minimax with alpha-beta pruning.
@@ -92,14 +93,22 @@ def minimax(
             _apply_move(board, move, color)
             new_passes = consecutive_passes + 1 if move is None else 0
 
-            score = minimax(board, depth - 1, False, alpha, beta, new_passes)
+            score = minimax(
+                board,
+                depth - 1,
+                False,
+                alpha,
+                beta,
+                new_passes,
+                use_alpha_beta=use_alpha_beta,
+            )
 
             # undo
             board.undo()
 
             best = max(best, score)
             alpha = max(alpha, best)
-            if beta <= alpha:
+            if use_alpha_beta and beta <= alpha:
                 break
         return best
 
@@ -109,18 +118,28 @@ def minimax(
             _apply_move(board, move, color)
             new_passes = consecutive_passes + 1 if move is None else 0
 
-            score = minimax(board, depth - 1, True, alpha, beta, new_passes)
+            score = minimax(
+                board,
+                depth - 1,
+                True,
+                alpha,
+                beta,
+                new_passes,
+                use_alpha_beta=use_alpha_beta,
+            )
 
             board.undo()
 
             best = min(best, score)
             beta = min(beta, best)
-            if beta <= alpha:
+            if use_alpha_beta and beta <= alpha:
                 break
         return best
 
 
-def next_best_move(board: Board, isMax: bool, depth: int = 2) -> tuple[int, int]:
+def next_best_move(
+    board: Board, isMax: bool, depth: int = 2, use_alpha_beta: bool = True
+) -> tuple[int, int]:
     """
     Returns the best placement position
 
@@ -145,7 +164,13 @@ def next_best_move(board: Board, isMax: bool, depth: int = 2) -> tuple[int, int]
         consecutive_passes = 1 if move is None else 0
 
         score = minimax(
-            board, depth - 1, not isMax, -INFINITY, INFINITY, consecutive_passes
+            board,
+            depth - 1,
+            not isMax,
+            -INFINITY,
+            INFINITY,
+            consecutive_passes,
+            use_alpha_beta=use_alpha_beta,
         )
 
         board.undo()

@@ -7,6 +7,14 @@ PLAYER_CHOICES = ("B", "W")
 RULE_CHOICES = ("japanese", "chinese")
 
 
+class AnalyzeConfigSerializer(serializers.Serializer):  # type: ignore
+    general = serializers.DictField(required=False, default=dict)
+    neural_network = serializers.DictField(required=False, default=dict)
+    mcts = serializers.DictField(required=False, default=dict)
+    minimax = serializers.DictField(required=False, default=dict)
+    output = serializers.DictField(required=False, default=dict)
+
+
 class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
     """
     Serializer for the analyze parameters
@@ -62,6 +70,7 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
 
     algo = serializers.ChoiceField(choices=ALGO_CHOICES)
     params = AnalyzeParamsSerializer(required=False, default=dict)
+    analysis_config = AnalyzeConfigSerializer(required=False, default=dict)
 
     def validate_moves(self, value: list[list[str]]) -> list[tuple[str, str]]:
         validated: list[tuple[str, str]] = []

@@ -10,7 +10,8 @@ from rest_framework.test import APIClient
 from api.common.exceptions import BadRequestError
 from api.game_api.serializers import (AnalyzeParamsSerializer,
                                       AnalyzeRequestSerializer)
-from api.game_api.services import _parse_move, _parse_player
+from api.game_api.services import (_merge_analysis_config_into_params,
+                                   _parse_move, _parse_player)
 
 # fmt: on
 
@@ -31,6 +32,39 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
     }
     payload.update(overrides)
     return payload
+
+
+def _valid_analysis_config() -> dict[str, Any]:
+    return {
+        "general": {
+            "algorithm": "minimax",
+            "rules": "japanese",
+            "komi": 6.5,
+            "max_time_ms": 0,
+            "temperature": 0,
+            "seed": 123,
+        },
+        "neural_network": {
+            "model": "checkpoint_19x19",
+            "policy_softmax_temperature": 0.2,
+            "use_value_head": True,
+        },
+        "mcts": {
+            "num_simulations": 250,
+            "c_puct": 1.7,
+            "dirichlet_alpha": 0.3,
+            "dirichlet_epsilon": 0.25,
+            "value_weight": 0.8,
+            "policy_weight": 1.2,
+            "select_by": "value",
+        },
+        "minimax": {"depth": 4, "use_alpha_beta": False},
+        "output": {
+            "include_top_moves": 5,
+            "include_policy": False,
+            "include_win_rate": False,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +177,26 @@ class TestParseMove:
 # ---------------------------------------------------------------------------
 
 
+class TestConfigMerging:
+    def test_merges_minimax_analysis_config_into_params(self) -> None:
+        merged = _merge_analysis_config_into_params(
+            algo="minimax", params={}, analysis_config=_valid_analysis_config()
+        )
+        assert merged["depth"] == 4
+        assert merged["use_alpha_beta"] is False
+        assert merged["seed"] == 123
+
+    def test_merges_mcts_analysis_config_into_params(self) -> None:
+        merged = _merge_analysis_config_into_params(
+            algo="mcts", params={}, analysis_config=_valid_analysis_config()
+        )
+        assert merged["num_simulations"] == 250
+        assert merged["c_puct"] == 1.7
+        assert merged["select_by"] == "value"
+        assert merged["policy_weight"] == 1.2
+        assert merged["value_weight"] == 0.8
+
+
 class TestAnalyzeService:
     @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
     def test_minimax_returns_gtp_move(self, _mock: Any) -> None:
@@ -160,6 +214,44 @@ class TestAnalyzeService:
         result = analyze(_valid_payload())
         for v in result["stats"].values():
             assert not isinstance(v, tuple), f"Raw tuple found in stats: {v}"
+
+    @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
+    def test_analysis_config_affects_minimax_call(self, mock_pick: Any) -> None:
+        from api.game_api.services import analyze
+
+        analyze(
+            _valid_payload(
+                analysis_config=_valid_analysis_config(),
+                params={},
+            )
+        )
+
+        mock_pick.assert_called_once()
+        assert mock_pick.call_args.kwargs["depth"] == 4
+        assert mock_pick.call_args.kwargs["use_alpha_beta"] is False
+
+    @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
+    def test_analysis_config_affects_mcts_call(self, mock_pick: Any) -> None:
+        from api.game_api.services import analyze
+
+        analyze(
+            _valid_payload(
+                algo="mcts",
+                params={},
+                analysis_config={
+                    **_valid_analysis_config(),
+                    "general": {
+                        **_valid_analysis_config()["general"],
+                        "algorithm": "mcts",
+                    },
+                },
+            )
+        )
+
+        mock_pick.assert_called_once()
+        assert mock_pick.call_args.kwargs["num_simulations"] == 250
+        assert mock_pick.call_args.kwargs["c_puct"] == 1.7
+        assert mock_pick.call_args.kwargs["select_by"] == "value"
 
     def test_invalid_move_raises_bad_request(self) -> None:
         from api.game_api.services import analyze

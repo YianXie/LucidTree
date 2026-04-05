@@ -89,7 +89,9 @@ def pick_move_mcts(
     mcts = MCTS(model=model, **kwargs)
     root = mcts.run(board=board, to_play=to_play, **kwargs)
 
-    pos = MCTS.pick_best_move_position(root)
+    pos = MCTS.pick_best_move_position(
+        root, select_by=kwargs.get("select_by", "visit_count")
+    )
     return pos
 
 
@@ -161,5 +163,11 @@ def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int
         tuple[int, int]: the move
     """
     depth = kwargs.get("depth", 3)
-    best_move = next_best_move(board, to_play.get_color() == WHITE_COLOR, depth=depth)
+    use_alpha_beta = kwargs.get("use_alpha_beta", True)
+    best_move = next_best_move(
+        board,
+        to_play.get_color() == WHITE_COLOR,
+        depth=depth,
+        use_alpha_beta=use_alpha_beta,
+    )
     return best_move

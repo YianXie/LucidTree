@@ -24,6 +24,9 @@ class Node:
         self,
         board: Board,
         to_play: Player,
+        *,
+        policy_weight: float = 1.0,
+        value_weight: float = 1.0,
     ) -> None:
         """
         Initialize a node
@@ -34,6 +37,8 @@ class Node:
         """
         self.board = board
         self.to_play = to_play
+        self.policy_weight = float(policy_weight)
+        self.value_weight = float(value_weight)
 
         self.N = np.zeros([self.total_actions], dtype=np.int32)
         self.W = np.zeros([self.total_actions], dtype=np.float32)
@@ -44,7 +49,14 @@ class Node:
         self.P = np.zeros(self.total_actions, dtype=np.float32)
         self.is_expanded = False
 
-    def expand(self, model: nn.Module, device: torch.device | None = None) -> float:
+    def expand(
+        self,
+        model: nn.Module,
+        device: torch.device | None = None,
+        *,
+        dirichlet_alpha: float = 0.0,
+        dirichlet_epsilon: float = 0.0,
+    ) -> float:
         """
         Expand the node by computing legal moves
 
@@ -101,6 +113,16 @@ class Node:
             legal_count = int(self.legal_mask.sum())
             probs[self.legal_mask] = 1.0 / max(1, legal_count)
 
+        if dirichlet_alpha > 0.0 and dirichlet_epsilon > 0.0:
+            legal_actions = np.where(self.legal_mask)[0]
+            if legal_actions.size > 0:
+                noise = np.random.dirichlet(
+                    np.full(legal_actions.shape[0], dirichlet_alpha, dtype=np.float32)
+                ).astype(np.float32)
+                probs[legal_actions] = (1.0 - dirichlet_epsilon) * probs[
+                    legal_actions
+                ] + dirichlet_epsilon * noise
+
         self.P = probs
         self.is_expanded = True
         return float(value.item())
@@ -119,7 +141,7 @@ class Node:
         if total_visit_count == 0:
             return 0.0
         total_value_sum = self.W[action]
-        return float(total_value_sum / total_visit_count)
+        return float(self.value_weight * (total_value_sum / total_visit_count))
 
     def U(self, action: int, c_puct: float = 1.5) -> float:
         """
@@ -135,7 +157,12 @@ class Node:
         sum_visits = self.N.sum()
         prior = self.P[action]
         action_visits = self.N[action]
-        return float(c_puct * prior * (math.sqrt(sum_visits) / (1.0 + action_visits)))
+        return float(
+            self.policy_weight
+            * c_puct
+            * prior
+            * (math.sqrt(sum_visits) / (1.0 + action_visits))
+        )
 
     def select_action(self, c_puct: float = 1.5) -> np.int64:
         """

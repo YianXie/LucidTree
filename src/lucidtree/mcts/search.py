@@ -47,12 +47,26 @@ class MCTS:
         """
         num_simulations = kwargs.get("num_simulations", 1000)
         c_puct = kwargs.get("c_puct", 1.5)
+        dirichlet_alpha = kwargs.get("dirichlet_alpha", 0.0)
+        dirichlet_epsilon = kwargs.get("dirichlet_epsilon", 0.0)
+        value_weight = kwargs.get("value_weight", 1.0)
+        policy_weight = kwargs.get("policy_weight", 1.0)
 
         if to_play.opponent is None or to_play.opponent.opponent is None:
             raise RuntimeError("Player argument missing `opponent` attribute")
 
-        root = Node(board=board, to_play=to_play)
-        root.expand(self.model, self.device)
+        root = Node(
+            board=board,
+            to_play=to_play,
+            policy_weight=policy_weight,
+            value_weight=value_weight,
+        )
+        root.expand(
+            self.model,
+            self.device,
+            dirichlet_alpha=dirichlet_alpha,
+            dirichlet_epsilon=dirichlet_epsilon,
+        )
 
         for _ in range(num_simulations):
             node = root
@@ -76,7 +90,12 @@ class MCTS:
                         )
 
                     next_player = node.to_play.opponent
-                    child = Node(board=next_board, to_play=next_player)  # type: ignore
+                    child = Node(
+                        board=next_board,
+                        to_play=next_player,  # type: ignore
+                        policy_weight=policy_weight,
+                        value_weight=value_weight,
+                    )
                     node.children[child_action] = child
 
                 node = child
@@ -121,7 +140,9 @@ class MCTS:
             parent.W[action] += value
 
     @staticmethod
-    def pick_best_move_position(root: Node) -> tuple[int, int]:
+    def pick_best_move_position(
+        root: Node, select_by: str = "visit_count"
+    ) -> tuple[int, int]:
         """
         Pick a move position based on the highest visit count
 
@@ -132,5 +153,11 @@ class MCTS:
             tuple[int, int]: the position
         """
         legal = root.legal_mask
-        idx = int(np.argmax(np.where(legal, root.N, -1)))
+        if select_by == "value":
+            scores = np.array(
+                [root.Q(i) if legal[i] else -np.inf for i in range(len(root.N))]
+            )
+            idx = int(np.argmax(scores))
+        else:
+            idx = int(np.argmax(np.where(legal, root.N, -1)))
         return index_to_row_col(int(idx))
