@@ -22,7 +22,6 @@ from api.game_api.services import _parse_move, _parse_player
 
 def _valid_payload(**overrides: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "board_size": 19,
         "rules": "japanese",
         "komi": 6.5,
         "to_play": "B",
@@ -43,11 +42,6 @@ class TestAnalyzeRequestSerializer:
     def test_valid_payload_passes(self) -> None:
         s = AnalyzeRequestSerializer(data=_valid_payload())
         assert s.is_valid(), s.errors
-
-    def test_invalid_board_size_rejected(self) -> None:
-        s = AnalyzeRequestSerializer(data=_valid_payload(board_size=7))
-        assert not s.is_valid()
-        assert "board_size" in s.errors
 
     def test_invalid_algo_rejected(self) -> None:
         s = AnalyzeRequestSerializer(data=_valid_payload(algo="alphabeta"))
@@ -126,26 +120,22 @@ class TestParseMove:
     def test_parse_pass(self) -> None:
         from lucidtree.constants import PASS_MOVE_POSITION
 
-        assert _parse_move("PASS", board_size=19) == PASS_MOVE_POSITION
+        assert _parse_move("PASS") == PASS_MOVE_POSITION
 
     def test_parse_a1(self) -> None:
-        assert _parse_move("A1", board_size=19) == (0, 0)
+        assert _parse_move("A1") == (0, 0)
 
     def test_parse_j1_skips_i(self) -> None:
         # GTP skips 'I', so J → column 8
-        assert _parse_move("J1", board_size=19) == (0, 8)
+        assert _parse_move("J1") == (0, 8)
 
     def test_out_of_bounds_row_raises(self) -> None:
         with pytest.raises(BadRequestError):
-            _parse_move("A20", board_size=19)  # row 19 is out of bounds
+            _parse_move("A20")  # row 19 is out of bounds
 
     def test_letter_i_rejected(self) -> None:
         with pytest.raises(BadRequestError):
-            _parse_move("I1", board_size=19)
-
-    def test_out_of_bounds_for_small_board(self) -> None:
-        with pytest.raises(BadRequestError):
-            _parse_move("K1", board_size=9)  # column 9 is out of bounds for 9x9
+            _parse_move("I1")
 
 
 # ---------------------------------------------------------------------------
@@ -170,18 +160,6 @@ class TestAnalyzeService:
         result = analyze(_valid_payload())
         for v in result["stats"].values():
             assert not isinstance(v, tuple), f"Raw tuple found in stats: {v}"
-
-    def test_mcts_on_9x9_raises(self) -> None:
-        from api.game_api.services import analyze
-
-        with pytest.raises((BadRequestError, ValueError)):
-            analyze(_valid_payload(board_size=9, algo="mcts"))
-
-    def test_nn_on_13x13_raises(self) -> None:
-        from api.game_api.services import analyze
-
-        with pytest.raises((BadRequestError, ValueError)):
-            analyze(_valid_payload(board_size=13, algo="nn"))
 
     def test_invalid_move_raises_bad_request(self) -> None:
         from api.game_api.services import analyze
@@ -210,10 +188,6 @@ class TestHealthView:
 class TestAnalyzeView:
     def _post(self, api_client: APIClient, payload: dict[str, Any]) -> Response:
         return api_client.post("/api/analyze/", payload, format="json")
-
-    def test_invalid_board_size_returns_400(self, api_client: APIClient) -> None:
-        response = self._post(api_client, {**_valid_payload(), "board_size": 7})
-        assert response.status_code == 400
 
     def test_missing_algo_returns_400(self, api_client: APIClient) -> None:
         payload = {k: v for k, v in _valid_payload().items() if k != "algo"}

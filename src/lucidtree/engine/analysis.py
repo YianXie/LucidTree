@@ -16,8 +16,6 @@ from lucidtree.nn.agent import (load_model, pick_move_mcts, pick_move_minimax,
 
 # fmt: on
 
-_NN_REQUIRED_BOARD_SIZE = BOARD_SIZE
-
 
 def analyze_position(
     board: Board,
@@ -45,9 +43,9 @@ def analyze_position(
     Returns:
         dict[str, Any]: the analyzed position
     """
-    if algo in ("mcts", "nn") and board.size != _NN_REQUIRED_BOARD_SIZE:
+    if board.size != BOARD_SIZE:
         raise BadRequestError(
-            f"Algorithm '{algo}' only supports {_NN_REQUIRED_BOARD_SIZE}x{_NN_REQUIRED_BOARD_SIZE} boards, "
+            f"Algorithm '{algo}' only supports {BOARD_SIZE}x{BOARD_SIZE} boards, "
             f"but a {board.size}x{board.size} board was provided."
         )
 

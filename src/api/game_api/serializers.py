@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 ALGO_CHOICES = ("minimax", "nn", "mcts")
 PLAYER_CHOICES = ("B", "W")
-BOARD_SIZE_CHOICES = (9, 13, 19)
 RULE_CHOICES = ("japanese", "chinese")
 
 
@@ -46,7 +45,6 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
         list[tuple[str, str]]: The validated moves
     """
 
-    board_size = serializers.ChoiceField(choices=BOARD_SIZE_CHOICES)
     rules = serializers.ChoiceField(choices=RULE_CHOICES, default="japanese")
     komi = serializers.FloatField(required=False, default=6.5)
     to_play = serializers.ChoiceField(choices=PLAYER_CHOICES)
