@@ -66,6 +66,34 @@ def load_model(
 
 
 @torch.no_grad()
+def pick_move_mcts(
+    board: Board, to_play: Player, model: Path | str | None = None, **kwargs: Any
+) -> tuple[int, int]:
+    """
+    Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
+
+    Args:
+        board (Board): the current board state
+        to_play (Player): the player to play
+        model (Path | str | None, optional): the path to the model to load. Defaults to None.
+            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If a string, it is assumed to be the name of the model and is loaded from the models directory.
+            If a Path, it is assumed to be the path to the model and is loaded from the given path.
+        **kwargs: additional keyword arguments
+
+    Returns:
+        tuple[int, int]: the move
+    """
+    from lucidtree.mcts.search import MCTS
+
+    mcts = MCTS(model=model, **kwargs)
+    root = mcts.run(board=board, to_play=to_play, **kwargs)
+
+    pos = MCTS.pick_best_move_position(root)
+    return pos
+
+
+@torch.no_grad()
 def pick_move_nn(
     model: PolicyValueNetwork,
     board: Board,
@@ -119,34 +147,6 @@ def pick_move_nn(
                 return move_pos, probs[idx].item(), value
 
     return PASS_MOVE_POSITION, probs[idx].item(), value
-
-
-@torch.no_grad()
-def pick_move_mcts(
-    board: Board, to_play: Player, model: Path | str | None = None, **kwargs: Any
-) -> tuple[int, int]:
-    """
-    Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
-
-    Args:
-        board (Board): the current board state
-        to_play (Player): the player to play
-        model (Path | str | None, optional): the path to the model to load. Defaults to None.
-            If None, loads the default model from the models directory (checkpoint_19x19.pt).
-            If a string, it is assumed to be the name of the model and is loaded from the models directory.
-            If a Path, it is assumed to be the path to the model and is loaded from the given path.
-        **kwargs: additional keyword arguments
-
-    Returns:
-        tuple[int, int]: the move
-    """
-    from lucidtree.mcts.search import MCTS
-
-    mcts = MCTS(model=model, **kwargs)
-    root = mcts.run(board=board, to_play=to_play, **kwargs)
-
-    pos = MCTS.pick_best_move_position(root)
-    return pos
 
 
 def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
