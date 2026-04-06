@@ -49,7 +49,6 @@ def test_nn_uses_general_temperature_when_policy_key_missing(
         _test_black,
         "nn",
         cfg,
-        model="checkpoint_19x19",
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.75
 
@@ -69,7 +68,6 @@ def test_nn_policy_softmax_temperature_overrides_general(
         _test_black,
         "nn",
         cfg,
-        model="checkpoint_19x19",
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.2
 
@@ -89,6 +87,5 @@ def test_nn_falls_back_to_neural_network_temperature_when_general_missing(
         _test_black,
         "nn",
         cfg,
-        model="checkpoint_19x19",
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.0
