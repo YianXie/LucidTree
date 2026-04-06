@@ -41,7 +41,7 @@ lucidtree:
 runserver:
 	@echo "Running the Django development server..."
 	uv pip install -e .
-	uv run python -m api.manage runserver
+	uv run python -m api.manage runserver 9000
 
 # Clean up generated files
 clean:
