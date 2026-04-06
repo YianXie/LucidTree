@@ -19,6 +19,40 @@ from api.game_api.services import _parse_move, _parse_player
 # ---------------------------------------------------------------------------
 
 
+def _valid_analysis_config() -> dict[str, Any]:
+    return {
+        "general": {
+            "algorithm": "minimax",
+            "rules": "japanese",
+            "komi": 6.5,
+            "max_time_ms": 0,
+            "temperature": 0,
+            "seed": 123,
+        },
+        "neural_network": {
+            "model": "checkpoint_19x19",
+            "policy_softmax_temperature": 0.2,
+            "use_value_head": True,
+        },
+        "mcts": {
+            "num_simulations": 250,
+            "c_puct": 1.7,
+            "select_by": "value",
+            "policy_weight": 1.2,
+            "value_weight": 0.8,
+        },
+        "minimax": {
+            "depth": 4,
+            "use_alpha_beta": False,
+        },
+        "output": {
+            "include_top_moves": 5,
+            "include_policy": False,
+            "include_win_rate": False,
+        },
+    }
+
+
 def _valid_payload(**overrides: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "rules": "japanese",
@@ -26,73 +60,10 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
         "to_play": "B",
         "moves": [],
         "algo": "minimax",
-        "analysis_config": {
-            "general": {
-                "algorithm": "minimax",
-                "rules": "japanese",
-                "komi": 6.5,
-                "max_time_ms": 0,
-                "temperature": 0,
-                "seed": 123,
-            },
-            "neural_network": {
-                "model": "checkpoint_19x19",
-                "policy_softmax_temperature": 0.2,
-                "use_value_head": True,
-            },
-            "mcts": {
-                "num_simulations": 250,
-            },
-            "minimax": {
-                "depth": 2,
-                "use_alpha_beta": False,
-            },
-            "output": {
-                "include_top_moves": 5,
-                "include_policy": False,
-                "include_win_rate": False,
-            },
-        },
+        "analysis_config": _valid_analysis_config(),
     }
     payload.update(overrides)
     return payload
-
-
-def _valid_analysis_config() -> dict[str, Any]:
-    return {
-        "rules": "japanese",
-        "komi": 6.5,
-        "to_play": "B",
-        "moves": [],
-        "algo": "minimax",
-        "analysis_config": {
-            "general": {
-                "algorithm": "minimax",
-                "rules": "japanese",
-                "komi": 6.5,
-                "max_time_ms": 0,
-                "temperature": 0,
-                "seed": 123,
-            },
-            "neural_network": {
-                "model": "checkpoint_19x19",
-                "policy_softmax_temperature": 0.2,
-                "use_value_head": True,
-            },
-            "mcts": {
-                "num_simulations": 250,
-            },
-            "minimax": {
-                "depth": 2,
-                "use_alpha_beta": False,
-            },
-            "output": {
-                "include_top_moves": 5,
-                "include_policy": False,
-                "include_win_rate": False,
-            },
-        },
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -203,8 +174,13 @@ class TestAnalyzeService:
 
         analyze(
             _valid_payload(
-                analysis_config=_valid_analysis_config(),
-                params={},
+                analysis_config={
+                    **_valid_analysis_config(),
+                    "general": {
+                        **_valid_analysis_config()["general"],
+                        "algorithm": "minimax",
+                    },
+                },
             )
         )
 
