@@ -8,10 +8,8 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from api.common.exceptions import BadRequestError
-from api.game_api.serializers import (AnalyzeParamsSerializer,
-                                      AnalyzeRequestSerializer)
-from api.game_api.services import (_merge_analysis_config_into_params,
-                                   _parse_move, _parse_player)
+from api.game_api.serializers import AnalyzeRequestSerializer
+from api.game_api.services import _parse_move, _parse_player
 
 # fmt: on
 
@@ -28,7 +26,33 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
         "to_play": "B",
         "moves": [],
         "algo": "minimax",
-        "params": {"depth": 2},
+        "analysis_config": {
+            "general": {
+                "algorithm": "minimax",
+                "rules": "japanese",
+                "komi": 6.5,
+                "max_time_ms": 0,
+                "temperature": 0,
+                "seed": 123,
+            },
+            "neural_network": {
+                "model": "checkpoint_19x19",
+                "policy_softmax_temperature": 0.2,
+                "use_value_head": True,
+            },
+            "mcts": {
+                "num_simulations": 250,
+            },
+            "minimax": {
+                "depth": 2,
+                "use_alpha_beta": False,
+            },
+            "output": {
+                "include_top_moves": 5,
+                "include_policy": False,
+                "include_win_rate": False,
+            },
+        },
     }
     payload.update(overrides)
     return payload
@@ -36,33 +60,37 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
 
 def _valid_analysis_config() -> dict[str, Any]:
     return {
-        "general": {
-            "algorithm": "minimax",
-            "rules": "japanese",
-            "komi": 6.5,
-            "max_time_ms": 0,
-            "temperature": 0,
-            "seed": 123,
-        },
-        "neural_network": {
-            "model": "checkpoint_19x19",
-            "policy_softmax_temperature": 0.2,
-            "use_value_head": True,
-        },
-        "mcts": {
-            "num_simulations": 250,
-            "c_puct": 1.7,
-            "dirichlet_alpha": 0.3,
-            "dirichlet_epsilon": 0.25,
-            "value_weight": 0.8,
-            "policy_weight": 1.2,
-            "select_by": "value",
-        },
-        "minimax": {"depth": 4, "use_alpha_beta": False},
-        "output": {
-            "include_top_moves": 5,
-            "include_policy": False,
-            "include_win_rate": False,
+        "rules": "japanese",
+        "komi": 6.5,
+        "to_play": "B",
+        "moves": [],
+        "algo": "minimax",
+        "analysis_config": {
+            "general": {
+                "algorithm": "minimax",
+                "rules": "japanese",
+                "komi": 6.5,
+                "max_time_ms": 0,
+                "temperature": 0,
+                "seed": 123,
+            },
+            "neural_network": {
+                "model": "checkpoint_19x19",
+                "policy_softmax_temperature": 0.2,
+                "use_value_head": True,
+            },
+            "mcts": {
+                "num_simulations": 250,
+            },
+            "minimax": {
+                "depth": 2,
+                "use_alpha_beta": False,
+            },
+            "output": {
+                "include_top_moves": 5,
+                "include_policy": False,
+                "include_win_rate": False,
+            },
         },
     }
 
@@ -101,32 +129,6 @@ class TestAnalyzeRequestSerializer:
     def test_move_empty_point_rejected(self) -> None:
         s = AnalyzeRequestSerializer(data=_valid_payload(moves=[["B", ""]]))
         assert not s.is_valid()
-
-
-class TestAnalyzeParamsSerializer:
-    def test_num_simulations_too_low_rejected(self) -> None:
-        s = AnalyzeParamsSerializer(data={"num_simulations": 0})
-        assert not s.is_valid()
-
-    def test_num_simulations_too_high_rejected(self) -> None:
-        s = AnalyzeParamsSerializer(data={"num_simulations": 5001})
-        assert not s.is_valid()
-
-    def test_num_simulations_valid(self) -> None:
-        s = AnalyzeParamsSerializer(data={"num_simulations": 100})
-        assert s.is_valid(), s.errors
-
-    def test_depth_too_low_rejected(self) -> None:
-        s = AnalyzeParamsSerializer(data={"depth": 0})
-        assert not s.is_valid()
-
-    def test_depth_too_high_rejected(self) -> None:
-        s = AnalyzeParamsSerializer(data={"depth": 7})
-        assert not s.is_valid()
-
-    def test_depth_valid(self) -> None:
-        s = AnalyzeParamsSerializer(data={"depth": 3})
-        assert s.is_valid(), s.errors
 
 
 # ---------------------------------------------------------------------------
@@ -175,26 +177,6 @@ class TestParseMove:
 # ---------------------------------------------------------------------------
 # Analyze service integration tests (algorithm mocked)
 # ---------------------------------------------------------------------------
-
-
-class TestConfigMerging:
-    def test_merges_minimax_analysis_config_into_params(self) -> None:
-        merged = _merge_analysis_config_into_params(
-            algo="minimax", params={}, analysis_config=_valid_analysis_config()
-        )
-        assert merged["depth"] == 4
-        assert merged["use_alpha_beta"] is False
-        assert merged["seed"] == 123
-
-    def test_merges_mcts_analysis_config_into_params(self) -> None:
-        merged = _merge_analysis_config_into_params(
-            algo="mcts", params={}, analysis_config=_valid_analysis_config()
-        )
-        assert merged["num_simulations"] == 250
-        assert merged["c_puct"] == 1.7
-        assert merged["select_by"] == "value"
-        assert merged["policy_weight"] == 1.2
-        assert merged["value_weight"] == 0.8
 
 
 class TestAnalyzeService:

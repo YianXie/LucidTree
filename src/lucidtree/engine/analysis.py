@@ -23,7 +23,7 @@ def analyze_position(
     board: Board,
     to_play: Player,
     algo: str,
-    params: dict[str, Any],
+    config: dict[str, Any],
     model: Path | str | None = None,
 ) -> dict[str, Any]:
     """
@@ -33,7 +33,7 @@ def analyze_position(
         board (Board): the board
         to_play (Player): the player to play
         algo (str): the algorithm to use
-        params (dict[str, Any]): the parameters for the algorithm
+        config (dict[str, Any]): the configuration for the algorithm
         model (Path | str | None, optional): the path to the model to load. Defaults to None.
             If None, loads the default model from the models directory (checkpoint_19x19.pt).
             If a string, it is assumed to be the name of the model and is loaded from the models directory.
@@ -51,7 +51,7 @@ def analyze_position(
             f"but a {board.size}x{board.size} board was provided."
         )
 
-    seed = params.get("seed")
+    seed = config.get("general", {}).get("seed", None)
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
@@ -63,14 +63,14 @@ def analyze_position(
 
     match algo:
         case "mcts":
-            model_name = params.get("model", model)
-            num_simulations = params.get("num_simulations", 1000)
-            c_puct = params.get("c_puct", 1.5)
-            dirichlet_alpha = params.get("dirichlet_alpha", 0.0)
-            dirichlet_epsilon = params.get("dirichlet_epsilon", 0.0)
-            value_weight = params.get("value_weight", 1.0)
-            policy_weight = params.get("policy_weight", 1.0)
-            select_by = params.get("select_by", "visit_count")
+            model_name = config.get("neural_network", {}).get("model", model)
+            num_simulations = config.get("mcts", {}).get("num_simulations", 1000)
+            c_puct = config.get("mcts", {}).get("c_puct", 1.5)
+            dirichlet_alpha = config.get("mcts", {}).get("dirichlet_alpha", 0.0)
+            dirichlet_epsilon = config.get("mcts", {}).get("dirichlet_epsilon", 0.0)
+            value_weight = config.get("mcts", {}).get("value_weight", 1.0)
+            policy_weight = config.get("mcts", {}).get("policy_weight", 1.0)
+            select_by = config.get("mcts", {}).get("select_by", "visit_count")
 
             best_move = pick_move_mcts(
                 board,
@@ -97,12 +97,14 @@ def analyze_position(
             }
 
         case "nn":
-            model_name = params.get("model", model)
-            policy_softmax_temperature = params.get(
+            model_name = config.get("neural_network", {}).get("model", model)
+            policy_softmax_temperature = config.get("neural_network", {}).get(
                 "policy_softmax_temperature",
-                params.get("temperature", 0.0),
+                config.get("neural_network", {}).get("temperature", 0.0),
             )
-            use_value_head = params.get("use_value_head", True)
+            use_value_head = config.get("neural_network", {}).get(
+                "use_value_head", True
+            )
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             checkpoint_model = load_model(
                 model=model_name,
@@ -125,8 +127,8 @@ def analyze_position(
                 stats["value"] = value
 
         case "minimax":
-            depth = params.get("depth", 3)
-            use_alpha_beta = params.get("use_alpha_beta", True)
+            depth = config.get("minimax", {}).get("depth", 3)
+            use_alpha_beta = config.get("minimax", {}).get("use_alpha_beta", True)
 
             best_move = pick_move_minimax(
                 board,

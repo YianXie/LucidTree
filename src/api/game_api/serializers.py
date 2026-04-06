@@ -1,5 +1,3 @@
-from typing import Any
-
 from rest_framework import serializers
 
 ALGO_CHOICES = ("minimax", "nn", "mcts")
@@ -8,35 +6,11 @@ RULE_CHOICES = ("japanese", "chinese")
 
 
 class AnalyzeConfigSerializer(serializers.Serializer):  # type: ignore
-    general = serializers.DictField(required=False, default=dict)
-    neural_network = serializers.DictField(required=False, default=dict)
-    mcts = serializers.DictField(required=False, default=dict)
-    minimax = serializers.DictField(required=False, default=dict)
-    output = serializers.DictField(required=False, default=dict)
-
-
-class AnalyzeParamsSerializer(serializers.Serializer):  # type: ignore
-    """
-    Serializer for the analyze parameters
-
-    Returns:
-        dict[str, Any]: The validated parameters, will be used to pass to the analyze function
-    """
-
-    # MCTS params
-    num_simulations = serializers.IntegerField(
-        required=False, min_value=1, max_value=5000
-    )
-    c_puct = serializers.FloatField(required=False, min_value=0.0, max_value=10.0)
-
-    # MiniMax params
-    depth = serializers.IntegerField(required=False, min_value=1, max_value=6)
-
-    # Shared optional params
-    seed = serializers.IntegerField(required=False)
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        return attrs
+    general = serializers.DictField(required=True)
+    neural_network = serializers.DictField(required=True)
+    mcts = serializers.DictField(required=True)
+    minimax = serializers.DictField(required=True)
+    output = serializers.DictField(required=True)
 
 
 class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
@@ -53,9 +27,11 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
         list[tuple[str, str]]: The validated moves
     """
 
-    rules = serializers.ChoiceField(choices=RULE_CHOICES, default="japanese")
+    rules = serializers.ChoiceField(
+        choices=RULE_CHOICES, required=False, default="japanese"
+    )
     komi = serializers.FloatField(required=False, default=6.5)
-    to_play = serializers.ChoiceField(choices=PLAYER_CHOICES)
+    to_play = serializers.ChoiceField(choices=PLAYER_CHOICES, required=True)
 
     # Accept moves as list of [color, point]
     moves = serializers.ListField(
@@ -64,13 +40,11 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
             min_length=2,
             max_length=2,
         ),
-        required=False,
-        default=list,
+        required=True,
     )
 
-    algo = serializers.ChoiceField(choices=ALGO_CHOICES)
-    params = AnalyzeParamsSerializer(required=False, default=dict)
-    analysis_config = AnalyzeConfigSerializer(required=False, default=dict)
+    algo = serializers.ChoiceField(choices=ALGO_CHOICES, required=True)
+    analysis_config = AnalyzeConfigSerializer(required=True)
 
     def validate_moves(self, value: list[list[str]]) -> list[tuple[str, str]]:
         validated: list[tuple[str, str]] = []
