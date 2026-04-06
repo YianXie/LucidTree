@@ -2,7 +2,6 @@
 
 import random
 import time
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -24,7 +23,6 @@ def analyze_position(
     to_play: Player,
     algo: str,
     config: dict[str, Any],
-    model: Path | str | None = None,
 ) -> dict[str, Any]:
     """
     Analyze a position
@@ -63,7 +61,9 @@ def analyze_position(
 
     match algo:
         case "mcts":
-            model_name = config.get("neural_network", {}).get("model", model)
+            model_name = config.get("neural_network", {}).get(
+                "model", "checkpoint_19x19"
+            )
             num_simulations = config.get("mcts", {}).get("num_simulations", 1000)
             c_puct = config.get("mcts", {}).get("c_puct", 1.5)
             dirichlet_alpha = config.get("mcts", {}).get("dirichlet_alpha", 0.0)
@@ -98,7 +98,7 @@ def analyze_position(
 
         case "nn":
             nn_cfg = config.get("neural_network", {})
-            model_name = nn_cfg.get("model", model)
+            model_name = nn_cfg.get("model", "checkpoint_19x19")
             policy_softmax_temperature = nn_cfg.get(
                 "policy_softmax_temperature",
                 config.get("general", {}).get("temperature", 0.0),
