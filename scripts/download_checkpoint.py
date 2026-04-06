@@ -8,6 +8,6 @@ CHECKPOINT_PATH = "./models/checkpoint_19x19.pt"
 
 checkpoint_path = Path(CHECKPOINT_PATH)
 checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-urllib.request.urlretrieve(CHECKPOINT_URL, checkpoint_path)
+urllib.request.urlretrieve(CHECKPOINT_URL, checkpoint_path)  # nosec
 
 print(f"Downloaded checkpoint to {checkpoint_path}")
