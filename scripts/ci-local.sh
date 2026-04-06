@@ -60,10 +60,10 @@ fi
 
 # Run pip audit (security checks)
 echo "Running pip audit..."
-if uv run pip-audit || true; then
-    print_status "pip audit passed (temporary ignore)"
+if uv run pip-audit; then
+    print_status "pip audit passed"
 else
-    print_error "pip audit found issues (temporary ignore)."
+    print_error "pip audit found issues."
     exit 1
 fi
 

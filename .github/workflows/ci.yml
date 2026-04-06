@@ -41,8 +41,7 @@ jobs:
 
             - name: Run pip-audit
               run: |
-                  # Temporary ignore pip-audit errors
-                  uv run pip-audit || true
+                  uv run pip-audit
 
             - name: Run bandit
               run: |
