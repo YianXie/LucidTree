@@ -97,14 +97,13 @@ def analyze_position(
             }
 
         case "nn":
-            model_name = config.get("neural_network", {}).get("model", model)
-            policy_softmax_temperature = config.get("neural_network", {}).get(
+            nn_cfg = config.get("neural_network", {})
+            model_name = nn_cfg.get("model", model)
+            policy_softmax_temperature = nn_cfg.get(
                 "policy_softmax_temperature",
-                config.get("neural_network", {}).get("temperature", 0.0),
+                config.get("general", {}).get("temperature", 0.0),
             )
-            use_value_head = config.get("neural_network", {}).get(
-                "use_value_head", True
-            )
+            use_value_head = nn_cfg.get("use_value_head", True)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             checkpoint_model = load_model(
                 model=model_name,
