@@ -1,4 +1,5 @@
 import copy
+import time
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,7 @@ class MCTS:
         )
         self.model = load_model(model=model, device=self.device)
         self.model.eval()
+        self.simulations_run = 0
 
     @torch.no_grad()
     def run(self, board: Board, to_play: Player, **kwargs: Any) -> Node:
@@ -72,7 +74,16 @@ class MCTS:
             dirichlet_epsilon=dirichlet_epsilon,
         )
 
+        max_time_ms = kwargs.get("max_time_ms")
+        deadline: float | None = None
+        if max_time_ms is not None and float(max_time_ms) > 0:
+            deadline = time.perf_counter() + float(max_time_ms) / 1000.0
+
+        simulations_run = 0
         for _ in range(num_simulations):
+            if deadline is not None and time.perf_counter() >= deadline:
+                break
+            simulations_run += 1
             node = root
             path: list[tuple[Node, int]] = []
 
@@ -130,6 +141,7 @@ class MCTS:
             # Backup
             self._backup(path, value)
 
+        self.simulations_run = simulations_run
         return root
 
     def _backup(self, path: list[tuple[Node, int]], value: float) -> None:

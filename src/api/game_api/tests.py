@@ -187,6 +187,10 @@ class TestAnalyzeService:
         mock_pick.assert_called_once()
         assert mock_pick.call_args.kwargs["depth"] == 4
         assert mock_pick.call_args.kwargs["use_alpha_beta"] is False
+        assert "max_time_ms" not in mock_pick.call_args.kwargs
+        assert mock_pick.call_args.kwargs["komi"] == 6.5
+        assert mock_pick.call_args.kwargs["rules"] == "japanese"
+        assert "stats_out" in mock_pick.call_args.kwargs
 
     @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
     def test_analysis_config_affects_mcts_call(self, mock_pick: Any) -> None:
@@ -210,6 +214,8 @@ class TestAnalyzeService:
         assert mock_pick.call_args.kwargs["num_simulations"] == 250
         assert mock_pick.call_args.kwargs["c_puct"] == 1.7
         assert mock_pick.call_args.kwargs["select_by"] == "value"
+        assert "max_time_ms" not in mock_pick.call_args.kwargs
+        assert "stats_out" in mock_pick.call_args.kwargs
 
     def test_invalid_move_raises_bad_request(self) -> None:
         from api.game_api.services import analyze

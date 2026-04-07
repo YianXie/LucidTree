@@ -1,5 +1,6 @@
 # fmt: off
 
+import time
 from typing import Any
 
 from lucidtree.constants import (BLACK_COLOR, INFINITY, KOMI,
@@ -69,12 +70,14 @@ def minimax(
     alpha: float,
     beta: float,
     consecutive_passes: int,
-    **kwargs: Any,
+    *,
+    use_alpha_beta: bool = True,
+    komi: float = KOMI,
+    rules: str = RULES,
+    deadline: float | None = None,
 ) -> float:
-    depth = kwargs.get("depth", 2)
-    use_alpha_beta = kwargs.get("use_alpha_beta", True)
-    komi = kwargs.get("komi", KOMI)
-    rules = kwargs.get("rules", RULES)
+    if deadline is not None and time.perf_counter() >= deadline:
+        return evaluate(board, komi=komi, rules=rules)
 
     if depth <= 0 or game_is_over_by_passes(consecutive_passes) or board.is_terminate():
         return evaluate(board, komi=komi, rules=rules)
@@ -99,6 +102,9 @@ def minimax(
                 beta,
                 new_passes,
                 use_alpha_beta=use_alpha_beta,
+                komi=komi,
+                rules=rules,
+                deadline=deadline,
             )
 
             # undo
@@ -124,6 +130,9 @@ def minimax(
                 beta,
                 new_passes,
                 use_alpha_beta=use_alpha_beta,
+                komi=komi,
+                rules=rules,
+                deadline=deadline,
             )
 
             board.undo()
@@ -135,40 +144,48 @@ def minimax(
         return best
 
 
-def next_best_move(
-    board: Board, isMax: bool, depth: int = 2, **kwargs: Any
-) -> tuple[int, int]:
+def _root_search_one_depth(
+    board: Board,
+    isMax: bool,
+    search_depth: int,
+    *,
+    use_alpha_beta: bool,
+    komi: float,
+    rules: str,
+    deadline: float | None,
+) -> tuple[tuple[int, int] | None, bool]:
     """
-    Returns the best placement position
-
-    Args:
-        board (Board): the board
-        isMax (bool): if the player is maximizing
-        depth (int, optional): the depth of the search. Defaults to 2.
-        **kwargs (Any): other additional arguments
+    Evaluate all root moves at a fixed search depth.
 
     Returns:
-        tuple[int, int]: the best placement position
+        (best_position, completed): completed is False if deadline was hit before
+        finishing all root moves (caller should discard this iteration).
     """
     best_score = -INFINITY if isMax else INFINITY
-    best_move: Move | None = None  # None means PASS
+    best_move: Move | None = None
 
     player = max_player if isMax else min_player
     color = player.get_color()
-
     moves = _legal_moves_including_pass(board, color)
+
     for move in moves:
+        if deadline is not None and time.perf_counter() >= deadline:
+            return (None, False)
+
         _apply_move(board, move, color)
         consecutive_passes = 1 if move is None else 0
 
         score = minimax(
             board,
-            depth - 1,
+            search_depth - 1,
             not isMax,
             -INFINITY,
             INFINITY,
             consecutive_passes,
-            **kwargs,
+            use_alpha_beta=use_alpha_beta,
+            komi=komi,
+            rules=rules,
+            deadline=deadline,
         )
 
         board.undo()
@@ -177,4 +194,86 @@ def next_best_move(
             best_score = score
             best_move = move
 
-    return PASS_MOVE_POSITION if best_move is None else best_move.get_position()
+    pos = PASS_MOVE_POSITION if best_move is None else best_move.get_position()
+    return (pos, True)
+
+
+def next_best_move(
+    board: Board,
+    isMax: bool,
+    depth: int = 2,
+    *,
+    use_alpha_beta: bool = True,
+    komi: float = KOMI,
+    rules: str = RULES,
+    deadline: float | None = None,
+    stats_out: dict[str, Any] | None = None,
+) -> tuple[int, int]:
+    """
+    Returns the best placement position
+
+    Args:
+        board (Board): the board
+        isMax (bool): if the player is maximizing
+        depth (int, optional): the depth of the search. Defaults to 2.
+        use_alpha_beta (bool): enable alpha-beta pruning
+        komi (float): komi for evaluation
+        rules (str): rules for evaluation
+        deadline (float | None): perf_counter() deadline; None means no time limit
+        stats_out (dict | None): if set, receives ``search_depth_reached`` when a
+            time limit is used (depth completed for the returned move).
+
+    Returns:
+        tuple[int, int]: the best placement position
+    """
+    if deadline is None:
+        result, ok = _root_search_one_depth(
+            board,
+            isMax,
+            depth,
+            use_alpha_beta=use_alpha_beta,
+            komi=komi,
+            rules=rules,
+            deadline=None,
+        )
+        assert ok and result is not None  # nosec
+        if stats_out is not None:
+            stats_out["search_depth_reached"] = depth
+        return result
+
+    best_pos: tuple[int, int] | None = None
+    reached = 0
+
+    for d in range(1, depth + 1):
+        if time.perf_counter() >= deadline:
+            break
+        pos, completed = _root_search_one_depth(
+            board,
+            isMax,
+            d,
+            use_alpha_beta=use_alpha_beta,
+            komi=komi,
+            rules=rules,
+            deadline=deadline,
+        )
+        if completed and pos is not None:
+            best_pos = pos
+            reached = d
+        else:
+            break
+
+    if best_pos is not None:
+        if stats_out is not None:
+            stats_out["search_depth_reached"] = reached
+        return best_pos
+
+    if stats_out is not None:
+        stats_out["search_depth_reached"] = 0
+
+    player = max_player if isMax else min_player
+    color = player.get_color()
+    moves = _legal_moves_including_pass(board, color)
+    if not moves:
+        return PASS_MOVE_POSITION
+    fallback = moves[0]
+    return PASS_MOVE_POSITION if fallback is None else fallback.get_position()

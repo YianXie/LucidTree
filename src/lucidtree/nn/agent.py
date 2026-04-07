@@ -1,12 +1,14 @@
 # fmt: off
 
+import time
 from pathlib import Path
 from typing import Any
 
 import torch
 
 from lucidtree.common.paths import get_project_root
-from lucidtree.constants import PASS_INDEX, PASS_MOVE_POSITION, WHITE_COLOR
+from lucidtree.constants import (KOMI, PASS_INDEX, PASS_MOVE_POSITION, RULES,
+                                 WHITE_COLOR)
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import index_to_row_col
 from lucidtree.go.move import Move
@@ -86,8 +88,14 @@ def pick_move_mcts(
     """
     from lucidtree.mcts.search import MCTS
 
-    mcts = MCTS(model=model, **kwargs)
-    root = mcts.run(board=board, to_play=to_play, **kwargs)
+    kw = dict(kwargs)
+    stats_out = kw.pop("stats_out", None)
+
+    mcts = MCTS(model=model, **kw)
+    root = mcts.run(board=board, to_play=to_play, **kw)
+
+    if stats_out is not None:
+        stats_out["simulations_run"] = mcts.simulations_run
 
     pos = MCTS.pick_best_move_position(
         root, select_by=kwargs.get("select_by", "visit_count")
@@ -162,12 +170,26 @@ def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int
     Returns:
         tuple[int, int]: the move
     """
-    depth = kwargs.get("depth", 3)
-    use_alpha_beta = kwargs.get("use_alpha_beta", True)
+    kw = dict(kwargs)
+    stats_out = kw.pop("stats_out", None)
+    depth = kw.pop("depth", 3)
+    use_alpha_beta = kw.pop("use_alpha_beta", True)
+    max_time_ms = kw.pop("max_time_ms", None)
+    komi = kw.pop("komi", KOMI)
+    rules = kw.pop("rules", RULES)
+
+    deadline = None
+    if max_time_ms is not None and float(max_time_ms) > 0:
+        deadline = time.perf_counter() + float(max_time_ms) / 1000.0
+
     best_move = next_best_move(
         board,
         to_play.get_color() == WHITE_COLOR,
         depth=depth,
         use_alpha_beta=use_alpha_beta,
+        komi=komi,
+        rules=rules,
+        deadline=deadline,
+        stats_out=stats_out,
     )
     return best_move

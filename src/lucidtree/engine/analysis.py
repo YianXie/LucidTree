@@ -53,7 +53,21 @@ def analyze_position(
             f"but a {board.size}x{board.size} board was provided."
         )
 
-    seed = config.get("general", {}).get("seed", None)
+    general = config.get("general", {})
+    max_time_ms = general.get("max_time_ms")
+    if max_time_ms is not None:
+        if not isinstance(max_time_ms, (int, float)) or max_time_ms < 0:
+            raise BadRequestError(
+                "general.max_time_ms must be non-negative when provided; "
+                "use a positive value for a time limit, or 0 / omit for no limit."
+            )
+    use_time_limit = (
+        max_time_ms is not None
+        and isinstance(max_time_ms, (int, float))
+        and max_time_ms > 0
+    )
+
+    seed = general.get("seed", None)
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
@@ -76,18 +90,24 @@ def analyze_position(
             policy_weight = config.get("mcts", {}).get("policy_weight", 1.0)
             select_by = config.get("mcts", {}).get("select_by", "visit_count")
 
-            best_move = pick_move_mcts(
-                board,
-                to_play,
-                model=model_name,
-                num_simulations=num_simulations,
-                c_puct=c_puct,
-                dirichlet_alpha=dirichlet_alpha,
-                dirichlet_epsilon=dirichlet_epsilon,
-                value_weight=value_weight,
-                policy_weight=policy_weight,
-                select_by=select_by,
-            )
+            mcts_stats: dict[str, Any] = {}
+            pick_kw: dict[str, Any] = {
+                "model": model_name,
+                "num_simulations": num_simulations,
+                "c_puct": c_puct,
+                "dirichlet_alpha": dirichlet_alpha,
+                "dirichlet_epsilon": dirichlet_epsilon,
+                "value_weight": value_weight,
+                "policy_weight": policy_weight,
+                "select_by": select_by,
+                "komi": komi,
+                "rules": rules,
+                "stats_out": mcts_stats,
+            }
+            if use_time_limit:
+                pick_kw["max_time_ms"] = max_time_ms
+
+            best_move = pick_move_mcts(board, to_play, **pick_kw)
 
             stats = {
                 "model": str(model_name) if model_name is not None else None,
@@ -98,14 +118,17 @@ def analyze_position(
                 "value_weight": value_weight,
                 "policy_weight": policy_weight,
                 "select_by": select_by,
+                "simulations_run": mcts_stats.get("simulations_run", num_simulations),
             }
+            if use_time_limit:
+                stats["max_time_ms"] = max_time_ms
 
         case "nn":
             nn_cfg = config.get("neural_network", {})
             model_name = nn_cfg.get("model", "checkpoint_19x19")
             policy_softmax_temperature = nn_cfg.get(
                 "policy_softmax_temperature",
-                config.get("general", {}).get("temperature", 0.0),
+                general.get("temperature", 0.0),
             )
             use_value_head = nn_cfg.get("use_value_head", True)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -133,17 +156,28 @@ def analyze_position(
             depth = config.get("minimax", {}).get("depth", 3)
             use_alpha_beta = config.get("minimax", {}).get("use_alpha_beta", True)
 
-            best_move = pick_move_minimax(
-                board,
-                to_play,
-                depth=depth,
-                use_alpha_beta=use_alpha_beta,
-            )
+            minimax_stats: dict[str, Any] = {}
+            mm_kw: dict[str, Any] = {
+                "depth": depth,
+                "use_alpha_beta": use_alpha_beta,
+                "komi": komi,
+                "rules": rules,
+                "stats_out": minimax_stats,
+            }
+            if use_time_limit:
+                mm_kw["max_time_ms"] = max_time_ms
+
+            best_move = pick_move_minimax(board, to_play, **mm_kw)
 
             stats = {
                 "depth": depth,
                 "use_alpha_beta": use_alpha_beta,
+                "search_depth_reached": minimax_stats.get(
+                    "search_depth_reached", depth
+                ),
             }
+            if use_time_limit:
+                stats["max_time_ms"] = max_time_ms
 
         case _:
             raise BadRequestError(f"Invalid algorithm {algo}")
