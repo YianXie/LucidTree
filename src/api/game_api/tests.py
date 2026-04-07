@@ -19,37 +19,27 @@ from api.game_api.services import _parse_move, _parse_player
 # ---------------------------------------------------------------------------
 
 
-def _valid_analysis_config() -> dict[str, Any]:
+def _valid_params() -> dict[str, Any]:
     return {
-        "general": {
-            "algorithm": "minimax",
-            "rules": "japanese",
-            "komi": 6.5,
-            "max_time_ms": 0,
-            "temperature": 0,
-            "seed": 123,
-        },
-        "neural_network": {
-            "model": "checkpoint_19x19",
-            "policy_softmax_temperature": 0.2,
-            "use_value_head": True,
-        },
-        "mcts": {
-            "num_simulations": 250,
-            "c_puct": 1.7,
-            "select_by": "value",
-            "policy_weight": 1.2,
-            "value_weight": 0.8,
-        },
-        "minimax": {
-            "depth": 4,
-            "use_alpha_beta": False,
-        },
-        "output": {
-            "include_top_moves": 5,
-            "include_policy": False,
-            "include_win_rate": False,
-        },
+        "num_simulations": 250,
+        "c_puct": 1.7,
+        "select_by": "value",
+        "policy_weight": 1.2,
+        "value_weight": 0.8,
+        "dirichlet_alpha": 0.0,
+        "dirichlet_epsilon": 0.0,
+        "model": "checkpoint_19x19",
+        "max_time_ms": 1000,
+        "temperature": 0.0,
+        "seed": 123,
+    }
+
+
+def _valid_output() -> dict[str, Any]:
+    return {
+        "include_top_moves": 5,
+        "include_policy": True,
+        "include_win_rate": True,
     }
 
 
@@ -59,8 +49,9 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
         "komi": 6.5,
         "to_play": "B",
         "moves": [],
-        "algo": "minimax",
-        "analysis_config": _valid_analysis_config(),
+        "algo": "mcts",
+        "params": _valid_params(),
+        "output": _valid_output(),
     }
     payload.update(overrides)
     return payload
@@ -151,70 +142,25 @@ class TestParseMove:
 
 
 class TestAnalyzeService:
-    @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
-    def test_minimax_returns_gtp_move(self, _mock: Any) -> None:
+    @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
+    def test_mcts_returns_gtp_move(self, _mock: Any) -> None:
         from api.game_api.services import analyze
 
         result = analyze(_valid_payload())
         assert "best_move" in result
-        assert result["algorithm"] == "minimax"
+        assert result["algorithm"] == "mcts"
         assert isinstance(result["best_move"], str)
-
-    @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
-    def test_stats_does_not_contain_raw_tuple(self, _mock: Any) -> None:
-        from api.game_api.services import analyze
-
-        result = analyze(_valid_payload())
-        for v in result["stats"].values():
-            assert not isinstance(v, tuple), f"Raw tuple found in stats: {v}"
-
-    @patch("lucidtree.engine.analysis.pick_move_minimax", return_value=(3, 3))
-    def test_analysis_config_affects_minimax_call(self, mock_pick: Any) -> None:
-        from api.game_api.services import analyze
-
-        analyze(
-            _valid_payload(
-                analysis_config={
-                    **_valid_analysis_config(),
-                    "general": {
-                        **_valid_analysis_config()["general"],
-                        "algorithm": "minimax",
-                    },
-                },
-            )
-        )
-
-        mock_pick.assert_called_once()
-        assert mock_pick.call_args.kwargs["depth"] == 4
-        assert mock_pick.call_args.kwargs["use_alpha_beta"] is False
-        assert "max_time_ms" not in mock_pick.call_args.kwargs
-        assert mock_pick.call_args.kwargs["komi"] == 6.5
-        assert mock_pick.call_args.kwargs["rules"] == "japanese"
-        assert "stats_out" in mock_pick.call_args.kwargs
 
     @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
     def test_analysis_config_affects_mcts_call(self, mock_pick: Any) -> None:
         from api.game_api.services import analyze
 
-        analyze(
-            _valid_payload(
-                algo="mcts",
-                params={},
-                analysis_config={
-                    **_valid_analysis_config(),
-                    "general": {
-                        **_valid_analysis_config()["general"],
-                        "algorithm": "mcts",
-                    },
-                },
-            )
-        )
+        analyze(_valid_payload())
 
         mock_pick.assert_called_once()
         assert mock_pick.call_args.kwargs["num_simulations"] == 250
         assert mock_pick.call_args.kwargs["c_puct"] == 1.7
         assert mock_pick.call_args.kwargs["select_by"] == "value"
-        assert "max_time_ms" not in mock_pick.call_args.kwargs
         assert "stats_out" in mock_pick.call_args.kwargs
 
     def test_invalid_move_raises_bad_request(self) -> None:

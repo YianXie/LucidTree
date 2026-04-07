@@ -100,12 +100,9 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     komi = validated_data.get("komi", KOMI)
     moves = validated_data.get("moves", [])
     rules = validated_data.get("rules", RULES)
-    if rules not in ("japanese", "chinese"):
-        raise BadRequestError(
-            f"Invalid rules value, must be either japanese or chinese. Got {rules}"
-        )
     to_play_text = validated_data["to_play"]
-    analysis_config = validated_data.get("analysis_config", {})
+    params = validated_data["params"]
+    output = validated_data["output"]
 
     board = _build_board_from_request(moves=moves)
     to_play = _parse_player(to_play_text)
@@ -119,5 +116,6 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
         komi=komi,
         rules=rules,
         to_play=to_play,
-        config=analysis_config,
+        params=params,
+        output=output,
     )

@@ -24,7 +24,8 @@ def analyze_position(
     komi: float,
     rules: str,
     to_play: Player,
-    config: dict[str, Any],
+    params: dict[str, Any],
+    output: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Analyze a position
@@ -35,11 +36,8 @@ def analyze_position(
         komi (float): the komi value to apply when calculating scores
         rules (str): the rules (japanese or chinese) to apply when calculating scores
         to_play (Player): the player to play
-        config (dict[str, Any]): the configuration for the algorithm
-        model (Path | str | None, optional): the path to the model to load. Defaults to None.
-            If None, loads the default model from the models directory (checkpoint_19x19.pt).
-            If a string, it is assumed to be the name of the model and is loaded from the models directory.
-            If a Path, it is assumed to be the path to the model and is loaded from the given path.
+        params (dict[str, Any]): the parameters for the algorithm
+        output (dict[str, Any]): the output for the algorithm
 
     Raises:
         ValueError: if algo is 'mcts' or 'nn' and board.size != 19
@@ -53,12 +51,11 @@ def analyze_position(
             f"but a {board.size}x{board.size} board was provided."
         )
 
-    general = config.get("general", {})
-    max_time_ms = general.get("max_time_ms")
+    max_time_ms = params.get("max_time_ms")
     if max_time_ms is not None:
         if not isinstance(max_time_ms, (int, float)) or max_time_ms < 0:
             raise BadRequestError(
-                "general.max_time_ms must be non-negative when provided; "
+                "params.max_time_ms must be non-negative when provided; "
                 "use a positive value for a time limit, or 0 / omit for no limit."
             )
     use_time_limit = (
@@ -67,7 +64,7 @@ def analyze_position(
         and max_time_ms > 0
     )
 
-    seed = general.get("seed", None)
+    seed = params.get("seed", None)
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
@@ -79,16 +76,14 @@ def analyze_position(
 
     match algo:
         case "mcts":
-            model_name = config.get("neural_network", {}).get(
-                "model", "checkpoint_19x19"
-            )
-            num_simulations = config.get("mcts", {}).get("num_simulations", 1000)
-            c_puct = config.get("mcts", {}).get("c_puct", 1.5)
-            dirichlet_alpha = config.get("mcts", {}).get("dirichlet_alpha", 0.0)
-            dirichlet_epsilon = config.get("mcts", {}).get("dirichlet_epsilon", 0.0)
-            value_weight = config.get("mcts", {}).get("value_weight", 1.0)
-            policy_weight = config.get("mcts", {}).get("policy_weight", 1.0)
-            select_by = config.get("mcts", {}).get("select_by", "visit_count")
+            model_name = params.get("model", "checkpoint_19x19")
+            num_simulations = params.get("num_simulations", 1000)
+            c_puct = params.get("c_puct", 1.5)
+            dirichlet_alpha = params.get("dirichlet_alpha", 0.0)
+            dirichlet_epsilon = params.get("dirichlet_epsilon", 0.0)
+            value_weight = params.get("value_weight", 1.0)
+            policy_weight = params.get("policy_weight", 1.0)
+            select_by = params.get("select_by", "visit_count")
 
             mcts_stats: dict[str, Any] = {}
             pick_kw: dict[str, Any] = {
@@ -124,13 +119,9 @@ def analyze_position(
                 stats["max_time_ms"] = max_time_ms
 
         case "nn":
-            nn_cfg = config.get("neural_network", {})
-            model_name = nn_cfg.get("model", "checkpoint_19x19")
-            policy_softmax_temperature = nn_cfg.get(
-                "policy_softmax_temperature",
-                general.get("temperature", 0.0),
-            )
-            use_value_head = nn_cfg.get("use_value_head", True)
+            model_name = params.get("model", "checkpoint_19x19")
+            policy_softmax_temperature = params.get("temperature", 0.0)
+            use_value_head = params.get("use_value_head", True)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             checkpoint_model = load_model(
                 model=model_name,
@@ -153,8 +144,8 @@ def analyze_position(
                 stats["value"] = value
 
         case "minimax":
-            depth = config.get("minimax", {}).get("depth", 3)
-            use_alpha_beta = config.get("minimax", {}).get("use_alpha_beta", True)
+            depth = params.get("depth", 3)
+            use_alpha_beta = params.get("use_alpha_beta", True)
 
             minimax_stats: dict[str, Any] = {}
             mm_kw: dict[str, Any] = {
