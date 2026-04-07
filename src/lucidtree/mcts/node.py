@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, INFINITY
+from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, INFINITY, KOMI, RULES
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import row_col_to_index
 from lucidtree.go.player import Player
@@ -54,6 +54,8 @@ class Node:
         model: nn.Module,
         device: torch.device | None = None,
         *,
+        komi: float = KOMI,
+        rules: str = RULES,
         dirichlet_alpha: float = 0.0,
         dirichlet_epsilon: float = 0.0,
     ) -> float:
@@ -71,7 +73,9 @@ class Node:
         if self.board.is_terminate():
             self.is_expanded = True
             # Calculate the game outcome from the current player's perspective
-            black_score, white_score = self.board.calculate_score()
+            black_score, white_score = self.board.calculate_score(
+                komi=komi, rules=rules
+            )
 
             # Calculate result from Black's perspective
             if black_score > white_score:

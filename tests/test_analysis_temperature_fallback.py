@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
+from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, KOMI, RULES,
+                                 WHITE_COLOR)
 from lucidtree.engine.analysis import analyze_position
 from lucidtree.go.board import Board
 from lucidtree.go.player import Player
@@ -45,10 +46,12 @@ def test_nn_uses_general_temperature_when_policy_key_missing(
 ) -> None:
     cfg = _nn_config_base()
     analyze_position(
-        _empty_board(),
-        _test_black,
-        "nn",
-        cfg,
+        algo="nn",
+        board=_empty_board(),
+        komi=KOMI,
+        rules=RULES,
+        to_play=_test_black,
+        config=cfg,
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.75
 
@@ -64,10 +67,12 @@ def test_nn_policy_softmax_temperature_overrides_general(
     cfg = _nn_config_base()
     cfg["neural_network"]["policy_softmax_temperature"] = 0.2
     analyze_position(
-        _empty_board(),
-        _test_black,
-        "nn",
-        cfg,
+        algo="nn",
+        board=_empty_board(),
+        komi=KOMI,
+        rules=RULES,
+        to_play=_test_black,
+        config=cfg,
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.2
 
@@ -83,9 +88,11 @@ def test_nn_falls_back_to_neural_network_temperature_when_general_missing(
     cfg = _nn_config_base()
     cfg["general"].pop("temperature")
     analyze_position(
-        _empty_board(),
-        _test_black,
-        "nn",
-        cfg,
+        algo="nn",
+        board=_empty_board(),
+        komi=KOMI,
+        rules=RULES,
+        to_play=_test_black,
+        config=cfg,
     )
     assert mock_pick.call_args.kwargs["temperature"] == 0.0

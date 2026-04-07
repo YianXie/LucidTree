@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from lucidtree.constants import BLACK_COLOR, PASS_INDEX
+from lucidtree.constants import BLACK_COLOR, KOMI, PASS_INDEX, RULES
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import index_to_row_col
 from lucidtree.go.player import Player
@@ -47,6 +47,8 @@ class MCTS:
         """
         num_simulations = kwargs.get("num_simulations", 1000)
         c_puct = kwargs.get("c_puct", 1.5)
+        komi = kwargs.get("komi", KOMI)
+        rules = kwargs.get("rules", RULES)
         dirichlet_alpha = kwargs.get("dirichlet_alpha", 0.0)
         dirichlet_epsilon = kwargs.get("dirichlet_epsilon", 0.0)
         value_weight = kwargs.get("value_weight", 1.0)
@@ -64,6 +66,8 @@ class MCTS:
         root.expand(
             self.model,
             self.device,
+            komi=komi,
+            rules=rules,
             dirichlet_alpha=dirichlet_alpha,
             dirichlet_epsilon=dirichlet_epsilon,
         )
@@ -107,7 +111,9 @@ class MCTS:
             if node.is_expanded:
                 # Node is already expanded (terminal node case)
                 # Recompute the value based on game outcome
-                black_score, white_score = node.board.calculate_score()
+                black_score, white_score = node.board.calculate_score(
+                    komi=komi, rules=rules
+                )
 
                 if black_score > white_score:
                     result = 1.0  # Black wins

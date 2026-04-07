@@ -1,7 +1,9 @@
 # fmt: off
 
-from lucidtree.constants import (BLACK_COLOR, INFINITY, PASS_MOVE_POSITION,
-                                 WHITE_COLOR)
+from typing import Any
+
+from lucidtree.constants import (BLACK_COLOR, INFINITY, KOMI,
+                                 PASS_MOVE_POSITION, RULES, WHITE_COLOR)
 from lucidtree.go.board import Board
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
@@ -43,21 +45,21 @@ def game_is_over_by_passes(consecutive_passes: int) -> bool:
     return consecutive_passes >= 2
 
 
-def evaluate(board: Board) -> float:
+def evaluate(board: Board, *, komi: float = KOMI, rules: str = RULES) -> float:
     """
-    Simple eval:
-    - uses board.calculate_score() if present (territory-ish)
-    - plus small capture bonus
-    positive favors white, negative favors black
+    Evaluate the current board
+
+    Args:
+        board (Board): the current board
+        komi (float, optional): the komi value to apply when calculating the scores. Defaults to KOMI.
+        rules (str, optional): the rules to apply when calculating the scores. Defaults to RULES.
+
+    Returns:
+        float: positive if white is winning, zero if the same, and positive if black is winning
     """
     # territory/score estimate
-    black_score, white_score = board.calculate_score()
-    score_term = white_score - black_score
-    black_captures = board.get_black_player().get_capture_count()
-    white_captures = board.get_white_player().get_capture_count()
-    capture_term = (white_captures - black_captures) * 0.5  # keep it small
-
-    return float(score_term) + float(capture_term)
+    black_score, white_score = board.calculate_score(komi=komi, rules=rules)
+    return white_score - black_score
 
 
 def minimax(
@@ -67,15 +69,15 @@ def minimax(
     alpha: float,
     beta: float,
     consecutive_passes: int,
-    use_alpha_beta: bool = True,
+    **kwargs: Any,
 ) -> float:
-    """
-    Depth-limited minimax with alpha-beta pruning.
-    isMax=True => white to play (maximize)
-    isMax=False => black to play (minimize)
-    """
+    depth = kwargs.get("depth", 2)
+    use_alpha_beta = kwargs.get("use_alpha_beta", True)
+    komi = kwargs.get("komi", KOMI)
+    rules = kwargs.get("rules", RULES)
+
     if depth <= 0 or game_is_over_by_passes(consecutive_passes) or board.is_terminate():
-        return evaluate(board)
+        return evaluate(board, komi=komi, rules=rules)
 
     player = max_player if isMax else min_player
     color = player.get_color()
@@ -134,7 +136,7 @@ def minimax(
 
 
 def next_best_move(
-    board: Board, isMax: bool, depth: int = 2, use_alpha_beta: bool = True
+    board: Board, isMax: bool, depth: int = 2, **kwargs: Any
 ) -> tuple[int, int]:
     """
     Returns the best placement position
@@ -143,6 +145,7 @@ def next_best_move(
         board (Board): the board
         isMax (bool): if the player is maximizing
         depth (int, optional): the depth of the search. Defaults to 2.
+        **kwargs (Any): other additional arguments
 
     Returns:
         tuple[int, int]: the best placement position
@@ -154,7 +157,6 @@ def next_best_move(
     color = player.get_color()
 
     moves = _legal_moves_including_pass(board, color)
-
     for move in moves:
         _apply_move(board, move, color)
         consecutive_passes = 1 if move is None else 0
@@ -166,7 +168,7 @@ def next_best_move(
             -INFINITY,
             INFINITY,
             consecutive_passes,
-            use_alpha_beta=use_alpha_beta,
+            **kwargs,
         )
 
         board.undo()

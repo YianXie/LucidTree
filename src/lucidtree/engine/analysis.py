@@ -19,18 +19,22 @@ from lucidtree.nn.agent import (load_model, pick_move_mcts, pick_move_minimax,
 
 
 def analyze_position(
-    board: Board,
-    to_play: Player,
     algo: str,
+    board: Board,
+    komi: float,
+    rules: str,
+    to_play: Player,
     config: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Analyze a position
 
     Args:
-        board (Board): the board
-        to_play (Player): the player to play
         algo (str): the algorithm to use
+        board (Board): the board
+        komi (float): the komi value to apply when calculating scores
+        rules (str): the rules (japanese or chinese) to apply when calculating scores
+        to_play (Player): the player to play
         config (dict[str, Any]): the configuration for the algorithm
         model (Path | str | None, optional): the path to the model to load. Defaults to None.
             If None, loads the default model from the models directory (checkpoint_19x19.pt).

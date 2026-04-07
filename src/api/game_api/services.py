@@ -1,7 +1,8 @@
 from typing import Any
 
 from api.common.exceptions import BadRequestError
-from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, PASS_MOVE_POSITION
+from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, KOMI,
+                                 PASS_MOVE_POSITION, RULES)
 from lucidtree.engine.analysis import analyze_position
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import gtp_to_row_col
@@ -95,9 +96,15 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     Returns:
         dict[str, Any]: the analyzed position
     """
-    to_play_text = validated_data["to_play"]
-    moves = validated_data.get("moves", [])
     algo = validated_data["algo"]
+    komi = validated_data.get("komi", KOMI)
+    moves = validated_data.get("moves", [])
+    rules = validated_data.get("rules", RULES)
+    if rules not in ("japanese", "chinese"):
+        raise BadRequestError(
+            f"Invalid rules value, must be either japanese or chinese. Got {rules}"
+        )
+    to_play_text = validated_data["to_play"]
     analysis_config = validated_data.get("analysis_config", {})
 
     board = _build_board_from_request(moves=moves)
@@ -107,8 +114,10 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     opponent.opponent = to_play
 
     return analyze_position(
-        board=board,
-        to_play=to_play,
         algo=algo,
+        board=board,
+        komi=komi,
+        rules=rules,
+        to_play=to_play,
         config=analysis_config,
     )
