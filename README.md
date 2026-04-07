@@ -150,18 +150,42 @@ Sample JSON request:
 
 ```json
 {
-    "board_size": 9,
     "rules": "japanese",
     "komi": 6.5,
     "to_play": "B",
     "moves": [
+        ["B", "Q16"],
+        ["W", "Q4"],
         ["B", "D4"],
-        ["W", "E4"]
+        ["W", "D16"]
     ],
-    "algo": "mcts",
-    "params": {
-        "num_simulations": 300,
-        "c_puct": 1.25
+    "algo": "nn",
+    "analysis_config": {
+        "general": {
+            "algorithm": "minimax",
+            "rules": "japanese",
+            "komi": 6.5,
+            "max_time_ms": 0,
+            "temperature": 0,
+            "seed": 123
+        },
+        "neural_network": {
+            "model": "checkpoint_19x19",
+            "policy_softmax_temperature": 0.2,
+            "use_value_head": true
+        },
+        "mcts": {
+            "num_simulations": 250
+        },
+        "minimax": {
+            "depth": 2,
+            "use_alpha_beta": false
+        },
+        "output": {
+            "include_top_moves": 5,
+            "include_policy": false,
+            "include_win_rate": false
+        }
     }
 }
 ```
@@ -170,12 +194,15 @@ Sample JSON response:
 
 ```json
 {
-    "best_move": "C5",
-    "algorithm": "mcts",
+    "best_move": "O3",
+    "algorithm": "nn",
     "stats": {
-        "num_simulations": 300,
-        "c_puct": 1.25,
-        "time_ms": 91.83
+        "model": "checkpoint_19x19",
+        "policy_softmax_temperature": 0.2,
+        "selected_move_probability": 0.43797069787979126,
+        "use_value_head": true,
+        "value": 0.024744708091020584,
+        "elapsed_ms": 72.08
     }
 }
 ```
