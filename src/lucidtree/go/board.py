@@ -7,8 +7,8 @@ from typing import Any
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-from lucidtree.constants import (BLACK_COLOR, EMPTY_COLOR, PASS_MOVE_POSITION,
-                                 WHITE_COLOR)
+from lucidtree.constants import (BLACK_COLOR, EMPTY_COLOR, KOMI,
+                                 PASS_MOVE_POSITION, RULES, WHITE_COLOR)
 from lucidtree.go.exceptions import (GameOverError, IllegalMoveError,
                                      InvalidColorError, InvalidCoordinateError)
 from lucidtree.go.move import Move
@@ -527,16 +527,25 @@ class Board:
         if self._consecutive_passes >= 2:
             self._is_terminate = True
 
-    def calculate_score(self) -> tuple[int, int]:
+    def calculate_score(
+        self, komi: float = KOMI, rules: str = RULES
+    ) -> tuple[float, float]:
         """
         Estimate the territories for black and white player
+
+        Args:
+            komi (float, optional): the komi to apply for the white player. Defaults to KOMI.
+            rules (str, optional): the rules to apply for the final scoring methods. Defaults to RULES.
 
         Returns:
             tuple: a tuple containing the territories for both side in the format (black, white)
         """
+        if rules not in ("japanese", "chinese"):
+            raise ValueError(f"rules must be either japanese or chinese, got {rules}")
+
         visited = set[Move]()
-        black_territories = 0
-        white_territories = 0
+        black_territories = 0.0
+        white_territories = 0.0
         for row in self.state:
             for move in row:
                 if move in visited:
@@ -572,6 +581,22 @@ class Board:
                         white_territories += empty_moves
                     visited.update(queue_visited)
                 visited.add(move)
+
+        if rules == "japanese":
+            # Territories scoring
+            black_territories += self.black_player.get_capture_count()
+            white_territories += self.white_player.get_capture_count()
+        else:
+            # Area scoring
+            for row in self.state:
+                for move in row:
+                    if move.get_color() == BLACK_COLOR:
+                        black_territories += 1
+                    elif move.get_color() == WHITE_COLOR:
+                        white_territories += 1
+
+        # Apply the komi value
+        white_territories += komi
 
         return (black_territories, white_territories)
 

@@ -51,14 +51,10 @@ def evaluate(board: Board) -> float:
     positive favors white, negative favors black
     """
     # territory/score estimate
-    try:
-        black_score, white_score = board.calculate_score()
-        score_term = white_score - black_score
-    except Exception:
-        score_term = 0
-
-    black_captures = board.get_black_player().capture_count
-    white_captures = board.get_white_player().capture_count
+    black_score, white_score = board.calculate_score()
+    score_term = white_score - black_score
+    black_captures = board.get_black_player().get_capture_count()
+    white_captures = board.get_white_player().get_capture_count()
     capture_term = (white_captures - black_captures) * 0.5  # keep it small
 
     return float(score_term) + float(capture_term)

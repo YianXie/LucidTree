@@ -25,6 +25,11 @@ KOMI = 7.5
 The Komi value for the game
 """
 
+RULES = "japanese"
+"""
+The rules for scoring method
+"""
+
 PASS_MOVE_POSITION = (-1, -1)
 """
 The position for a pass

@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from lucidtree.constants import BLACK_COLOR, KOMI, PASS_INDEX
+from lucidtree.constants import BLACK_COLOR, PASS_INDEX
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import index_to_row_col
 from lucidtree.go.player import Player
@@ -109,9 +109,9 @@ class MCTS:
                 # Recompute the value based on game outcome
                 black_score, white_score = node.board.calculate_score()
 
-                if black_score > white_score + KOMI:
+                if black_score > white_score:
                     result = 1.0  # Black wins
-                elif black_score < white_score + KOMI:
+                elif black_score < white_score:
                     result = -1.0  # Black loses
                 else:
                     result = 0.0  # Draw
