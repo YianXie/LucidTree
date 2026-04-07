@@ -1,3 +1,5 @@
+# fmt: off
+
 from typing import Any
 
 from api.common.exceptions import BadRequestError
@@ -7,6 +9,8 @@ from lucidtree.engine.analysis import analyze_position
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import gtp_to_row_col
 from lucidtree.go.player import Player
+
+# fmt: on
 
 
 def _parse_player(value: str, /) -> Player:
