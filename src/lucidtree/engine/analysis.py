@@ -9,7 +9,8 @@ import torch
 
 from lucidtree.constants import BOARD_SIZE
 from lucidtree.go.board import Board
-from lucidtree.go.coordinates import row_col_to_gtp
+from lucidtree.go.coordinates import (gtp_to_index, gtp_to_row_col,
+                                      row_col_to_gtp)
 from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
 from lucidtree.nn.agent import (get_policy_value, load_model, pick_moves_mcts,
@@ -191,6 +192,10 @@ def analyze_position(
     end = time.perf_counter()
     elapsed_ms = round((end - start) * 1000, 2)
 
+    top_moves_gtp: list[dict[str, Any]] = []
+    for top_move_row_col in top_moves:
+        top_moves_gtp.append({"move": row_col_to_gtp(*top_move_row_col)})
+
     include_policy = output.get("include_policy", False)
     include_winrate = output.get("include_winrate", False)
     if include_policy or include_winrate:
@@ -209,12 +214,27 @@ def analyze_position(
             temperature=policy_softmax_temperature,
         )
         if include_policy:
-            stats["policy"] = policy.tolist()
+            policy = policy.tolist()  # type: ignore
+            stats["policy"] = policy
+            for top_move_gtp in top_moves_gtp:
+                top_move_gtp["policy"] = policy[gtp_to_index(top_move_gtp["move"])]
         if include_winrate:
             stats["winrate"] = value
+            for top_move_gtp in top_moves_gtp:
+                board.place_move(
+                    gtp_to_row_col(top_move_gtp["move"]), to_play.get_color()
+                )
+                _, value = get_policy_value(
+                    policy_model,
+                    board,
+                    device=infer_device,
+                    temperature=policy_softmax_temperature,
+                )
+                top_move_gtp["winrate"] = value
+                board.undo()
 
     return {
-        "top_moves": [row_col_to_gtp(*move) for move in top_moves],
+        "top_moves": top_moves_gtp,
         "algorithm": algo,
         "stats": {
             **stats,
