@@ -13,7 +13,7 @@ from lucidtree.go.board import Board
 from lucidtree.go.coordinates import index_to_row_col
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
-from lucidtree.minimax.search import next_best_move
+from lucidtree.minimax.search import next_best_moves
 from lucidtree.nn.features import encode_board
 from lucidtree.nn.model import PolicyValueNetwork
 
@@ -70,9 +70,9 @@ def load_model(
 
 
 @torch.no_grad()
-def pick_move_mcts(
+def pick_moves_mcts(
     board: Board, to_play: Player, model: Path | str | None = None, **kwargs: Any
-) -> tuple[int, int]:
+) -> list[tuple[int, int]]:
     """
     Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
 
@@ -86,7 +86,7 @@ def pick_move_mcts(
         **kwargs: additional keyword arguments
 
     Returns:
-        tuple[int, int]: the move
+        list[tuple[int, int]]: the top moves
     """
     from lucidtree.mcts.search import MCTS
 
@@ -99,31 +99,41 @@ def pick_move_mcts(
     if stats_out is not None:
         stats_out["simulations_run"] = mcts.simulations_run
 
-    pos = MCTS.pick_best_move_position(
-        root, select_by=kwargs.get("select_by", "visit_count")
+    select_by = kwargs.get("select_by", "visit_count")
+    include_top_moves = kwargs.get("include_top_moves", 1)
+    top_moves = MCTS.pick_best_move_position(
+        root, select_by=select_by, include_top_moves=include_top_moves
     )
-    return pos
+    return top_moves
 
 
 @torch.no_grad()
-def pick_move_nn(
+def pick_moves_nn(
     model: PolicyValueNetwork,
     board: Board,
-    device: torch.device,
-    temperature: float = 0.0,
-) -> tuple[tuple[int, int], float, float]:
+    **kwargs: Any,
+) -> list[tuple[int, int]]:
     """
     Pick the next best move given the board, model, device, and temperature
 
     Args:
         model (PolicyValueNetwork): the model to use
         board (Board): the current board state
-        device (torch.device): the PyTorch device
-        temperature (float, optional): the temperature. Defaults to 0.0.
+        **kwargs: additional keyword arguments
 
     Returns:
-        tuple[tuple[int, int], float, float]: the move, probability, and value
+        list[tuple[int, int]]: the top moves
     """
+    kw = dict(kwargs)
+    device = kw.pop("device", None)
+    temperature = kw.pop("temperature", 0.0)
+    include_top_moves = kw.pop("include_top_moves", 1)
+
+    if device is None:
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
     model.eval()
     model = model.to(device)
 
@@ -142,10 +152,10 @@ def pick_move_nn(
 
     order = torch.argsort(probs, descending=True).tolist()
 
+    top_moves = []
     for idx in order:
         if idx == PASS_INDEX:
-            return PASS_MOVE_POSITION, probs[idx].item(), value
-
+            top_moves.append(PASS_MOVE_POSITION)
         else:
             move_pos = index_to_row_col(idx)
             if (
@@ -156,9 +166,12 @@ def pick_move_nn(
                 )
                 and board.get_move_at_position(move_pos).is_empty()
             ):
-                return move_pos, probs[idx].item(), value
+                top_moves.append(move_pos)
 
-    return PASS_MOVE_POSITION, probs[idx].item(), value
+        if len(top_moves) >= include_top_moves:
+            break
+
+    return top_moves
 
 
 @torch.no_grad()
@@ -197,7 +210,9 @@ def get_policy_value(
     return probs, value
 
 
-def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
+def pick_moves_minimax(
+    board: Board, to_play: Player, **kwargs: Any
+) -> list[tuple[int, int]]:
     """Pick the next best move given the board, model, device, and temperature using the Minimax algorithm
 
     Args:
@@ -215,12 +230,13 @@ def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int
     max_time_ms = kw.pop("max_time_ms", None)
     komi = kw.pop("komi", KOMI)
     rules = kw.pop("rules", RULES)
+    include_top_moves = kw.pop("include_top_moves", 1)
 
     deadline = None
     if max_time_ms is not None and float(max_time_ms) > 0:
         deadline = time.perf_counter() + float(max_time_ms) / 1000.0
 
-    best_move = next_best_move(
+    top_moves = next_best_moves(
         board,
         to_play.get_color() == WHITE_COLOR,
         depth=depth,
@@ -229,5 +245,6 @@ def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int
         rules=rules,
         deadline=deadline,
         stats_out=stats_out,
+        include_top_moves=include_top_moves,
     )
-    return best_move
+    return top_moves

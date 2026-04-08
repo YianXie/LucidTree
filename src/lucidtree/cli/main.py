@@ -8,7 +8,7 @@ from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, PASS_MOVE_POSITION,
                                  WHITE_COLOR)
 from lucidtree.go.interactive_board import InteractiveBoard
 from lucidtree.go.player import Player
-from lucidtree.nn.agent import load_model, pick_move_mcts, pick_move_nn
+from lucidtree.nn.agent import load_model, pick_moves_mcts, pick_moves_nn
 
 # fmt: on
 
@@ -40,7 +40,7 @@ def human_vs_nn() -> None:
 
         # AI's turn (White)
         if board.current_player.get_color() == WHITE_COLOR:
-            best, prob, value = pick_move_nn(model=model, board=board, device=device)
+            best, prob, value = pick_moves_nn(model=model, board=board, device=device)
             print(f"Move probability: {prob}")
             print(f"Value: {value}")
 
@@ -78,7 +78,7 @@ def human_vs_mcts_nn() -> None:
         if board.current_player.get_color() == WHITE_COLOR:
             # Pass a plain Board copy - MCTS deepcopies boards and InteractiveBoard
             # contains pygame.Surface objects that cannot be deepcopied
-            pos = pick_move_mcts(board=board.copy_game_state(), to_play=white_player)
+            pos = pick_moves_mcts(board=board.copy_game_state(), to_play=white_player)
             if pos == PASS_MOVE_POSITION:
                 print("AI passed")
                 board.pass_move()

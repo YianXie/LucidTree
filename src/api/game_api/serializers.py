@@ -75,6 +75,6 @@ class AnalyzeResponseSerializer(serializers.Serializer):  # type: ignore
         AnalyzeResponseSerializer: The serializer instance
     """
 
-    best_move = serializers.CharField(required=True)
+    top_moves = serializers.ListField(required=True)
     algorithm = serializers.CharField(required=True)
     stats = serializers.DictField(required=True)

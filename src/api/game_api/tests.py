@@ -142,16 +142,17 @@ class TestParseMove:
 
 
 class TestAnalyzeService:
-    @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
+    @patch("lucidtree.engine.analysis.pick_moves_mcts", return_value=[(3, 3)])
     def test_mcts_returns_gtp_move(self, _mock: Any) -> None:
         from api.game_api.services import analyze
 
         result = analyze(_valid_payload())
-        assert "best_move" in result
+        assert "top_moves" in result
         assert result["algorithm"] == "mcts"
-        assert isinstance(result["best_move"], str)
+        assert isinstance(result["top_moves"], list)
+        assert result["top_moves"] and isinstance(result["top_moves"][0], str)
 
-    @patch("lucidtree.engine.analysis.pick_move_mcts", return_value=(3, 3))
+    @patch("lucidtree.engine.analysis.pick_moves_mcts", return_value=[(3, 3)])
     def test_analysis_config_affects_mcts_call(self, mock_pick: Any) -> None:
         from api.game_api.services import analyze
 
@@ -199,7 +200,7 @@ class TestAnalyzeView:
     @patch(
         "api.game_api.services.analyze",
         return_value={
-            "best_move": "D4",
+            "top_moves": ["D4"],
             "algorithm": "minimax",
             "stats": {"depth": 1, "elapsed_ms": 5.0},
         },
@@ -208,7 +209,7 @@ class TestAnalyzeView:
     def test_valid_request_returns_200(self, _mock: Any, api_client: APIClient) -> None:
         response = self._post(api_client, _valid_payload())
         assert response.status_code == 200
-        assert "best_move" in response.data
+        assert "top_moves" in response.data
 
     @patch("api.game_api.services.analyze", side_effect=RuntimeError("internal secret"))
     @pytest.mark.django_db

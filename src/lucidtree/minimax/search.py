@@ -144,7 +144,11 @@ def minimax(
         return best
 
 
-def _root_search_one_depth(
+def _move_to_position(move: Move | None) -> tuple[int, int]:
+    return PASS_MOVE_POSITION if move is None else move.get_position()
+
+
+def _root_search_all_scores_one_depth(
     board: Board,
     isMax: bool,
     search_depth: int,
@@ -153,16 +157,16 @@ def _root_search_one_depth(
     komi: float,
     rules: str,
     deadline: float | None,
-) -> tuple[tuple[int, int] | None, bool]:
+) -> tuple[list[tuple[tuple[int, int], float]], bool]:
     """
-    Evaluate all root moves at a fixed search depth.
+    Score every legal root move at a fixed search depth.
 
     Returns:
-        (best_position, completed): completed is False if deadline was hit before
-        finishing all root moves (caller should discard this iteration).
+        (scored_moves, completed): ``scored_moves`` pairs each root position with the
+        minimax value of replying at that move. ``completed`` is False if the deadline
+        was hit before all root moves were scored (caller should discard the iteration).
     """
-    best_score = -INFINITY if isMax else INFINITY
-    best_move: Move | None = None
+    scored: list[tuple[tuple[int, int], float]] = []
 
     player = max_player if isMax else min_player
     color = player.get_color()
@@ -170,7 +174,7 @@ def _root_search_one_depth(
 
     for move in moves:
         if deadline is not None and time.perf_counter() >= deadline:
-            return (None, False)
+            return ([], False)
 
         _apply_move(board, move, color)
         consecutive_passes = 1 if move is None else 0
@@ -190,15 +194,22 @@ def _root_search_one_depth(
 
         board.undo()
 
-        if (isMax and score > best_score) or (not isMax and score < best_score):
-            best_score = score
-            best_move = move
+        scored.append((_move_to_position(move), score))
 
-    pos = PASS_MOVE_POSITION if best_move is None else best_move.get_position()
-    return (pos, True)
+    return (scored, True)
 
 
-def next_best_move(
+def _top_positions_from_scores(
+    scored: list[tuple[tuple[int, int], float]],
+    isMax: bool,
+    include_top_moves: int,
+) -> list[tuple[int, int]]:
+    """Order root moves by minimax score and take the first ``include_top_moves``."""
+    ordered = sorted(scored, key=lambda t: t[1], reverse=isMax)
+    return [pos for pos, _ in ordered[:include_top_moves]]
+
+
+def next_best_moves(
     board: Board,
     isMax: bool,
     depth: int = 2,
@@ -208,9 +219,10 @@ def next_best_move(
     rules: str = RULES,
     deadline: float | None = None,
     stats_out: dict[str, Any] | None = None,
-) -> tuple[int, int]:
+    include_top_moves: int = 1,
+) -> list[tuple[int, int]]:
     """
-    Returns the best placement position
+    Returns the top placement positions by minimax score at the chosen depth.
 
     Args:
         board (Board): the board
@@ -221,13 +233,14 @@ def next_best_move(
         rules (str): rules for evaluation
         deadline (float | None): perf_counter() deadline; None means no time limit
         stats_out (dict | None): if set, receives ``search_depth_reached`` when a
-            time limit is used (depth completed for the returned move).
+            time limit is used (depth completed for the returned move list).
+        include_top_moves (int, optional): the number of top moves to include. Defaults to 1.
 
     Returns:
-        tuple[int, int]: the best placement position
+        list[tuple[int, int]]: the top moves (best first)
     """
     if deadline is None:
-        result, ok = _root_search_one_depth(
+        scored, ok = _root_search_all_scores_one_depth(
             board,
             isMax,
             depth,
@@ -236,18 +249,18 @@ def next_best_move(
             rules=rules,
             deadline=None,
         )
-        assert ok and result is not None  # nosec
+        assert ok and scored  # nosec
         if stats_out is not None:
             stats_out["search_depth_reached"] = depth
-        return result
+        return _top_positions_from_scores(scored, isMax, include_top_moves)
 
-    best_pos: tuple[int, int] | None = None
+    best_moves: list[tuple[int, int]] | None = None
     reached = 0
 
     for d in range(1, depth + 1):
         if time.perf_counter() >= deadline:
             break
-        pos, completed = _root_search_one_depth(
+        scored, completed = _root_search_all_scores_one_depth(
             board,
             isMax,
             d,
@@ -256,16 +269,16 @@ def next_best_move(
             rules=rules,
             deadline=deadline,
         )
-        if completed and pos is not None:
-            best_pos = pos
+        if completed and scored:
+            best_moves = _top_positions_from_scores(scored, isMax, include_top_moves)
             reached = d
         else:
             break
 
-    if best_pos is not None:
+    if best_moves is not None:
         if stats_out is not None:
             stats_out["search_depth_reached"] = reached
-        return best_pos
+        return best_moves
 
     if stats_out is not None:
         stats_out["search_depth_reached"] = 0
@@ -274,6 +287,6 @@ def next_best_move(
     color = player.get_color()
     moves = _legal_moves_including_pass(board, color)
     if not moves:
-        return PASS_MOVE_POSITION
+        return [PASS_MOVE_POSITION]
     fallback = moves[0]
-    return PASS_MOVE_POSITION if fallback is None else fallback.get_position()
+    return [_move_to_position(fallback)]

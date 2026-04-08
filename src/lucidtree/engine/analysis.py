@@ -12,8 +12,8 @@ from lucidtree.go.board import Board
 from lucidtree.go.coordinates import row_col_to_gtp
 from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
-from lucidtree.nn.agent import (get_policy_value, load_model, pick_move_mcts,
-                                pick_move_minimax, pick_move_nn)
+from lucidtree.nn.agent import (get_policy_value, load_model, pick_moves_mcts,
+                                pick_moves_minimax, pick_moves_nn)
 from lucidtree.nn.model import PolicyValueNetwork
 
 # fmt: on
@@ -73,6 +73,13 @@ def analyze_position(
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
+    include_top_moves = output.get("include_top_moves", 5)
+    if not isinstance(include_top_moves, int) or include_top_moves < 1:
+        raise BadRequestError(
+            "output.include_top_moves must be a positive integer, "
+            f"but got {include_top_moves}."
+        )
+
     start = time.perf_counter()
 
     policy_model: PolicyValueNetwork | None = None
@@ -90,7 +97,7 @@ def analyze_position(
             select_by = params.get("select_by", "visit_count")
 
             mcts_stats: dict[str, Any] = {}
-            pick_kw: dict[str, Any] = {
+            mcts_kw: dict[str, Any] = {
                 "model": model_name,
                 "num_simulations": num_simulations,
                 "c_puct": c_puct,
@@ -102,11 +109,12 @@ def analyze_position(
                 "komi": komi,
                 "rules": rules,
                 "stats_out": mcts_stats,
+                "include_top_moves": include_top_moves,
             }
             if use_time_limit:
-                pick_kw["max_time_ms"] = max_time_ms
+                mcts_kw["max_time_ms"] = max_time_ms
 
-            best_move = pick_move_mcts(board, to_play, **pick_kw)
+            top_moves = pick_moves_mcts(board, to_play, **mcts_kw)
 
             stats = {
                 "model": str(model_name) if model_name is not None else None,
@@ -126,16 +134,20 @@ def analyze_position(
             model_name = params.get("model", "checkpoint_19x19")
             policy_softmax_temperature = params.get("temperature", 0.0)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+            nn_kw: dict[str, Any] = {
+                "device": device,
+                "temperature": policy_softmax_temperature,
+                "include_top_moves": include_top_moves,
+            }
+            if use_time_limit:
+                nn_kw["max_time_ms"] = max_time_ms
+
             checkpoint_model = load_model(
                 model=model_name,
                 device=device,
             )
-            best_move, probability, _ = pick_move_nn(
-                checkpoint_model,
-                board,
-                device=device,
-                temperature=policy_softmax_temperature,
-            )
+            top_moves = pick_moves_nn(model=checkpoint_model, board=board, **nn_kw)
 
             policy_model = checkpoint_model
             policy_device = device
@@ -143,7 +155,6 @@ def analyze_position(
             stats = {
                 "model": str(model_name) if model_name is not None else None,
                 "policy_softmax_temperature": policy_softmax_temperature,
-                "selected_move_probability": probability,
             }
 
         case "minimax":
@@ -157,11 +168,12 @@ def analyze_position(
                 "komi": komi,
                 "rules": rules,
                 "stats_out": minimax_stats,
+                "include_top_moves": include_top_moves,
             }
             if use_time_limit:
                 mm_kw["max_time_ms"] = max_time_ms
 
-            best_move = pick_move_minimax(board, to_play, **mm_kw)
+            top_moves = pick_moves_minimax(board, to_play, **mm_kw)
 
             stats = {
                 "depth": depth,
@@ -202,7 +214,7 @@ def analyze_position(
             stats["winrate"] = value
 
     return {
-        "best_move": row_col_to_gtp(*best_move),
+        "top_moves": [row_col_to_gtp(*move) for move in top_moves],
         "algorithm": algo,
         "stats": {
             **stats,
