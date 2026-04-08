@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -14,6 +14,7 @@ from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
 from lucidtree.nn.agent import (get_policy_value, load_model, pick_move_mcts,
                                 pick_move_minimax, pick_move_nn)
+from lucidtree.nn.model import PolicyValueNetwork
 
 # fmt: on
 
@@ -74,6 +75,9 @@ def analyze_position(
 
     start = time.perf_counter()
 
+    policy_model: PolicyValueNetwork | None = None
+    policy_device: torch.device | None = None
+
     match algo:
         case "mcts":
             model_name = params.get("model", "checkpoint_19x19")
@@ -133,6 +137,9 @@ def analyze_position(
                 temperature=policy_softmax_temperature,
             )
 
+            policy_model = checkpoint_model
+            policy_device = device
+
             stats = {
                 "model": str(model_name) if model_name is not None else None,
                 "policy_softmax_temperature": policy_softmax_temperature,
@@ -172,12 +179,27 @@ def analyze_position(
     end = time.perf_counter()
     elapsed_ms = round((end - start) * 1000, 2)
 
-    model = load_model()
-    policy, value = get_policy_value(model, board)
-    if output.get("include_policy", False):
-        stats["policy"] = policy.tolist()
-    if output.get("include_winrate", False):
-        stats["winrate"] = value
+    include_policy = output.get("include_policy", False)
+    include_win_rate = output.get("include_win_rate", False)
+    if include_policy or include_win_rate:
+        infer_device: torch.device
+        if policy_model is None:
+            model_name = params.get("model", "checkpoint_19x19")
+            infer_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            policy_model = load_model(model=model_name, device=infer_device)
+        else:
+            infer_device = cast(torch.device, policy_device)
+        policy_softmax_temperature = float(params.get("temperature", 0.0))
+        policy, value = get_policy_value(
+            policy_model,
+            board,
+            device=infer_device,
+            temperature=policy_softmax_temperature,
+        )
+        if include_policy:
+            stats["policy"] = policy.tolist()
+        if include_win_rate:
+            stats["winrate"] = value
 
     return {
         "best_move": row_col_to_gtp(*best_move),
