@@ -235,9 +235,13 @@ def analyze_position(
                 )
                 top_move_gtp["winrate"] = value
                 board.undo()
-        if include_visits and visits is not None:
-            for i in range(len(top_moves_gtp)):
-                top_moves_gtp[i]["visits"] = visits[i]
+
+        try:
+            if include_visits and visits is not None:
+                for i in range(len(top_moves_gtp)):
+                    top_moves_gtp[i]["visits"] = visits[i]
+        except UnboundLocalError:
+            pass
 
     return {
         "top_moves": top_moves_gtp,
