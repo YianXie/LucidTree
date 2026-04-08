@@ -172,9 +172,8 @@ def analyze_position(
     end = time.perf_counter()
     elapsed_ms = round((end - start) * 1000, 2)
 
-    policy, value = get_policy_value(
-        checkpoint_model, board, device, policy_softmax_temperature
-    )
+    model = load_model()
+    policy, value = get_policy_value(model, board)
     if output.get("include_policy", False):
         stats["policy"] = policy.tolist()
     if output.get("include_winrate", False):

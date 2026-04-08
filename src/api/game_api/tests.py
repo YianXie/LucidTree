@@ -38,8 +38,8 @@ def _valid_params() -> dict[str, Any]:
 def _valid_output() -> dict[str, Any]:
     return {
         "include_top_moves": 5,
-        "include_policy": True,
-        "include_win_rate": True,
+        "include_policy": False,
+        "include_win_rate": False,
     }
 
 

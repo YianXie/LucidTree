@@ -58,7 +58,9 @@ def load_model(
         )
 
     if device is None:
-        device = torch.device("cpu")
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
 
     checkpoint = torch.load(path, map_location=device, weights_only=True)
     checkpoint_model = PolicyValueNetwork()
@@ -162,8 +164,6 @@ def pick_move_nn(
 def get_policy_value(
     model: PolicyValueNetwork,
     board: Board,
-    device: torch.device,
-    temperature: float = 0.0,
 ) -> tuple[torch.Tensor, float]:
     """
     Get the policy and value from the model
@@ -171,23 +171,18 @@ def get_policy_value(
     Args:
         model (PolicyValueNetwork): the model to use
         board (Board): the current board state
-        device (torch.device): the device to use
     """
     model.eval()
-    model = model.to(device)
 
     x = encode_board(board)
-    x = x.unsqueeze(0).to(device)
+    x = x.unsqueeze(0)
     x = x.float()
 
     policy_logits, value = model(x)
     logits = policy_logits[0]
-    value = value.item()
 
-    if temperature <= 0.0:
-        probs = torch.softmax(logits, dim=0)
-    else:
-        probs = torch.softmax(logits / temperature, dim=0)
+    probs = torch.softmax(logits, dim=0)
+    value = value.item()
 
     return probs, value
 
