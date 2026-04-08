@@ -121,7 +121,6 @@ def analyze_position(
         case "nn":
             model_name = params.get("model", "checkpoint_19x19")
             policy_softmax_temperature = params.get("temperature", 0.0)
-            use_value_head = params.get("use_value_head", True)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             checkpoint_model = load_model(
                 model=model_name,
@@ -138,10 +137,7 @@ def analyze_position(
                 "model": str(model_name) if model_name is not None else None,
                 "policy_softmax_temperature": policy_softmax_temperature,
                 "selected_move_probability": probability,
-                "use_value_head": use_value_head,
             }
-            if use_value_head:
-                stats["value"] = value
 
         case "minimax":
             depth = params.get("depth", 3)
