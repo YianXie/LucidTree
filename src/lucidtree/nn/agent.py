@@ -159,6 +159,39 @@ def pick_move_nn(
     return PASS_MOVE_POSITION, probs[idx].item(), value
 
 
+def get_policy_value(
+    model: PolicyValueNetwork,
+    board: Board,
+    device: torch.device,
+    temperature: float = 0.0,
+) -> tuple[torch.Tensor, float]:
+    """
+    Get the policy and value from the model
+
+    Args:
+        model (PolicyValueNetwork): the model to use
+        board (Board): the current board state
+        device (torch.device): the device to use
+    """
+    model.eval()
+    model = model.to(device)
+
+    x = encode_board(board)
+    x = x.unsqueeze(0).to(device)
+    x = x.float()
+
+    policy_logits, value = model(x)
+    logits = policy_logits[0]
+    value = value.item()
+
+    if temperature <= 0.0:
+        probs = torch.softmax(logits, dim=0)
+    else:
+        probs = torch.softmax(logits / temperature, dim=0)
+
+    return probs, value
+
+
 def pick_move_minimax(board: Board, to_play: Player, **kwargs: Any) -> tuple[int, int]:
     """Pick the next best move given the board, model, device, and temperature using the Minimax algorithm
 

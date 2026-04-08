@@ -12,8 +12,8 @@ from lucidtree.go.board import Board
 from lucidtree.go.coordinates import row_col_to_gtp
 from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
-from lucidtree.nn.agent import (load_model, pick_move_mcts, pick_move_minimax,
-                                pick_move_nn)
+from lucidtree.nn.agent import (get_policy_value, load_model, pick_move_mcts,
+                                pick_move_minimax, pick_move_nn)
 
 # fmt: on
 
@@ -126,7 +126,7 @@ def analyze_position(
                 model=model_name,
                 device=device,
             )
-            best_move, probability, value = pick_move_nn(
+            best_move, probability, _ = pick_move_nn(
                 checkpoint_model,
                 board,
                 device=device,
@@ -171,6 +171,14 @@ def analyze_position(
 
     end = time.perf_counter()
     elapsed_ms = round((end - start) * 1000, 2)
+
+    policy, value = get_policy_value(
+        checkpoint_model, board, device, policy_softmax_temperature
+    )
+    if output.get("include_policy", False):
+        stats["policy"] = policy.tolist()
+    if output.get("include_winrate", False):
+        stats["winrate"] = value
 
     return {
         "best_move": row_col_to_gtp(*best_move),
