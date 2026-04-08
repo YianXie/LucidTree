@@ -159,8 +159,11 @@ class MCTS:
 
     @staticmethod
     def pick_best_move_position(
-        root: Node, select_by: str = "visit_count", include_top_moves: int = 1
-    ) -> list[tuple[int, int]]:
+        root: Node,
+        select_by: str = "visit_count",
+        include_top_moves: int = 1,
+        include_visits: bool = False,
+    ) -> tuple[list[tuple[int, int]], list[int]]:
         """
         Pick a move position based on the highest visit count
 
@@ -170,7 +173,7 @@ class MCTS:
             include_top_moves (int): the number of top moves to include
 
         Returns:
-            list[tuple[int, int]]: the top moves
+            tuple[list[tuple[int, int]], list[int]]: the top moves and visits
         """
         legal = root.legal_mask
         if select_by == "value":
@@ -183,4 +186,9 @@ class MCTS:
             sorted_visits = np.argsort(np.where(legal, root.N, -1))[::-1]
             top_moves = sorted_visits[:include_top_moves]
 
-        return [index_to_row_col(int(move)) for move in top_moves]
+        visits = []
+        if include_visits:
+            visits = [root.N[move] for move in top_moves]
+        top_moves_row_col = [index_to_row_col(int(move)) for move in top_moves]
+
+        return top_moves_row_col, visits

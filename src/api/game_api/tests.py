@@ -28,7 +28,6 @@ def _valid_params() -> dict[str, Any]:
         "value_weight": 0.8,
         "dirichlet_alpha": 0.0,
         "dirichlet_epsilon": 0.0,
-        "model": "checkpoint_19x19",
         "max_time_ms": 1000,
         "temperature": 0.0,
         "seed": 123,
@@ -40,6 +39,7 @@ def _valid_output() -> dict[str, Any]:
         "include_top_moves": 5,
         "include_policy": False,
         "include_winrate": False,
+        "include_visits": False,
     }
 
 
@@ -142,7 +142,10 @@ class TestParseMove:
 
 
 class TestAnalyzeService:
-    @patch("lucidtree.engine.analysis.pick_moves_mcts", return_value=[(3, 3)])
+    @patch(
+        "lucidtree.engine.analysis.pick_moves_mcts",
+        return_value=([(3, 3)], []),
+    )
     def test_mcts_returns_gtp_move(self, _mock: Any) -> None:
         from api.game_api.services import analyze
 
@@ -150,9 +153,13 @@ class TestAnalyzeService:
         assert "top_moves" in result
         assert result["algorithm"] == "mcts"
         assert isinstance(result["top_moves"], list)
-        assert result["top_moves"] and isinstance(result["top_moves"][0], str)
+        assert result["top_moves"] and isinstance(result["top_moves"][0], dict)
+        assert result["top_moves"][0]["move"] == "D4"
 
-    @patch("lucidtree.engine.analysis.pick_moves_mcts", return_value=[(3, 3)])
+    @patch(
+        "lucidtree.engine.analysis.pick_moves_mcts",
+        return_value=([(3, 3)], []),
+    )
     def test_analysis_config_affects_mcts_call(self, mock_pick: Any) -> None:
         from api.game_api.services import analyze
 

@@ -72,7 +72,7 @@ def load_model(
 @torch.no_grad()
 def pick_moves_mcts(
     board: Board, to_play: Player, model: Path | str | None = None, **kwargs: Any
-) -> list[tuple[int, int]]:
+) -> tuple[list[tuple[int, int]], list[int]]:
     """
     Pick the next best move given the board, model, device, and temperature using the MCTS algorithm
 
@@ -86,7 +86,7 @@ def pick_moves_mcts(
         **kwargs: additional keyword arguments
 
     Returns:
-        list[tuple[int, int]]: the top moves
+        tuple[list[tuple[int, int]], list[int]]: the top moves and visits
     """
     from lucidtree.mcts.search import MCTS
 
@@ -100,11 +100,15 @@ def pick_moves_mcts(
         stats_out["simulations_run"] = mcts.simulations_run
 
     select_by = kwargs.get("select_by", "visit_count")
+    include_visits = kwargs.get("include_visits", False)
     include_top_moves = kwargs.get("include_top_moves", 1)
-    top_moves = MCTS.pick_best_move_position(
-        root, select_by=select_by, include_top_moves=include_top_moves
+    top_moves, visits = MCTS.pick_best_move_position(
+        root,
+        select_by=select_by,
+        include_top_moves=include_top_moves,
+        include_visits=include_visits,
     )
-    return top_moves
+    return top_moves, visits
 
 
 @torch.no_grad()

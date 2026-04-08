@@ -96,6 +96,7 @@ def analyze_position(
             value_weight = params.get("value_weight", 1.0)
             policy_weight = params.get("policy_weight", 1.0)
             select_by = params.get("select_by", "visit_count")
+            include_visits = output.get("include_visits", True)
 
             mcts_stats: dict[str, Any] = {}
             mcts_kw: dict[str, Any] = {
@@ -111,11 +112,12 @@ def analyze_position(
                 "rules": rules,
                 "stats_out": mcts_stats,
                 "include_top_moves": include_top_moves,
+                "include_visits": include_visits,
             }
             if use_time_limit:
                 mcts_kw["max_time_ms"] = max_time_ms
 
-            top_moves = pick_moves_mcts(board, to_play, **mcts_kw)
+            top_moves, visits = pick_moves_mcts(board, to_play, **mcts_kw)
 
             stats = {
                 "model": str(model_name) if model_name is not None else None,
@@ -126,6 +128,7 @@ def analyze_position(
                 "value_weight": value_weight,
                 "policy_weight": policy_weight,
                 "select_by": select_by,
+                "include_visits": include_visits,
                 "simulations_run": mcts_stats.get("simulations_run", num_simulations),
             }
             if use_time_limit:
@@ -232,6 +235,9 @@ def analyze_position(
                 )
                 top_move_gtp["winrate"] = value
                 board.undo()
+        if include_visits and visits is not None:
+            for i in range(len(top_moves_gtp)):
+                top_moves_gtp[i]["visits"] = visits[i]
 
     return {
         "top_moves": top_moves_gtp,
