@@ -39,7 +39,7 @@ def _valid_output() -> dict[str, Any]:
     return {
         "include_top_moves": 5,
         "include_policy": False,
-        "include_win_rate": False,
+        "include_winrate": False,
     }
 
 

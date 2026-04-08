@@ -1,3 +1,10 @@
 {
-    "cSpell.words": ["lucidtree", "mcts", "puct", "pytest", "runserver"]
+    "cSpell.words": [
+        "lucidtree",
+        "mcts",
+        "puct",
+        "pytest",
+        "runserver",
+        "winrate"
+    ]
 }

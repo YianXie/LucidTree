@@ -180,8 +180,8 @@ def analyze_position(
     elapsed_ms = round((end - start) * 1000, 2)
 
     include_policy = output.get("include_policy", False)
-    include_win_rate = output.get("include_win_rate", False)
-    if include_policy or include_win_rate:
+    include_winrate = output.get("include_winrate", False)
+    if include_policy or include_winrate:
         infer_device: torch.device
         if policy_model is None:
             model_name = params.get("model", "checkpoint_19x19")
@@ -198,7 +198,7 @@ def analyze_position(
         )
         if include_policy:
             stats["policy"] = policy.tolist()
-        if include_win_rate:
+        if include_winrate:
             stats["winrate"] = value
 
     return {

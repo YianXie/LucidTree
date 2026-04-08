@@ -150,42 +150,28 @@ Sample JSON request:
 
 ```json
 {
+    "board_size": 9,
     "rules": "japanese",
     "komi": 6.5,
     "to_play": "B",
     "moves": [
-        ["B", "Q16"],
-        ["W", "Q4"],
         ["B", "D4"],
         ["W", "D16"]
     ],
     "algo": "nn",
-    "analysis_config": {
-        "general": {
-            "algorithm": "minimax",
-            "rules": "japanese",
-            "komi": 6.5,
-            "max_time_ms": 0,
-            "temperature": 0,
-            "seed": 123
-        },
-        "neural_network": {
-            "model": "checkpoint_19x19",
-            "policy_softmax_temperature": 0.2,
-            "use_value_head": true
-        },
-        "mcts": {
-            "num_simulations": 250
-        },
-        "minimax": {
-            "depth": 2,
-            "use_alpha_beta": false
-        },
-        "output": {
-            "include_top_moves": 5,
-            "include_policy": false,
-            "include_win_rate": false
-        }
+    "params": {
+        "num_simulations": 300,
+        "c_puct": 1.25,
+        "max_time_ms": 1000,
+        "temperature": 0.0,
+        "random_seed": 42,
+        "select_by": "visit_count"
+    },
+    "output": {
+        "include_top_moves": 5,
+        "include_policy": true,
+        "include_winrate": true,
+        "include_visits": true
     }
 }
 ```
