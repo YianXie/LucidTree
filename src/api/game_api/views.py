@@ -9,7 +9,6 @@ from rest_framework.views import APIView, Request
 
 from api.common.exceptions import BadRequestError
 from api.game_api import services
-from api.game_api.models import AnalyzeRequest
 from api.game_api.serializers import (AnalyzeRequestSerializer,
                                       AnalyzeResponseSerializer)
 
@@ -39,9 +38,6 @@ class AnalyzeView(APIView):  # type: ignore
     def post(self, request: Request) -> Response:
         request_serializer = AnalyzeRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
-
-        request_model_instance = AnalyzeRequest(data=request_serializer.validated_data)
-        request_model_instance.save()
 
         try:
             result = services.analyze(request_serializer.validated_data)
