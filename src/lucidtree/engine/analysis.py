@@ -66,8 +66,8 @@ def analyze_position(
         and max_time_ms > 0
     )
 
-    seed = params.get("seed", None)
-    if seed is not None:
+    seed = params.get("seed", "")
+    if seed:
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
