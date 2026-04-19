@@ -96,7 +96,7 @@ class TestUndo:
         assert board.get_move_at_position((3, 3)).is_empty()
 
     def test_undo_capture_restores_stone(self) -> None:
-        """Undo a capturing move should restore the captured stone."""
+        """Undoing a capturing move should restore the captured stone."""
         # White at (2,1) has one liberty (2,2); black playing (2,2) captures it
         board = _board()
         board.place_move((1, 1), BLACK_COLOR)
