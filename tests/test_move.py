@@ -88,7 +88,11 @@ class TestMoveHash:
         assert hash(m1) == hash(m2)
 
     def test_moves_usable_in_set(self) -> None:
-        moves = {Move(0, 0, BLACK_COLOR), Move(0, 1, BLACK_COLOR), Move(0, 0, WHITE_COLOR)}
+        moves = {
+            Move(0, 0, BLACK_COLOR),
+            Move(0, 1, BLACK_COLOR),
+            Move(0, 0, WHITE_COLOR),
+        }
         # (0,0,False) and (0,0,False) are equal → deduplicated
         assert len(moves) == 2
 

@@ -1,4 +1,5 @@
-from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, EMPTY_COLOR, WHITE_COLOR
+from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, EMPTY_COLOR,
+                                 WHITE_COLOR)
 from lucidtree.go.rules import Rules
 
 

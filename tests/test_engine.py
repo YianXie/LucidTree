@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
+from lucidtree.constants import BOARD_SIZE
 from lucidtree.go.board import Board
 from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
