@@ -1,9 +1,12 @@
-import pytest
 from typing import Any
+
+import pytest
+
 from lucidtree.constants import BLACK_COLOR, WHITE_COLOR
 from lucidtree.go.board import Board
 from lucidtree.go.player import Player
-from lucidtree.minimax.search import evaluate, game_is_over_by_passes, next_best_moves
+from lucidtree.minimax.search import (evaluate, game_is_over_by_passes,
+                                      next_best_moves)
 
 _black = Player("Black", BLACK_COLOR)
 _white = Player("White", WHITE_COLOR)
