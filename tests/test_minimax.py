@@ -1,5 +1,5 @@
 import pytest
-
+from typing import Any
 from lucidtree.constants import BLACK_COLOR, WHITE_COLOR
 from lucidtree.go.board import Board
 from lucidtree.go.player import Player
@@ -95,7 +95,7 @@ class TestNextBestMoves:
 
     def test_stats_out_populated(self) -> None:
         board = _board()
-        stats: dict = {}
+        stats: dict[str, Any] = {}
         next_best_moves(board, isMax=True, depth=2, stats_out=stats)
         assert "search_depth_reached" in stats
         assert stats["search_depth_reached"] >= 1

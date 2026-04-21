@@ -175,7 +175,7 @@ class TestAnalyzePositionIncludeTopMoves:
                 rules="japanese",
                 to_play=black,
                 params=_minimax_params(),
-                output=_output(include_top_moves="five"),  # type: ignore
+                output=_output(include_top_moves="five"),
             )
 
 
