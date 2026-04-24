@@ -178,42 +178,6 @@ def pick_moves_nn(
     return top_moves
 
 
-@torch.no_grad()
-def get_policy_value(
-    model: PolicyValueNetwork,
-    board: Board,
-    *,
-    device: torch.device,
-    temperature: float = 0.0,
-) -> tuple[torch.Tensor, float]:
-    """
-    Get the policy and value from the model
-
-    Args:
-        model (PolicyValueNetwork): the model to use
-        board (Board): the current board state
-        device (torch.device): device for model and input tensors
-        temperature (float): softmax temperature; <= 0 uses unscaled logits
-    """
-    model.eval()
-    model = model.to(device)
-
-    x = encode_board(board)
-    x = x.unsqueeze(0).to(device)
-    x = x.float()
-
-    policy_logits, value = model(x)
-    logits = policy_logits[0]
-
-    if temperature <= 0.0:
-        probs = torch.softmax(logits, dim=0)
-    else:
-        probs = torch.softmax(logits / temperature, dim=0)
-    value = value.item()
-
-    return probs, value
-
-
 def pick_moves_minimax(
     board: Board, to_play: Player, **kwargs: Any
 ) -> list[tuple[int, int]]:
@@ -252,3 +216,39 @@ def pick_moves_minimax(
         include_top_moves=include_top_moves,
     )
     return top_moves
+
+
+@torch.no_grad()
+def get_policy_value(
+    model: PolicyValueNetwork,
+    board: Board,
+    *,
+    device: torch.device,
+    temperature: float = 0.0,
+) -> tuple[torch.Tensor, float]:
+    """
+    Get the policy and value from the model
+
+    Args:
+        model (PolicyValueNetwork): the model to use
+        board (Board): the current board state
+        device (torch.device): device for model and input tensors
+        temperature (float): softmax temperature; <= 0 uses unscaled logits
+    """
+    model.eval()
+    model = model.to(device)
+
+    x = encode_board(board)
+    x = x.unsqueeze(0).to(device)
+    x = x.float()
+
+    policy_logits, value = model(x)
+    logits = policy_logits[0]
+
+    if temperature <= 0.0:
+        probs = torch.softmax(logits, dim=0)
+    else:
+        probs = torch.softmax(logits / temperature, dim=0)
+    value = value.item()
+
+    return probs, value

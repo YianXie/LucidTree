@@ -15,6 +15,7 @@ from lucidtree.go.exceptions import BadRequestError
 from lucidtree.go.player import Player
 from lucidtree.nn.agent import (get_policy_value, load_model, pick_moves_mcts,
                                 pick_moves_minimax, pick_moves_nn)
+from lucidtree.nn.features import value_to_winrate
 from lucidtree.nn.model import PolicyValueNetwork
 
 # fmt: on
@@ -83,7 +84,7 @@ def analyze_position(
 
     start = time.perf_counter()
 
-    policy_model: PolicyValueNetwork | None = None
+    model: PolicyValueNetwork | None = None
     policy_device: torch.device | None = None
 
     match algo:
@@ -153,7 +154,7 @@ def analyze_position(
             )
             top_moves = pick_moves_nn(model=checkpoint_model, board=board, **nn_kw)
 
-            policy_model = checkpoint_model
+            model = checkpoint_model
             policy_device = device
 
             stats = {
@@ -203,15 +204,15 @@ def analyze_position(
     include_winrate = output.get("include_winrate", False)
     if include_policy or include_winrate:
         infer_device: torch.device
-        if policy_model is None:
+        if model is None:
             model_name = params.get("model", "checkpoint_19x19")
             infer_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            policy_model = load_model(model=model_name, device=infer_device)
+            model = load_model(model=model_name, device=infer_device)
         else:
             infer_device = cast(torch.device, policy_device)
         policy_softmax_temperature = float(params.get("temperature", 0.0))
         policy, value = get_policy_value(
-            policy_model,
+            model,
             board,
             device=infer_device,
             temperature=policy_softmax_temperature,
@@ -222,18 +223,22 @@ def analyze_position(
             for top_move_gtp in top_moves_gtp:
                 top_move_gtp["policy"] = policy[gtp_to_index(top_move_gtp["move"])]
         if include_winrate:
-            stats["winrate"] = value
+            stats["winrate"] = value_to_winrate(
+                value, board.get_current_player().get_color()
+            )
             for top_move_gtp in top_moves_gtp:
                 board.place_move(
                     gtp_to_row_col(top_move_gtp["move"]), to_play.get_color()
                 )
                 _, value = get_policy_value(
-                    policy_model,
+                    model,
                     board,
                     device=infer_device,
                     temperature=policy_softmax_temperature,
                 )
-                top_move_gtp["winrate"] = value
+                top_move_gtp["winrate"] = value_to_winrate(
+                    value, board.get_current_player().get_color()
+                )
                 board.undo()
 
         try:

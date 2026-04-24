@@ -1,9 +1,13 @@
+# fmt: off
+
 import pytest
 
 from lucidtree.constants import BOARD_SIZE, PASS_INDEX, PASS_MOVE_POSITION
 from lucidtree.go.coordinates import (gtp_to_index, index_to_gtp,
                                       index_to_row_col, row_col_to_index)
 from lucidtree.go.exceptions import InvalidCoordinateError
+
+# fmt: on
 
 
 class TestIndexToRowCol:

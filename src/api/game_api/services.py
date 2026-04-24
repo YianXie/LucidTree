@@ -2,92 +2,16 @@
 
 from typing import Any
 
-from api.common.exceptions import BadRequestError
-from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, KOMI,
-                                 PASS_MOVE_POSITION, RULES)
+import torch
+
+from api.common.utils import build_board_from_request, parse_player
+from lucidtree.constants import BLACK_COLOR, KOMI, RULES
 from lucidtree.engine.analysis import analyze_position
-from lucidtree.go.board import Board
-from lucidtree.go.coordinates import gtp_to_row_col
+from lucidtree.engine.winrate import generate_winrate
 from lucidtree.go.player import Player
+from lucidtree.nn.agent import load_model
 
 # fmt: on
-
-
-def _parse_player(value: str, /) -> Player:
-    """
-    Parse a player from a string
-
-    Args:
-        value (str): the player string, should be either 'B' or 'W'
-
-    Raises:
-        BadRequestError: if the player is not valid, expecting 'B' or 'W'
-
-    Returns:
-        Player: the player object
-    """
-    value = value.upper()
-    if value == "B":
-        return Player.black()
-    elif value == "W":
-        return Player.white()
-    else:
-        raise BadRequestError(f"Invalid player: expecting 'B' or 'W', got '{value}'")
-
-
-def _parse_move(value: str, /) -> tuple[int, int]:
-    """
-    Parse a move from a string and validate it lies within the board.
-
-    Args:
-        value (str): the move string, should be in the format 'A1', 'B2', etc. or 'PASS'
-
-    Raises:
-        BadRequestError: if the move is not valid, expecting 'A1', 'B2', etc. or 'PASS'
-
-    Returns:
-        tuple[int, int]: the move position
-    """
-    try:
-        position = gtp_to_row_col(value)
-    except Exception as e:
-        raise BadRequestError(f"Invalid move: {e}")
-
-    if position != PASS_MOVE_POSITION:
-        row, col = position
-        if not (0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE):
-            raise BadRequestError(
-                f"Move '{value}' is out of bounds for a {BOARD_SIZE}x{BOARD_SIZE} board"
-            )
-
-    return position
-
-
-def _build_board_from_request(moves: list[tuple[str, str]]) -> Board:
-    """
-    Build a board from a request moves
-
-    Args:
-        moves (list[tuple[str, str]]): the moves
-
-    Returns:
-        Board: the board object
-    """
-    board = Board(BOARD_SIZE, Player.black(), Player.white())
-
-    for color_text, point_text in moves:
-        player = _parse_player(color_text)
-        move_position = _parse_move(point_text)
-
-        try:
-            if move_position == PASS_MOVE_POSITION:
-                board.pass_move()
-            else:
-                board.place_move(move_position, player.get_color())
-        except Exception as e:
-            raise BadRequestError(f"Invalid move: {e}")
-
-    return board
 
 
 def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
@@ -108,8 +32,8 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     params = validated_data["params"]
     output = validated_data["output"]
 
-    board = _build_board_from_request(moves=moves)
-    to_play = _parse_player(to_play_text)
+    board = build_board_from_request(moves=moves)
+    to_play = parse_player(to_play_text)
     opponent = Player.white() if to_play.get_color() == BLACK_COLOR else Player.black()
     to_play.opponent = opponent
     opponent.opponent = to_play
@@ -123,3 +47,33 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
         params=params,
         output=output,
     )
+
+
+def winrate(validated_data: dict[str, Any], /) -> dict[str, Any]:
+    """
+    Generate the winrate data for a given game
+
+    Args:
+        validated_data (dict[str, Any]): the validated data
+
+    Returns:
+        dict[str, Any]: the winrate
+    """
+    moves = validated_data.get("moves", [])
+    params = validated_data.get("params", {})
+
+    device = params.get("device", None)
+    temperature = params.get("temperature", 0.0)
+
+    if device is None:
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
+    model = load_model(device=device)
+
+    return {
+        "winrate": generate_winrate(
+            moves, device=device, temperature=temperature, model=model
+        )
+    }

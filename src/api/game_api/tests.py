@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from api.common.exceptions import BadRequestError
+from api.common.utils import parse_move, parse_player
 from api.game_api.serializers import AnalyzeRequestSerializer
-from api.game_api.services import _parse_move, _parse_player
 
 # fmt: on
 
@@ -102,38 +102,38 @@ class TestParsePlayer:
     def test_parse_black(self) -> None:
         from lucidtree.constants import BLACK_COLOR
 
-        assert _parse_player("B").get_color() == BLACK_COLOR
+        assert parse_player("B").get_color() == BLACK_COLOR
 
     def test_parse_white(self) -> None:
         from lucidtree.constants import WHITE_COLOR
 
-        assert _parse_player("W").get_color() == WHITE_COLOR
+        assert parse_player("W").get_color() == WHITE_COLOR
 
     def test_parse_invalid_raises(self) -> None:
         with pytest.raises(BadRequestError):
-            _parse_player("X")
+            parse_player("X")
 
 
 class TestParseMove:
     def test_parse_pass(self) -> None:
         from lucidtree.constants import PASS_MOVE_POSITION
 
-        assert _parse_move("PASS") == PASS_MOVE_POSITION
+        assert parse_move("PASS") == PASS_MOVE_POSITION
 
     def test_parse_a1(self) -> None:
-        assert _parse_move("A1") == (0, 0)
+        assert parse_move("A1") == (0, 0)
 
     def test_parse_j1_skips_i(self) -> None:
         # GTP skips 'I', so J → column 8
-        assert _parse_move("J1") == (0, 8)
+        assert parse_move("J1") == (0, 8)
 
     def test_out_of_bounds_row_raises(self) -> None:
         with pytest.raises(BadRequestError):
-            _parse_move("A20")  # row 19 is out of bounds
+            parse_move("A20")  # row 19 is out of bounds
 
     def test_letter_i_rejected(self) -> None:
         with pytest.raises(BadRequestError):
-            _parse_move("I1")
+            parse_move("I1")
 
 
 # ---------------------------------------------------------------------------

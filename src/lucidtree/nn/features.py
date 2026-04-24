@@ -43,3 +43,18 @@ def encode_board(board: Board) -> torch.Tensor:
         x[5, ko_position[0], ko_position[1]] = 1
 
     return x
+
+
+def value_to_winrate(value: float, color: int) -> dict[str, float]:
+    """
+    Convert a nn value to human-readable winrate percentage
+
+    Args:
+        value (float): the raw value
+        color (int): the current player's color
+    """
+    black_winrate = (value + 1) / 2 * 100
+    if color == WHITE_COLOR:
+        black_winrate = 100.0 - black_winrate
+    white_winrate = 100.0 - black_winrate
+    return {"black": black_winrate, "white": white_winrate}

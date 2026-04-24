@@ -1,3 +1,5 @@
+# fmt: off
+
 import pytest
 
 from lucidtree.constants import BLACK_COLOR, BOARD_SIZE, WHITE_COLOR
@@ -6,6 +8,8 @@ from lucidtree.go.exceptions import (GameOverError, IllegalMoveError,
                                      InvalidColorError)
 from lucidtree.go.move import Move
 from lucidtree.go.player import Player
+
+# fmt: on
 
 _black = Player("Black", BLACK_COLOR)
 _white = Player("White", WHITE_COLOR)

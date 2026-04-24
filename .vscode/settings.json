@@ -5,6 +5,7 @@
         "puct",
         "pytest",
         "runserver",
-        "winrate"
+        "winrate",
+        "winrates"
     ]
 }

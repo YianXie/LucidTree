@@ -14,9 +14,6 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
         serializers.ValidationError: If the moves are not valid
         serializers.ValidationError: If the color is not valid
         serializers.ValidationError: If the point is not valid
-
-    Returns:
-        list[tuple[str, str]]: The validated moves
     """
 
     rules = serializers.ChoiceField(
@@ -67,14 +64,35 @@ class AnalyzeRequestSerializer(serializers.Serializer):  # type: ignore
         return validated
 
 
+class WinrateRequestSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the winrate requests
+    """
+
+    moves = serializers.ListField(
+        child=serializers.ListField(
+            child=serializers.CharField(),
+            min_length=2,
+            max_length=2,
+        ),
+        required=True,
+    )
+    params = serializers.DictField(required=False)
+
+
 class AnalyzeResponseSerializer(serializers.Serializer):  # type: ignore
     """
     Serializer for the analyze responses
-
-    Returns:
-        AnalyzeResponseSerializer: The serializer instance
     """
 
     top_moves = serializers.ListField(required=True)
     algorithm = serializers.CharField(required=True)
     stats = serializers.DictField(required=True)
+
+
+class WinrateResponseSerializer(serializers.Serializer):  # type: ignore
+    """
+    Serializer for the generated winrate responses
+    """
+
+    winrate = serializers.ListField(required=True)

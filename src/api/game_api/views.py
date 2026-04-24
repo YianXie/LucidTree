@@ -10,7 +10,9 @@ from rest_framework.views import APIView, Request
 from api.common.exceptions import BadRequestError
 from api.game_api import services
 from api.game_api.serializers import (AnalyzeRequestSerializer,
-                                      AnalyzeResponseSerializer)
+                                      AnalyzeResponseSerializer,
+                                      WinrateRequestSerializer,
+                                      WinrateResponseSerializer)
 
 # fmt: on
 
@@ -51,6 +53,31 @@ class AnalyzeView(APIView):  # type: ignore
             )
 
         response_serializer = AnalyzeResponseSerializer(data=result)
+        response_serializer.is_valid(raise_exception=True)
+
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class WinrateView(APIView):  # type: ignore
+    authentication_classes: list[Any] = []
+    permission_classes: list[Any] = []
+
+    def post(self, request: Request) -> Response:
+        request_serializer = WinrateRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
+        try:
+            result = services.winrate(request_serializer.validated_data)
+        except BadRequestError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception("Unexpected error while generating winrate")
+            return Response(
+                {"detail": "An internal server error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        response_serializer = WinrateResponseSerializer(data=result)
         response_serializer.is_valid(raise_exception=True)
 
         return Response(response_serializer.data, status=status.HTTP_200_OK)

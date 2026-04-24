@@ -1,3 +1,5 @@
+# fmt: off
+
 from lucidtree.constants import (BLACK_COLOR, BOARD_SIZE, CHANNEL_SIZE,
                                  WHITE_COLOR)
 from lucidtree.go.board import Board
@@ -6,6 +8,8 @@ from lucidtree.nn.features import encode_board
 
 _black = Player("Black", BLACK_COLOR)
 _white = Player("White", WHITE_COLOR)
+
+# fmt: on
 
 
 def _board() -> Board:
