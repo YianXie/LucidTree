@@ -32,7 +32,7 @@ def load_model(
 
     Args:
         model (Path | str | None, optional): the path to the model to load. Defaults to None.
-            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If None, loads the default model from the models directory (latest.pt).
             If a string, it is assumed to be the name of the model and is loaded from the models directory.
             If a Path, it is assumed to be the path to the model and is loaded from the given path.
         device (torch.device | None, optional): the device to load the model onto.
@@ -49,7 +49,7 @@ def load_model(
     elif isinstance(model, str):
         path = root / "models" / f"{model}.pt"
     else:
-        path = root / "models/checkpoint_19x19.pt"
+        path = root / "models/latest.pt"
 
     if not path.exists():
         raise FileNotFoundError(
@@ -80,7 +80,7 @@ def pick_moves_mcts(
         board (Board): the current board state
         to_play (Player): the player to play
         model (Path | str | None, optional): the path to the model to load. Defaults to None.
-            If None, loads the default model from the models directory (checkpoint_19x19.pt).
+            If None, loads the default model from the models directory (latest.pt).
             If a string, it is assumed to be the name of the model and is loaded from the models directory.
             If a Path, it is assumed to be the path to the model and is loaded from the given path.
         **kwargs: additional keyword arguments

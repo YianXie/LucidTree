@@ -89,7 +89,7 @@ def analyze_position(
 
     match algo:
         case "mcts":
-            model_name = params.get("model", "checkpoint_19x19")
+            model_name = params.get("model", "latest")
             num_simulations = params.get("num_simulations", 1000)
             c_puct = params.get("c_puct", 1.5)
             dirichlet_alpha = params.get("dirichlet_alpha", 0.0)
@@ -136,7 +136,7 @@ def analyze_position(
                 stats["max_time_ms"] = max_time_ms
 
         case "nn":
-            model_name = params.get("model", "checkpoint_19x19")
+            model_name = params.get("model", "latest")
             policy_softmax_temperature = params.get("temperature", 0.0)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -205,7 +205,7 @@ def analyze_position(
     if include_policy or include_winrate:
         infer_device: torch.device
         if model is None:
-            model_name = params.get("model", "checkpoint_19x19")
+            model_name = params.get("model", "latest")
             infer_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             model = load_model(model=model_name, device=infer_device)
         else:

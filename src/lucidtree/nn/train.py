@@ -133,7 +133,7 @@ def save_best_model(state: dict[str, Any] | None) -> None:
         state (dict[str, Any] | None): the best model state
     """
     if state is not None:
-        torch.save(state, root / "models/checkpoint_19x19.pt")
+        torch.save(state, root / "models/latest.pt")
 
 
 if __name__ == "__main__":
@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
     try:
         checkpoint = torch.load(
-            root / "models/checkpoint_19x19.pt", map_location=device, weights_only=True
+            root / "models/latest.pt", map_location=device, weights_only=True
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
     try:
         checkpoint = torch.load(
-            root / "models/checkpoint_19x19.pt", map_location=device, weights_only=True
+            root / "models/latest.pt", map_location=device, weights_only=True
         )
         model.load_state_dict(checkpoint["model_state_dict"])
     except FileNotFoundError:

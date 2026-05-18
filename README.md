@@ -223,7 +223,7 @@ Implemented a functional Django Rest Framework API in `/api` directory. It recei
     ],
     "algorithm": "mcts",
     "stats": {
-        "model": "checkpoint_19x19",
+        "model": "latest",
         "num_simulations": 500,
         "c_puct": 1.25,
         "dirichlet_alpha": 0.0,

@@ -63,7 +63,7 @@ src/
     common/       # Shared exceptions and utilities
 tests/            # pytest suite
 data/             # Raw SGF files and processed .npz shards
-models/           # Pretrained checkpoints (checkpoint_19x19.pt)
+models/           # Pretrained checkpoints (latest.pt)
 scripts/          # CI helper and model download scripts
 ```
 
