@@ -32,11 +32,18 @@ def analyze(validated_data: dict[str, Any], /) -> dict[str, Any]:
     params = validated_data["params"]
     output = validated_data["output"]
 
-    board = build_board_from_request(moves=moves)
     to_play = parse_player(to_play_text)
     opponent = Player.white() if to_play.get_color() == BLACK_COLOR else Player.black()
     to_play.opponent = opponent
     opponent.opponent = to_play
+    if to_play.get_color() == BLACK_COLOR:
+        board = build_board_from_request(
+            moves=moves, black_player=to_play, white_player=opponent
+        )
+    else:
+        board = build_board_from_request(
+            moves=moves, black_player=opponent, white_player=to_play
+        )
 
     return analyze_position(
         algo=algo,

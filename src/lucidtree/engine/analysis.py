@@ -53,6 +53,11 @@ def analyze_position(
             f"Algorithm '{algo}' only supports {BOARD_SIZE}x{BOARD_SIZE} boards, "
             f"but a {board.size}x{board.size} board was provided."
         )
+    if (
+        board.get_black_player().opponent is None
+        or board.get_white_player().opponent is None
+    ):
+        raise BadRequestError("One or more player attributes in the board are None.")
 
     max_time_ms = params.get("max_time_ms")
     if max_time_ms is not None:
@@ -67,8 +72,14 @@ def analyze_position(
         and max_time_ms > 0
     )
 
-    seed = params.get("seed", "")
-    if seed:
+    seed = params.get("seed", None)
+    if seed is not None and seed != "":
+        try:
+            seed = int(seed)
+        except (ValueError, TypeError):
+            raise BadRequestError(
+                f"params.seed must be a valid integer, but got '{seed}'."
+            )
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -82,8 +93,18 @@ def analyze_position(
             f"but got {include_top_moves}."
         )
 
-    start = time.perf_counter()
+    include_prediction_graphs = output.get("include_prediction_graphs", False)
+    prediction_graph_lengths: int | None = output.get("prediction_graph_lengths", None)
+    if include_prediction_graphs and (
+        prediction_graph_lengths is None
+        or prediction_graph_lengths <= 0
+        or prediction_graph_lengths > 10
+    ):
+        raise BadRequestError(
+            f"output.prediction_graph_lengths must be between 1-5 when output.include_prediction_graphs is set to true, received {prediction_graph_lengths}"
+        )
 
+    start = time.perf_counter()
     model: PolicyValueNetwork | None = None
     policy_device: torch.device | None = None
 
@@ -117,7 +138,6 @@ def analyze_position(
             }
             if use_time_limit:
                 mcts_kw["max_time_ms"] = max_time_ms
-
             top_moves, visits = pick_moves_mcts(board, to_play, **mcts_kw)
 
             stats = {
@@ -134,6 +154,26 @@ def analyze_position(
             }
             if use_time_limit:
                 stats["max_time_ms"] = max_time_ms
+
+            if include_prediction_graphs:
+                prediction_graphs: list[list[tuple[int, int]]] = []
+                mcts_kw["include_top_moves"] = 1  # we need only 1 top move
+                current_player = board.get_current_player()
+                for move in top_moves:  # generate prediction graphs for each move
+                    prediction_graphs.append([])
+                    next_best_move = move
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.place_move(next_best_move, current_player.get_color())
+                        current_player = current_player.opponent  # type: ignore
+                        next_best_move = pick_moves_mcts(
+                            board, current_player, **mcts_kw
+                        )[0][0]
+                        prediction_graphs[-1].append(
+                            next_best_move
+                        )  # append to the back of the list
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.undo()
+                stats["prediction_graphs"] = prediction_graphs
 
         case "nn":
             model_name = params.get("model", "latest")
@@ -162,6 +202,25 @@ def analyze_position(
                 "policy_softmax_temperature": policy_softmax_temperature,
             }
 
+            if include_prediction_graphs:
+                nn_prediction_graphs: list[list[tuple[int, int]]] = []
+                nn_kw_single = {**nn_kw, "include_top_moves": 1}
+                original_player = board.get_current_player()
+                for move in top_moves:
+                    nn_prediction_graphs.append([])
+                    next_best_move = move
+                    current_player = original_player
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.place_move(next_best_move, current_player.get_color())
+                        current_player = current_player.opponent  # type: ignore
+                        next_best_move = pick_moves_nn(
+                            model=checkpoint_model, board=board, **nn_kw_single
+                        )[0]
+                        nn_prediction_graphs[-1].append(next_best_move)
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.undo()
+                stats["prediction_graphs"] = nn_prediction_graphs
+
         case "minimax":
             depth = params.get("depth", 3)
             use_alpha_beta = params.get("use_alpha_beta", True)
@@ -189,6 +248,25 @@ def analyze_position(
             }
             if use_time_limit:
                 stats["max_time_ms"] = max_time_ms
+
+            if include_prediction_graphs:
+                mm_prediction_graphs: list[list[tuple[int, int]]] = []
+                mm_kw_single = {**mm_kw, "include_top_moves": 1, "stats_out": None}
+                original_player = board.get_current_player()
+                for move in top_moves:
+                    mm_prediction_graphs.append([])
+                    next_best_move = move
+                    current_player = original_player
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.place_move(next_best_move, current_player.get_color())
+                        current_player = current_player.opponent  # type: ignore
+                        next_best_move = pick_moves_minimax(
+                            board, current_player, **mm_kw_single
+                        )[0]
+                        mm_prediction_graphs[-1].append(next_best_move)
+                    for _ in range(prediction_graph_lengths):  # type: ignore
+                        board.undo()
+                stats["prediction_graphs"] = mm_prediction_graphs
 
         case _:
             raise BadRequestError(f"Invalid algorithm {algo}")

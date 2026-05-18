@@ -55,17 +55,21 @@ def parse_move(value: str, /) -> tuple[int, int]:
     return position
 
 
-def build_board_from_request(moves: list[tuple[str, str]]) -> Board:
+def build_board_from_request(
+    moves: list[tuple[str, str]], black_player: Player, white_player: Player
+) -> Board:
     """
     Build a board from a request moves
 
     Args:
         moves (list[tuple[str, str]]): the moves
+        black_player (Player): the black player
+        white_player (Player): the white player
 
     Returns:
         Board: the board object
     """
-    board = Board(BOARD_SIZE, Player.black(), Player.white())
+    board = Board(BOARD_SIZE, black_player=black_player, white_player=white_player)
 
     for color_text, point_text in moves:
         player = parse_player(color_text)
