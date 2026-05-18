@@ -53,12 +53,6 @@ def analyze_position(
             f"Algorithm '{algo}' only supports {BOARD_SIZE}x{BOARD_SIZE} boards, "
             f"but a {board.size}x{board.size} board was provided."
         )
-    if (
-        board.get_black_player().opponent is None
-        or board.get_white_player().opponent is None
-    ):
-        raise BadRequestError("One or more player attributes in the board are None.")
-
     max_time_ms = params.get("max_time_ms")
     if max_time_ms is not None:
         if not isinstance(max_time_ms, (int, float)) or max_time_ms < 0:
@@ -103,6 +97,11 @@ def analyze_position(
         raise BadRequestError(
             f"output.prediction_graph_lengths must be between 1-5 when output.include_prediction_graphs is set to true, received {prediction_graph_lengths}"
         )
+    if include_prediction_graphs and (
+        board.get_black_player().opponent is None
+        or board.get_white_player().opponent is None
+    ):
+        raise BadRequestError("One or more player attributes in the board are None.")
 
     start = time.perf_counter()
     model: PolicyValueNetwork | None = None
@@ -158,10 +157,11 @@ def analyze_position(
             if include_prediction_graphs:
                 prediction_graphs: list[list[tuple[int, int]]] = []
                 mcts_kw["include_top_moves"] = 1  # we need only 1 top move
-                current_player = board.get_current_player()
+                original_player = board.get_current_player()
                 for move in top_moves:  # generate prediction graphs for each move
                     prediction_graphs.append([])
                     next_best_move = move
+                    current_player = original_player
                     for _ in range(prediction_graph_lengths):  # type: ignore
                         board.place_move(next_best_move, current_player.get_color())
                         current_player = current_player.opponent  # type: ignore
