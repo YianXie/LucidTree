@@ -95,7 +95,7 @@ def analyze_position(
         or prediction_graph_lengths > 10
     ):
         raise BadRequestError(
-            f"output.prediction_graph_lengths must be between 1-5 when output.include_prediction_graphs is set to true, received {prediction_graph_lengths}"
+            f"output.prediction_graph_lengths must be between 1-10 when output.include_prediction_graphs is set to true, received {prediction_graph_lengths}"
         )
     if include_prediction_graphs and (
         board.get_black_player().opponent is None
