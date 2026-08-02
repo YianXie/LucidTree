@@ -13,9 +13,8 @@ with the board left in the same state afterwards. For ``encode_board`` it
 means a bit-identical tensor of the same dtype.
 """
 
-from __future__ import annotations
-
 # fmt: off
+from __future__ import annotations
 
 import random
 

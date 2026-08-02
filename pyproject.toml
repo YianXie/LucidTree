@@ -68,7 +68,8 @@ minversion = "9.0"
 testpaths = ["tests", "src"]
 DJANGO_SETTINGS_MODULE = "api.api.settings"
 django_find_project = false
-pythonpath = ["src"]
+# "." puts the repo root on sys.path so tests can import scripts/.
+pythonpath = ["src", "."]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 
 [tool.mypy]
