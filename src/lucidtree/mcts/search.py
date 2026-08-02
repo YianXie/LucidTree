@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from lucidtree.constants import BLACK_COLOR, KOMI, PASS_INDEX, RULES
@@ -48,10 +49,17 @@ class MCTS:
         Args:
             board (Board): the current board
             to_play (Player): the current player to play
-            **kwargs: additional keyword arguments. `use_nn_cache` (default
-                True) enables the per-search transposition cache of network
-                evaluations; set it False to trade throughput on
-                transposition-heavy positions for a flat memory profile.
+            **kwargs: additional keyword arguments.
+
+                `use_nn_cache` (default True) enables the per-search
+                transposition cache of network evaluations; set it False to
+                trade throughput on transposition-heavy positions for a flat
+                memory profile.
+
+                `snapshot_powers_of_two` (default False) records `root.N` at
+                1, 2, 4, ... simulations into `root.snapshots`, so a single
+                run to N_max yields the visit counts for every smaller budget.
+                Off by default so the ordinary code path is untouched.
         """
         num_simulations = kwargs.get("num_simulations", 1000)
         c_puct = kwargs.get("c_puct", 1.5)
@@ -62,6 +70,7 @@ class MCTS:
         value_weight = kwargs.get("value_weight", 1.0)
         policy_weight = kwargs.get("policy_weight", 1.0)
         use_nn_cache = kwargs.get("use_nn_cache", True)
+        snapshot_powers_of_two = kwargs.get("snapshot_powers_of_two", False)
 
         if to_play.opponent is None or to_play.opponent.opponent is None:
             raise RuntimeError("Player argument missing `opponent` attribute")
@@ -92,6 +101,11 @@ class MCTS:
         deadline: float | None = None
         if max_time_ms is not None and float(max_time_ms) > 0:
             deadline = time.perf_counter() + float(max_time_ms) / 1000.0
+
+        # Opt in only: with snapshots off the loop below is byte for byte
+        # the code that produced the golden master.
+        snapshots: dict[int, npt.NDArray[np.int32]] = {}
+        next_snapshot = 1
 
         simulations_run = 0
         for _ in range(num_simulations):
@@ -156,7 +170,12 @@ class MCTS:
             # Backup
             self._backup(path, value)
 
+            if snapshot_powers_of_two and simulations_run == next_snapshot:
+                snapshots[next_snapshot] = root.N.copy()
+                next_snapshot *= 2
+
         self.simulations_run = simulations_run
+        root.snapshots = snapshots if snapshot_powers_of_two else None
 
         unique = len(cache) if cache is not None else evaluations
         hits = evaluations - unique

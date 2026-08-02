@@ -53,6 +53,12 @@ def actual() -> dict[str, np.ndarray]:
     return gg.compute_golden()
 
 
+@pytest.fixture(scope="module")
+def actual_with_snapshots() -> dict[str, np.ndarray]:
+    """The same searches, with the power-of-two snapshot hook enabled."""
+    return gg.compute_golden(snapshot_powers_of_two=True)
+
+
 def test_position_set_unchanged(expected: dict[str, np.ndarray]) -> None:
     """The golden file must describe exactly the positions we search."""
     assert list(expected["__names__"]) == POSITION_NAMES
@@ -94,4 +100,20 @@ def test_float_stats_match(
     assert np.allclose(got, want, rtol=0, atol=1e-9), (
         f"{name}: root.{field} max abs diff "
         f"{np.max(np.abs(got.astype(np.float64) - want.astype(np.float64)))}"
+    )
+
+
+@pytest.mark.parametrize("name", POSITION_NAMES)
+def test_snapshots_leave_the_final_tree_identical(
+    name: str,
+    actual_with_snapshots: dict[str, np.ndarray],
+    expected: dict[str, np.ndarray],
+) -> None:
+    """Recording snapshots mid-search must not perturb the search itself."""
+    assert np.array_equal(actual_with_snapshots[f"{name}__N"], expected[f"{name}__N"])
+    assert np.allclose(
+        actual_with_snapshots[f"{name}__W"],
+        expected[f"{name}__W"],
+        rtol=0,
+        atol=1e-9,
     )
