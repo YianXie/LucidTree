@@ -27,7 +27,7 @@ def _get_device() -> torch.device:
 
 
 device = _get_device()
-scaler = torch.amp.GradScaler(device.type, enabled=(device.type == "cuda"))  # type: ignore
+scaler = torch.amp.GradScaler(device.type, enabled=(device.type == "cuda"))
 
 
 def train_one_epoch(
@@ -77,7 +77,7 @@ def train_one_epoch(
         y_policy = y_policy.to(device, non_blocking=True)
         y_value = y_value.to(device, non_blocking=True)
 
-        with torch.amp.autocast(  # type: ignore
+        with torch.amp.autocast(
             device.type, enabled=(device.type == "cuda"), dtype=torch.float16
         ):
             policy_logits, value = model(x)
