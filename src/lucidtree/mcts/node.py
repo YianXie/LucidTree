@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn as nn
 
@@ -143,6 +144,31 @@ class Node:
         total_value_sum = self.W[action]
         return float(self.value_weight * (total_value_sum / total_visit_count))
 
+    def Q_all(self) -> npt.NDArray[np.float64]:
+        """
+        Return the mean value of every action at once
+
+        The vectorized form of :meth:`Q`. It reproduces that method's numerics
+        exactly rather than approximately: unvisited actions score 0.0, and
+        visited actions divide in float64, because `W` is float32 and `N` is
+        int32 and NumPy promotes that pair to float64 before dividing. Doing
+        the division in float32 instead would round differently and could flip
+        a near-tie in :meth:`select_action`.
+
+        Returns:
+            npt.NDArray[np.float64]: the mean value of each action
+        """
+        visited = self.N != 0
+        values = np.zeros(self.total_actions, dtype=np.float64)
+        np.divide(
+            self.W.astype(np.float64),
+            self.N.astype(np.float64),
+            out=values,
+            where=visited,
+        )
+        np.multiply(values, self.value_weight, out=values, where=visited)
+        return values
+
     def U(self, action: int, c_puct: float = 1.5) -> float:
         """
         Calculate the PUCT score for a given action
@@ -164,20 +190,47 @@ class Node:
             * (math.sqrt(sum_visits) / (1.0 + action_visits))
         )
 
+    def U_all(self, c_puct: float = 1.5) -> npt.NDArray[np.float64]:
+        """
+        Calculate the PUCT score for every action at once
+
+        The vectorized form of :meth:`U`, and again bit-identical rather than
+        merely close. `policy_weight * c_puct` is a Python float, and NumPy
+        weak promotion rounds that product to float32 when it meets the
+        float32 prior; `np.float32(...)` reproduces that rounding. Widening
+        the float32 product to float64 afterwards is exact, and the remaining
+        `sqrt(sum) / (1 + N)` factor is float64 in both paths.
+
+        Args:
+            c_puct (float, optional): the exploration constant. Defaults to 1.5.
+
+        Returns:
+            npt.NDArray[np.float64]: the PUCT score of each action
+        """
+        sum_visits = self.N.sum()
+        scale = np.float32(self.policy_weight * c_puct)
+        scores = (scale * self.P).astype(np.float64)
+        scores *= math.sqrt(sum_visits) / (1.0 + self.N.astype(np.float64))
+        return scores
+
     def select_action(self, c_puct: float = 1.5) -> np.int64:
         """
         Select the action with the highest mean value + PUCT score
 
+        Illegal actions are pushed to negative infinity and `np.argmax`
+        returns the first maximum, so ties resolve to the lowest action index
+        exactly as the strict `>` comparison in the original scalar loop did.
+
         Returns:
             int: the action index
         """
-        best_score = -INFINITY
-        best_action: np.int64 = np.int64(BOARD_SIZE * BOARD_SIZE)
-        legal_actions = np.where(self.legal_mask)[0]
-        for action in legal_actions:
-            score = self.Q(action) + self.U(action, c_puct)
-            if score > best_score:
-                best_score = score
-                best_action = action
+        scores = self.Q_all()
+        scores += self.U_all(c_puct)
+        np.copyto(scores, -INFINITY, where=~self.legal_mask)
 
-        return best_action
+        best_action = np.argmax(scores)
+        if not self.legal_mask[best_action]:
+            # Nothing is legal at all; the scalar loop never entered its body
+            # and fell through to this same index.
+            return np.int64(BOARD_SIZE * BOARD_SIZE)
+        return np.int64(best_action)
