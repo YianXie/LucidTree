@@ -322,12 +322,52 @@ class Board:
 
         Returns:
             list[Move]: all legal moves for the given player
+
+        Raises:
+            InvalidColorError: if the color is invalid
         """
+        # The original validated the color implicitly, via the set_color call
+        # below, and so skipped the check entirely on a board with no empty
+        # points. Checking once up front is cheaper and more consistent.
+        if not Rules.color_is_valid(color):
+            raise InvalidColorError(f"Invalid color: {color}")
+
+        state = self.state
+        size = self.size
+        ko = self._ko_positions
         moves: list[Move] = []
-        for row in self.state:
-            for move in row:
-                if not move.is_empty():
+        for row_index, row in enumerate(state):
+            for col_index, move in enumerate(row):
+                if move.color != EMPTY_COLOR:
                     continue
+
+                # Fast path. If the point has an empty orthogonal neighbour
+                # then a stone placed there has at least one liberty, so
+                # count_liberties(move) <= 0 is False and move_is_valid short
+                # circuits to its ko check regardless of what check_captures
+                # would have returned (check_captures only reads the board).
+                # That leaves nothing to test but the ko point, and no stone
+                # needs to be placed to test it.
+                if (
+                    (
+                        row_index > 0
+                        and state[row_index - 1][col_index].color == EMPTY_COLOR
+                    )
+                    or (
+                        row_index + 1 < size
+                        and state[row_index + 1][col_index].color == EMPTY_COLOR
+                    )
+                    or (col_index > 0 and row[col_index - 1].color == EMPTY_COLOR)
+                    or (
+                        col_index + 1 < size and row[col_index + 1].color == EMPTY_COLOR
+                    )
+                ):
+                    if (row_index, col_index) != ko:
+                        moves.append(move)
+                    continue
+
+                # Slow path: the point is fully surrounded by stones, so
+                # legality genuinely depends on captures and liberties.
                 # Test validity by temporarily setting color
                 move.set_color(color)
                 is_valid = self.move_is_valid(move)

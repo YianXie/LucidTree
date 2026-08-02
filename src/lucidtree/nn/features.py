@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from lucidtree.constants import BLACK_COLOR, CHANNEL_SIZE, WHITE_COLOR
@@ -14,22 +15,22 @@ def encode_board(board: Board) -> torch.Tensor:
     Returns:
         torch.Tensor: the resulting tensor
     """
-    x = torch.zeros(CHANNEL_SIZE, board.size, board.size, dtype=torch.int16)
+    x = np.zeros((CHANNEL_SIZE, board.size, board.size), dtype=np.int16)
 
-    # Direct access to board state instead of repeated function calls
-    for i in range(board.size):
-        for j in range(board.size):
-            color = board.state[i][j].get_color()
-            if color == BLACK_COLOR:
-                x[0, i, j] = 1  # Black
-            elif color == WHITE_COLOR:
-                x[1, i, j] = 1  # White
-            else:
-                x[2, i, j] = 1  # Empty
+    # Read the grid once into an array rather than assigning into the tensor
+    # one point at a time; the plane masks are then a single pass each.
+    colors = np.array(
+        [[move.color for move in row] for row in board.state], dtype=np.int16
+    )
+    black = colors == BLACK_COLOR
+    white = colors == WHITE_COLOR
+    x[0] = black  # Black
+    x[1] = white  # White
+    x[2] = ~(black | white)  # Empty
 
     # Current player
     if board.get_current_player().get_color() == BLACK_COLOR:
-        x[3].fill_(1)
+        x[3] = 1
 
     # Last move
     last_move = board.get_last_move()
@@ -42,7 +43,7 @@ def encode_board(board: Board) -> torch.Tensor:
     if ko_position is not None:
         x[5, ko_position[0], ko_position[1]] = 1
 
-    return x
+    return torch.from_numpy(x)
 
 
 def value_to_winrate(value: float, color: int) -> dict[str, float]:
