@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.collect_positions import (PASS, SPREAD_POINTS, build_position,
+from scripts.collect_positions import (SKIP, SPREAD_POINTS, build_position,
                                        default_positions, load_positions)
 
 # fmt: on
@@ -56,7 +56,7 @@ def test_build_position_alternates_colors() -> None:
 
 def test_build_position_handles_pass() -> None:
     """A pass advances the turn without placing a stone."""
-    board, to_play = build_position([(3, 3), PASS])
+    board, to_play = build_position([(3, 3), SKIP])
 
     assert to_play is board.get_black_player()
     assert board.get_last_move() is not None
@@ -70,7 +70,7 @@ def test_load_positions_accepts_both_shapes(tmp_path: Path) -> None:
         json.dumps(
             [
                 [[3, 3], [15, 15]],
-                {"name": "named", "moves": [[9, 9], PASS]},
+                {"name": "named", "moves": [[9, 9], SKIP]},
             ]
         )
     )
@@ -79,4 +79,4 @@ def test_load_positions_accepts_both_shapes(tmp_path: Path) -> None:
 
     assert [name for name, _ in positions] == ["pos_0000", "named"]
     assert positions[0][1] == [(3, 3), (15, 15)]
-    assert positions[1][1] == [(9, 9), PASS]
+    assert positions[1][1] == [(9, 9), SKIP]
