@@ -1,3 +1,4 @@
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -9,8 +10,10 @@ from lucidtree.constants import BLACK_COLOR, KOMI, PASS_INDEX, RULES
 from lucidtree.go.board import Board
 from lucidtree.go.coordinates import index_to_row_col
 from lucidtree.go.player import Player
-from lucidtree.mcts.node import Node
+from lucidtree.mcts.node import EvalCache, Node
 from lucidtree.nn.agent import load_model
+
+logger = logging.getLogger(__name__)
 
 
 class MCTS:
@@ -35,6 +38,7 @@ class MCTS:
         self.model = load_model(model=model, device=self.device)
         self.model.eval()
         self.simulations_run = 0
+        self.cache_stats: dict[str, int] = {"hits": 0, "misses": 0}
 
     @torch.no_grad()
     def run(self, board: Board, to_play: Player, **kwargs: Any) -> Node:
@@ -44,7 +48,10 @@ class MCTS:
         Args:
             board (Board): the current board
             to_play (Player): the current player to play
-            **kwargs: additional keyword arguments
+            **kwargs: additional keyword arguments. `use_nn_cache` (default
+                True) enables the per-search transposition cache of network
+                evaluations; set it False to trade throughput on
+                transposition-heavy positions for a flat memory profile.
         """
         num_simulations = kwargs.get("num_simulations", 1000)
         c_puct = kwargs.get("c_puct", 1.5)
@@ -54,9 +61,15 @@ class MCTS:
         dirichlet_epsilon = kwargs.get("dirichlet_epsilon", 0.0)
         value_weight = kwargs.get("value_weight", 1.0)
         policy_weight = kwargs.get("policy_weight", 1.0)
+        use_nn_cache = kwargs.get("use_nn_cache", True)
 
         if to_play.opponent is None or to_play.opponent.opponent is None:
             raise RuntimeError("Player argument missing `opponent` attribute")
+
+        # Scoped to this search: discarded on return, so it can neither grow
+        # without bound nor leak evaluations between positions.
+        cache: EvalCache | None = {} if use_nn_cache else None
+        evaluations = 0
 
         root = Node(
             board=board,
@@ -71,7 +84,9 @@ class MCTS:
             rules=rules,
             dirichlet_alpha=dirichlet_alpha,
             dirichlet_epsilon=dirichlet_epsilon,
+            cache=cache,
         )
+        evaluations += 1
 
         max_time_ms = kwargs.get("max_time_ms")
         deadline: float | None = None
@@ -135,12 +150,31 @@ class MCTS:
                 # Return value from current player's perspective
                 value = result if node.to_play.get_color() == BLACK_COLOR else -result
             else:
-                value = node.expand(self.model, self.device)
+                value = node.expand(self.model, self.device, cache=cache)
+                evaluations += 1
 
             # Backup
             self._backup(path, value)
 
         self.simulations_run = simulations_run
+
+        unique = len(cache) if cache is not None else evaluations
+        hits = evaluations - unique
+        self.cache_stats = {
+            "evaluations": evaluations,
+            "unique": unique,
+            "hits": hits,
+            "misses": unique,
+        }
+        if cache is not None:
+            logger.debug(
+                "nn cache: %d/%d hits (%.1f%%), %d unique positions",
+                hits,
+                evaluations,
+                100.0 * hits / evaluations if evaluations else 0.0,
+                unique,
+            )
+
         return root
 
     def _backup(self, path: list[tuple[Node, int]], value: float) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 
 import numpy as np
@@ -13,6 +14,10 @@ from lucidtree.go.coordinates import row_col_to_index
 from lucidtree.go.player import Player
 from lucidtree.nn.features import encode_board
 
+# A network evaluation, keyed by the bytes of the encoded input tensor:
+# (softmax policy over all actions, value for the side to move).
+EvalCache = dict[bytes, tuple[npt.NDArray[np.float32], float]]
+
 
 class Node:
     """
@@ -20,6 +25,7 @@ class Node:
     """
 
     total_actions = BOARD_SIZE * BOARD_SIZE + 1
+    snapshots: dict[int, npt.NDArray[np.int32]] | None = None
 
     def __init__(
         self,
@@ -59,6 +65,7 @@ class Node:
         rules: str = RULES,
         dirichlet_alpha: float = 0.0,
         dirichlet_epsilon: float = 0.0,
+        cache: EvalCache | None = None,
     ) -> float:
         """
         Expand the node by computing legal moves
@@ -66,6 +73,9 @@ class Node:
         Args:
             model (nn.Module): the policy/value policy network model
             device (torch.device | None, optional): the device for inference. Uses model's device if None.
+            cache (EvalCache | None, optional): a transposition cache of
+                network evaluations, keyed by encoded input bytes. Owned by
+                the caller and scoped to a single search.
         """
         if self.is_expanded:
             raise RuntimeError("expanded() called on already expanded node")
@@ -95,17 +105,41 @@ class Node:
             idx = row_col_to_index(row, col)
             self.legal_mask[idx] = True
 
-        x = encode_board(self.board).unsqueeze(0).float()
-        if device is not None:
-            x = x.to(device)
-        policy_logits, value = model(x)
-        probs = (
-            torch.softmax(policy_logits[0], dim=0)
-            .detach()
-            .cpu()
-            .numpy()
-            .astype(np.float32)
+        encoded = encode_board(self.board)
+
+        # The cache key is a digest of the encoded input tensor itself, so two
+        # positions share an entry only when the bytes the network reads are
+        # identical. Anything cheaper (stone configuration, a Zobrist hash of
+        # the grid) would collide across positions that differ in the
+        # last-move or ko planes and would silently return the wrong policy.
+        key = (
+            hashlib.blake2b(encoded.numpy().tobytes(), digest_size=32).digest()
+            if cache is not None
+            else b""
         )
+        hit = cache.get(key) if cache is not None else None
+
+        if hit is not None:
+            cached_probs, cached_value = hit
+            # Copy: the caller mutates probs in place just below.
+            probs = cached_probs.copy()
+            raw_value = cached_value
+        else:
+            x = encoded.unsqueeze(0).float()
+            if device is not None:
+                x = x.to(device)
+            policy_logits, value = model(x)
+            probs = (
+                torch.softmax(policy_logits[0], dim=0)
+                .detach()
+                .cpu()
+                .numpy()
+                .astype(np.float32)
+            )
+            raw_value = float(value.item())
+            if cache is not None:
+                cache[key] = (probs.copy(), raw_value)
+
         probs *= self.legal_mask.astype(np.float32)
         s = float(probs.sum())
         if s > 0:
@@ -126,7 +160,7 @@ class Node:
 
         self.P = probs
         self.is_expanded = True
-        return float(value.item())
+        return raw_value
 
     def Q(self, action: int) -> float:
         """
