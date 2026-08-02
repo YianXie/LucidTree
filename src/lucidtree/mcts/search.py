@@ -136,7 +136,7 @@ class MCTS:
                 # Return value from current player's perspective
                 value = result if node.to_play.get_color() == BLACK_COLOR else -result
             else:
-                value = node.expand(self.model)
+                value = node.expand(self.model, self.device)
 
             # Backup
             self._backup(path, value)
