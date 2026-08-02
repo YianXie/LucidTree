@@ -1,4 +1,3 @@
-import copy
 import time
 from pathlib import Path
 from typing import Any
@@ -95,7 +94,7 @@ class MCTS:
                 child = node.children[child_action]
                 if child is None:
                     move_color = node.to_play.get_color()
-                    next_board = copy.deepcopy(node.board)
+                    next_board = node.board.copy()
 
                     if child_action.item() == PASS_INDEX:
                         next_board.pass_move()

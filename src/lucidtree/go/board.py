@@ -92,6 +92,74 @@ class Board:
         """
         return self.size
 
+    def copy(self) -> Board:
+        """
+        Create a fast, fully independent copy of this board's game state
+
+        Replaces `copy.deepcopy` on the MCTS simulation hot path. There is no
+        array to `np.copy` here -- the grid is 361 `Move` objects -- so every
+        mutable field is rebuilt explicitly:
+
+        * the grid, as fresh `Move` objects
+        * both players, because `place_move` credits captures to
+          `current_player` and Japanese scoring reads those counts back out.
+          Sharing them would let a simulation's captures leak into the parent
+          position's score.
+        * `current_player`, re-aliased to whichever of the two copies matches,
+          since `place_move` switches sides by identity comparison
+        * the ko point, the consecutive-pass counter, the terminate flag and
+          the move-history list
+
+        The history's dict entries are shared rather than duplicated. Those
+        entries are append-only records: `place_move` and `pass_move` each
+        build a fresh dict and `undo` pops one, and nothing mutates an entry
+        in place, so sharing is safe and saves a dict copy per move of history
+        on every simulation. If an entry ever becomes mutable, copy it here.
+
+        Unlike `copy_game_state`, the copy gets its own players. That is what
+        `deepcopy` did, and what the search depends on.
+
+        Returns:
+            Board: an independent copy of this board's game state
+        """
+        new_board = Board.__new__(Board)
+        new_board.size = self.size
+
+        black = Player(self.black_player.name, self.black_player.color)
+        black.capture_count = self.black_player.capture_count
+        white = Player(self.white_player.name, self.white_player.color)
+        white.capture_count = self.white_player.capture_count
+        # Rebuild the mutual opponent link the way deepcopy's memo would have.
+        # Anything else (an unlinked or third-party opponent) is carried over
+        # by reference, since Board never mutates it.
+        black.opponent = (
+            white
+            if self.black_player.opponent is self.white_player
+            else self.black_player.opponent
+        )
+        white.opponent = (
+            black
+            if self.white_player.opponent is self.black_player
+            else self.white_player.opponent
+        )
+
+        new_board.black_player = black
+        new_board.white_player = white
+        new_board.current_player = (
+            black if self.current_player is self.black_player else white
+        )
+
+        new_board.state = [
+            [Move(move.row, move.col, move.color) for move in row] for row in self.state
+        ]
+        new_board._ko_positions = self._ko_positions
+        new_board._consecutive_passes = self._consecutive_passes
+        new_board._is_terminate = self._is_terminate
+        new_board._move_history = list(self._move_history)
+        new_board._running = self._running
+        new_board._thread = self._thread
+        return new_board
+
     def copy_game_state(self) -> Board:
         """
         Create a plain Board copy with the same game state.
